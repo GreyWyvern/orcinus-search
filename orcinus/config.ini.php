@@ -1,5 +1,5 @@
 <?php /* **************************************************************
- * Orca Search - User Configuration
+ * Orcinus Site Search - User Configuration
  *
  */
 
