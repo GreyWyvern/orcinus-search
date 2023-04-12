@@ -2887,7 +2887,7 @@ document.write(mustache.render(
                           } ?> 
                           <td class="text-end d-none d-md-table-cell" data-value="<?php echo $query['ipaddr']; ?>">
                             <a href="https://bgp.he.net/ip/<?php echo $query['ipaddr']; ?>" target="_blank"><?php echo $query['ipaddr']; ?></a><?php
-                            if ($query['geo']) {
+                            if (isset($query['geo']) && $query['geo']) {
                               if (file_exists(__DIR__.'/img/flags/'.strtolower($query['geo']->raw['country']['iso_code']).'.png')) { ?> 
                                 <img src="<?php echo
                                   'img/flags/'.strtolower($query['geo']->raw['country']['iso_code']).'.png';

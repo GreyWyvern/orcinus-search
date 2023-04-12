@@ -350,10 +350,10 @@ if (!$_ODATA['sp_starting']) {
 
 // ***** Load and Initialize PHPMailer
 if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
-  if (file_exists(__DIR__.'/PHPMailer/src/PHPMailer.php')) {
-    include __DIR__.'/PHPMailer/src/PHPMailer.php';
-    include __DIR__.'/PHPMailer/src/Exception.php';
-    include __DIR__.'/PHPMailer/src/SMTP.php';
+  if (file_exists(__DIR__.'/PHPMailer/PHPMailer.php')) {
+    include __DIR__.'/PHPMailer/PHPMailer.php';
+    include __DIR__.'/PHPMailer/Exception.php';
+    include __DIR__.'/PHPMailer/SMTP.php';
   }
 }
 if (class_exists('PHPMailer\PHPMailer\PHPMailer')) {
