@@ -1,2 +1,2 @@
-# orca-search3
- Orca PHP Search - Self-crawling, indexing and search-engine script
+# orcinus-search
+ Orcinus Site Search - Self-crawling, indexing and search-engine script
