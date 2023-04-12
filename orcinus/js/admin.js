@@ -1,5 +1,5 @@
 /* ********************************************************************
- * Orca PHP Search - Administration UI Javascript
+ * Orcinus Site Search - Administration UI Javascript
  *
  */
 

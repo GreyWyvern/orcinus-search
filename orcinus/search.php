@@ -1,5 +1,5 @@
 <?php /* **************************************************************
- * Orca PHP Search - Searching Engine
+ * Orcinus Site Search - Searching Engine
  *
  */
 

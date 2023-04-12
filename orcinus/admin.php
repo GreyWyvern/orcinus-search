@@ -1,5 +1,5 @@
 <?php /* **************************************************************
- * Orca PHP Search - Administration UI
+ * Orcinus Site Search - Administration UI
  *
  */
 
@@ -854,7 +854,7 @@ if (!$_SESSION['admin_username']) {
             // Start JS file output
             ob_start(); ?>
 /* ********************************************************************
- * Orca PHP Search <?php echo $_ODATA['version']; ?> - Offline Javascript Search File
+ * Orcinus Site Search <?php echo $_ODATA['version']; ?> - Offline Javascript Search File
  *  - Generated <?php echo date('r'); ?> 
  *  - Requires mustache.js
  *
@@ -1604,12 +1604,12 @@ document.write(mustache.render(
   <link rel="stylesheet" href="css/bootstrap.min.css">
   <link rel="stylesheet" href="css/admin.css">
 
-  <title>Orca PHP Search <?php echo $_ODATA['version']; ?> - Administration</title>
+  <title>Orcinus Site Search <?php echo $_ODATA['version']; ?> - Administration</title>
 </head>
 <body class="pt-5">
   <nav class="navbar fixed-top navbar-expand-md bg-body-secondary">
     <div class="container-fluid">
-      <span class="navbar-brand flex-grow-1 flex-md-grow-0">Orca PHP Search</span><?php
+      <span class="navbar-brand flex-grow-1 flex-md-grow-0">Orcinus</span><?php
       if ($_SESSION['admin_username']) { ?> 
         <div class="flex-grow-0 order-md-last">
           <button type="button" class="btn btn-primary" id="os_crawl_navbar" data-bs-toggle="modal" data-bs-target="#crawlerModal" data-bs-crawl="run"<?php
@@ -1644,7 +1644,7 @@ document.write(mustache.render(
   </nav>
 
   <h1 class="d-none bg-black text-white p-2">
-    Orca PHP Search <?php echo $_ODATA['version']; ?>
+    Orcinus Site Search <?php echo $_ODATA['version']; ?>
   </h1>
 
   <div class="container-fluid pt-3 pb-3">
@@ -2887,7 +2887,7 @@ document.write(mustache.render(
                           } ?> 
                           <td class="text-end d-none d-md-table-cell" data-value="<?php echo $query['ipaddr']; ?>">
                             <a href="https://bgp.he.net/ip/<?php echo $query['ipaddr']; ?>" target="_blank"><?php echo $query['ipaddr']; ?></a><?php
-                            if (isset($query['geo']) && $query['geo']) {
+                            if ($query['geo']) {
                               if (file_exists(__DIR__.'/img/flags/'.strtolower($query['geo']->raw['country']['iso_code']).'.png')) { ?> 
                                 <img src="<?php echo
                                   'img/flags/'.strtolower($query['geo']->raw['country']['iso_code']).'.png';

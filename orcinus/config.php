@@ -1,5 +1,5 @@
 <?php /* **************************************************************
- * Orca PHP Search - Global Configuration
+ * Orcinus Site Search - Global Configuration
  *
  */
 
@@ -144,7 +144,7 @@ if (!count($testConf)) {
       `sp_cookies`=1,
       `sp_sitemap_file`=\'\',
       `sp_sitemap_hostname`=\''.$_SERVER['HTTP_HOST'].'\',
-      `sp_useragent`=\'OrcaPHPSearch/3.0 (https://greywyvern.com/orca/#search)\',
+      `sp_useragent`=\'OrcinusSearch/3.0 (https://greywyvern.com/orcinus/#search)\',
       `sp_crawling`=0,
       `sp_cancel`=0,
       `sp_progress`=\'\',
@@ -359,7 +359,7 @@ if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
 if (class_exists('PHPMailer\PHPMailer\PHPMailer')) {
   $_MAIL = new PHPMailer\PHPMailer\PHPMailer();
   $_MAIL->From = $_SERVER['SERVER_ADMIN'];
-  $_MAIL->FromName = "Orca PHP Search Crawler";
+  $_MAIL->FromName = "Orcinus Site Search Crawler";
   $_MAIL->CharSet = $_ODATA['s_charset'];
   if (count($ad = $_MAIL->parseAddresses($_ODATA['admin_email'])))
     foreach ($ad as $a) $_MAIL->AddAddress($a['address'], $a['name']);
@@ -368,9 +368,9 @@ if (class_exists('PHPMailer\PHPMailer\PHPMailer')) {
 
 // ***** Load the default Search Result Template
 if (!$_ODATA['s_result_template']) {
-  OS_setValue('s_result_template', <<<ORCAPHP
+  OS_setValue('s_result_template', <<<ORCINUS
 <section id="os_results">
-  <!-- Orca PHP Search {{version}} - HTML Template -->
+  <!-- Orcinus Site Search {{version}} - HTML Template -->
 
   {{#errors}}
     <ul>
@@ -512,15 +512,15 @@ if (!$_ODATA['s_result_template']) {
     <hr>
     <p>
       <small>
-        An
-        <a href="https://greywyvern.com/orca/#search" target="_blank">
-          Orca PHP Script
+        Powered by
+        <a href="https://greywyvern.com/orcinus/#search" target="_blank">
+          Orcinus
         </a>
       </small>
     </p>
   </footer>
 </section>
-ORCAPHP);
+ORCINUS);
 }
 
 // {{{{{ Initialize the Mustache templating engine
@@ -728,7 +728,7 @@ $_RDATA['s_filetypes'] = array(
 $_SERVER['REQUEST_URI'] = preg_replace('/\?.*$/', '', $_SERVER['REQUEST_URI']);
 
 
-$_RDATA['x_generated_by'] = 'X-Generated-By: Orca PHP Search/'.$_ODATA['version'];
+$_RDATA['x_generated_by'] = 'X-Generated-By: Orcinus Site Search/'.$_ODATA['version'];
 header($_RDATA['x_generated_by']);
 
 

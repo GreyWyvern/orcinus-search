@@ -1,5 +1,5 @@
 <?php /* **************************************************************
- * Orca PHP Search - Web Crawling Engine
+ * Orcinus Site Search - Web Crawling Engine
  *
  */
 
@@ -420,6 +420,8 @@ function OS_parseURLContent($_) {
                 case 'orcaphp-crawler':
                 case 'orca-phpcrawler':
                 case 'orca-php-crawler':
+                case 'orcinuscrawler':
+                case 'orcinus-crawler':
                   for ($y = 0; $y < count($meta->attributes); $y++) {
                     if (strtolower($meta->attributes[$y]->name) == 'content') {
                       $content = explode(',', $meta->attributes[$y]->value);
@@ -792,7 +794,7 @@ function OS_crawlCleanUp() {
 
       // Send success email to the admin(s)
       if ($_MAIL && count($_MAIL->getAllRecipientAddresses()) && $_ODATA['sp_email_success']) {
-        $_MAIL->Subject = 'Orca PHP Search Crawler: Crawl succeeded';
+        $_MAIL->Subject = 'Orcinus Site Search Crawler: Crawl succeeded';
         $_MAIL->Body = implode("   \r\n", preg_grep('/^[\[\*]/', explode("\n", file_get_contents($_ODATA['sp_log']))));
         if (!$_MAIL->Send()) OS_crawlLog('Could not send notification email', 2);
       }
@@ -816,7 +818,7 @@ function OS_crawlCleanUp() {
 
       // Send failure email to the admin(s)
       if ($_MAIL && count($_MAIL->getAllRecipientAddresses()) && $_ODATA['sp_email_failure']) {
-        $_MAIL->Subject = 'Orca PHP Search Crawler: Catastrophic failure!';
+        $_MAIL->Subject = 'Orcinus Site Search Crawler: Catastrophic failure!';
         $_MAIL->Body = implode("   \r\n", preg_grep('/^[\[\*\w\d]/', explode("\n", file_get_contents($_ODATA['sp_log']))));
         if (!$_MAIL->Send()) OS_crawlLog('Could not send notification email', 2);
       }
@@ -838,7 +840,7 @@ function OS_crawlCleanUp() {
 
     // Send failure email to the admin(s)
     if ($_MAIL && count($_MAIL->getAllRecipientAddresses()) && $_ODATA['sp_email_failure'] && !$_ODATA['sp_cancel']) {
-      $_MAIL->Subject = 'Orca PHP Search Crawler: Crawl failed';
+      $_MAIL->Subject = 'Orcinus Site Search Crawler: Crawl failed';
       $_MAIL->Body = implode("   \r\n", preg_grep('/^[\[\*\w\d]/', explode("\n", file_get_contents($_ODATA['sp_log']))));
       if (!$_MAIL->Send()) OS_crawlLog('Could not send notification email', 2);
     }
@@ -968,7 +970,7 @@ if (!isset($_SERVER['REQUEST_METHOD'])) {
 
               // Send failure email to the admin(s)
               if ($_MAIL && count($_MAIL->getAllRecipientAddresses()) && $_ODATA['sp_email_failure']) {
-                $_MAIL->Subject = 'Orca PHP Search Crawler: Crawler halted unexpectedly';
+                $_MAIL->Subject = 'Orcinus Site Search Crawler: Crawler halted unexpectedly';
                 $_MAIL->Body = implode("   \r\n", preg_grep('/^[\[\*\w\d]/', explode("\n", $_ODATA['sp_log'])));
                 if (!$_MAIL->Send()) OS_setValue('sp_log', $_ODATA['sp_log']."\n".'[ERROR] Could not send notification email');
               }
@@ -1272,7 +1274,7 @@ while ($_cURL && count($_QUEUE)) {
           $robots[$robot][strtolower($r[1])][] = OS_formatURL($r[3], $url);
       }
       foreach ($robots as $agent => $rules) {
-        if (preg_match('/^orca(-?php)?-?crawler$/i', $agent) || $agent == '*') {
+        if (preg_match('/^orc(a|inus)(-?php)?-?crawler$/i', $agent) || $agent == '*') {
           foreach ($rules['disallow'] as $disrule)
             if (!in_array($disrule, $_RDATA['sp_robots'][$purl['host']]))
               $_RDATA['sp_robots'][$purl['host']][] = $disrule;
