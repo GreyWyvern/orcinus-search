@@ -861,7 +861,10 @@ if (!$_SESSION['admin_username']) {
  */
 
 function os_preg_quote(str, delimiter) {
-  return (str + '').replace(new RegExp('[.\\\\+*?\\[\\^\\]$(){}=!<>|:\\' + (delimiter || '') + '-]', 'g'), '\\$&');
+  return (str + '').replace(new RegExp(
+    '[.\\\\+*?\\[\\^\\]$(){}=!<>|:\\' + (delimiter || '') + '-]', 'g'),
+    '\\$&'
+  );
 }
 
 // ***** Variable Migration
@@ -960,6 +963,17 @@ new os_page('<?php
   } ?> 
 ];
 
+// ***** Return list of all pages for typeahead
+function os_return_all() {
+  let fullList = [];
+  for (let x = 0; x < os_crawldata.length; x++) {
+    fullList.push({
+      title: os_crawldata[x].title,
+      url: os_crawldata[x].url
+    });
+  }
+  return fullList;
+}
 
 // {{{{{ Create the Mustache template
 let os_TEMPLATE = {}
@@ -1609,7 +1623,7 @@ document.write(mustache.render(
 <body class="pt-5">
   <nav class="navbar fixed-top navbar-expand-md bg-body-secondary">
     <div class="container-fluid">
-      <span class="navbar-brand flex-grow-1 flex-md-grow-0">Orcinus</span><?php
+      <span class="navbar-brand flex-grow-1 flex-md-grow-0 mb-1">Orcinus</span><?php
       if ($_SESSION['admin_username']) { ?> 
         <div class="flex-grow-0 order-md-last">
           <button type="button" class="btn btn-primary" id="os_crawl_navbar" data-bs-toggle="modal" data-bs-target="#crawlerModal" data-bs-crawl="run"<?php
@@ -1647,7 +1661,7 @@ document.write(mustache.render(
     Orcinus Site Search <?php echo $_ODATA['version']; ?>
   </h1>
 
-  <div class="container-fluid pt-3 pb-3">
+  <div class="container-fluid pt-4 pb-3">
 
     <div class="row justify-content-center"><?php
       while ($error = array_shift($_SESSION['error'])) { ?> 
@@ -1872,16 +1886,14 @@ document.write(mustache.render(
                               data-bs-toggle="tooltip" data-bs-placement="bottom" title="To disable storing a sitemap, just leave this field blank.">
                           </div>
                         </label><?php
-                        if ($_ODATA['sp_sitemap_file']) {
-                          if (!file_exists($_ODATA['sp_sitemap_file'])) { ?> 
-                            <p id="os_sp_sitemap_file_text" class="form-text text-danger mb-0">
-                              <strong>Warning:</strong> Target sitemap file doesn't exist. Please create it.
-                            </p><?php
-                          } else if (!is_writable($_ODATA['sp_sitemap_file'])) { ?> 
-                            <p id="os_sp_sitemap_file_text" class="form-text text-danger mb-0">
-                              <strong>Warning:</strong> Target sitemap file is not writable. Please adjust permissions.
-                            </p><?php
-                          }
+                        if ($_RDATA['sp_sitemap_file'] == 'does not exist') { ?> 
+                          <p id="os_sp_sitemap_file_text" class="form-text text-danger mb-0">
+                            <strong>Warning:</strong> Target sitemap file doesn't exist. Please create it.
+                          </p><?php
+                        } else if ($_RDATA['sp_sitemap_file'] == 'not writable') { ?> 
+                          <p id="os_sp_sitemap_file_text" class="form-text text-danger mb-0">
+                            <strong>Warning:</strong> Target sitemap file is not writable. Please adjust permissions.
+                          </p><?php
                         } ?> 
                       </li><?php
                       if (count($_RDATA['s_starting_domains']) > 1) { ?> 

@@ -393,12 +393,14 @@ if (!$_ODATA['s_result_template']) {
 
       {{#results}}
         <div>
-          Showing results
-          <var>{{from}}</var> &ndash; <var>{{to}}</var>
-          of <var>{{of}}</var>
-          {{#in}}
-            in <var>{{in}}</var> seconds
-          {{/in}}
+          <p>
+            Showing results
+            <var>{{from}}</var> &ndash; <var>{{to}}</var>
+            of <var>{{of}}</var>
+            {{#in}}
+              in <var>{{in}}</var> seconds
+            {{/in}}
+          </p>
         </div>
 
         <ol start="{{from}}">
@@ -541,7 +543,7 @@ class OS_Mustache {
   public function render() {
     global $_ODATA;
 
-    require __DIR__.'/Mustache/Autoloader.php';
+    require_once __DIR__.'/Mustache/Autoloader.php';
     Mustache_Autoloader::register();
 
     $output = new Mustache_Engine(array('entity_flags' => ENT_QUOTES));
@@ -557,10 +559,10 @@ $deleteold = $_DDATA['pdo']->prepare(
 );
 $deleteold->execute(array('cutoff' => time() - $_ODATA['s_limit_query_log'] * 86400));
 $err = $deleteold->errorInfo();
-if ($err[0] != '00000') {
+if ($err[0] != '00000')
   if (isset($_SESSION['error']))
     $_SESSION['error'][] = 'Database error purging old records from the query log.';
-}
+
 
 // Reduce search result cache size to within limits
 $_RDATA['s_cache_size'] = 0;
@@ -602,6 +604,7 @@ if ($err[0] == '00000') {
           if (isset($_SESSION['error']))
             $_SESSION['error'][] = 'Database error while limiting the search result cache size.';
           break;
+
         } else {
           $cachesize[0]['size'] -= $size;
           $_RDATA['s_cached_searches']--;
@@ -649,7 +652,8 @@ if ($err[0] == '00000') {
   $domains = $domains->fetchAll();
   foreach ($domains as $domain)
     $_RDATA['s_crawldata_domains'][$domain['url_base']] = $domain['count'];
-} else $_SESSION['error'][] = 'Could not read domain count data from search database.';
+} else if (isset($_SESSION['error']))
+  $_SESSION['error'][] = 'Could not read domain count data from search database.';
 if (count($_RDATA['s_crawldata_domains']) == 1)
   OS_setValue('jw_hostname', key($_RDATA['s_crawldata_domains']));
 
@@ -665,7 +669,8 @@ $err = $searchable->errorInfo();
 if ($err[0] == '00000') {
   $searchable = $searchable->fetchAll();
   $_RDATA['s_searchable_pages'] = $searchable[0]['count'];
-} else $_SESSION['error'][] = 'Could not read status data from search database.';
+} else if (isset($_SESSION['error']))
+  $_SESSION['error'][] = 'Could not read status data from search database.';
 
 
 // Match Weighting Values
@@ -723,6 +728,30 @@ $_RDATA['s_filetypes'] = array(
    'XML' => array('text/xml', 'application/xml'),
    'TXT' => array('text/plain')
 );
+
+// Locate the sitemap file if given
+if ($_ODATA['sp_sitemap_file']) {
+  $sitemapPath = ($_ODATA['sp_sitemap_file'][0] == '/') ? $_SERVER['DOCUMENT_ROOT'] : __DIR__.'/';
+  $sitemapPath .= $_ODATA['sp_sitemap_file'];
+  $sitemapPath = preg_replace(array('/\/[^\/]+\/\.\.\//', '/\/\.\//'), '/', $sitemapPath);
+
+  // If we did not try going beyond the document_root
+  if (strpos($sitemapPath, $_SERVER['DOCUMENT_ROOT']) === 0) {
+    if (file_exists($sitemapPath)) {
+      $sitemapNewFile = str_replace($_SERVER['DOCUMENT_ROOT'], '', $sitemapPath);
+      if ($sitemapNewFile != $_ODATA['sp_sitemap_file'])
+        OS_setValue('sp_sitemap_file', $sitemapNewFile);
+      if (is_writable($sitemapPath)) {
+        $_RDATA['sp_sitemap_file'] = $sitemapPath;
+      } else $_RDATA['sp_sitemap_file'] = 'not writable';
+    } else $_RDATA['sp_sitemap_file'] = 'does not exist';
+  } else {
+    OS_setValue('sp_sitemap_file', '');
+    $_RDATA['sp_sitemap_file'] = 'beyond root';
+    if (isset($_SESSION['error']))
+      $_SESSION['error'][] = 'Cannot set sitemap file location above the DOCUMENT_ROOT.';
+  }
+} else $_RDATA['sp_sitemap_file'] = '';
 
 
 $_SERVER['REQUEST_URI'] = preg_replace('/\?.*$/', '', $_SERVER['REQUEST_URI']);

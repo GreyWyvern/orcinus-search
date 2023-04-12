@@ -1361,7 +1361,7 @@ while ($_cURL && count($_QUEUE)) {
         // If the content checksum is new
         if ($row['content_checksum'] != $data['info']['sha1']) {
           $row['flag_updated'] = 1;
-          if ($data['info']['filetime'] == -1)
+          if ($data['info']['filetime'] <= 0)
             $data['info']['filetime'] = time();
 
           if (isset($row['url'])) {
@@ -1405,6 +1405,10 @@ while ($_cURL && count($_QUEUE)) {
       // ***** URL hasn't been modified since the last successful crawl
       } else { 
 
+        // Preset the 'last_modified' time until we can find out the
+        // actual value from the previous database record
+        $data['info']['filetime'] = time();
+
         // Get previous entry from existing search database
         $insertNotModified->execute(array('url' => $url));
         if (!$insertNotModified->rowCount()) {
@@ -1432,6 +1436,7 @@ while ($_cURL && count($_QUEUE)) {
             if ($err[0] == '00000') {
               $row = $selectData->fetchAll()[0];
               $data['links'] = json_decode($row['links'], true);
+              $data['info']['filetime'] = $row['last_modified'];
             } else {
               OS_crawlLog('Database existing table row read error: '.$url, 2);
               $row = array('priority' => 0.5);
@@ -1571,8 +1576,8 @@ while ($_cURL && count($_QUEUE)) {
 
 // ***** Write sitemap
 if ($_RDATA['sp_complete'] && $_ODATA['sp_sitemap_file']) {
-  if (file_exists($_ODATA['sp_sitemap_file'])) {
-    if (is_writable($_ODATA['sp_sitemap_file'])) {
+  if ($_RDATA['sp_sitemap_file'] != 'does not exist') {
+    if ($_RDATA['sp_sitemap_file'] != 'not writable') {
       $sm = array('<?xml version="1.0" encoding="UTF-8"?>');
       $sm[] = '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
       foreach ($_RDATA['sp_sitemap'] as $sitemap) {
@@ -1585,17 +1590,17 @@ if ($_RDATA['sp_complete'] && $_ODATA['sp_sitemap_file']) {
       }
       $sm[] = '</urlset>';
 
-      if (preg_match('/\.xml\.gz$/', $_ODATA['sp_sitemap_file'])) {
+      if (preg_match('/\.xml\.gz$/', $_RDATA['sp_sitemap_file'])) {
         if (function_exists('gzopen')) {
-          $smf = gzopen($_ODATA['sp_sitemap_file'], 'w');
+          $smf = gzopen($_RDATA['sp_sitemap_file'], 'w');
           gzwrite($smf, implode("\n", $sm));
           gzclose($smf);
           OS_crawlLog('Sitemap written successfully: '.$_ODATA['sp_sitemap_file'], 1);
 
         } else OS_crawlLog('Could not write sitemap; PHP gzip functions are not enabled', 2);
 
-      } else if (preg_match('/\.xml$/', $_ODATA['sp_sitemap_file'])) {
-        $smf = fopen($_ODATA['sp_sitemap_file'], 'w');
+      } else if (preg_match('/\.xml$/', $_RDATA['sp_sitemap_file'])) {
+        $smf = fopen($_RDATA['sp_sitemap_file'], 'w');
         fwrite($smf, implode("\n", $sm));
         fclose($smf);
         OS_crawlLog('Sitemap written successfully: '.$_ODATA['sp_sitemap_file'], 1);

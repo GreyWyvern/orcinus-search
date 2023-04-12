@@ -27,8 +27,24 @@
   padding-right:0.3em;
 }
 
-#os_results > form {
+#os_results form {
   text-align:center;
+}
+#os_results form .tt-menu {
+  background-color:#fff;
+  border:1px solid #000;
+  width:200%;
+  max-width:90vw;
+  text-align:left;
+}
+#os_results form .tt-suggestion {
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+#os_results form .tt-suggestion.tt-cursor {
+  background-color: #ccc;
+  cursor:pointer;
 }
 
 #os_results > footer {

@@ -364,9 +364,12 @@ if ($_RDATA['s_searchable_pages']) {
 
             // Add the page description to use as a default match text
             if (trim($row['description'])) {
+              if (strlen($row['description']) > $_ODATA['s_limit_matchtext']) {
+                $match = substr($row['description'], 0, $_ODATA['s_limit_matchtext'])."\u{2026}";
+              } else $match = $row['description'];
               $_SDATA['results'][$key]['matchtext'][] = array(
                 'rank' => 0,
-                'text' => substr($row['description'], 0, $_ODATA['s_limit_matchtext'])
+                'text' => $match
               );
             }
 
@@ -465,8 +468,6 @@ if ($_RDATA['s_searchable_pages']) {
       $_SDATA['pages'] = ceil(count($_SDATA['results']) / $_ODATA['s_results_pagination']);
       $_REQUEST['page'] = min($_SDATA['pages'], $_REQUEST['page']);
 
-      if (!isset($_REQUEST['json']) || $_REQUEST['json'] !== 'true')
-        $_REQUEST['json'] = '';
 
       // Database log (and potentially cache) this page only if:
       // - This is not a JSON output request
@@ -475,7 +476,7 @@ if ($_RDATA['s_searchable_pages']) {
       //   this same query
       // - ... but if their IP *does* match, check that their last
       //   request for this same query was more than ten seconds ago
-      if ($_REQUEST['json'] !== 'true' && $_REQUEST['page'] == 1 &&
+      if (!isset($_REQUEST['json']) && $_REQUEST['page'] == 1 &&
            ($_SDATA['cache']['ip'] != $_SERVER['REMOTE_ADDR'] ||
             $_SDATA['cache']['stamp'] + 10 < time())) {
 
@@ -724,7 +725,7 @@ if ($_ODATA['sp_interval'] &&
 
 
 // Output JSON and exit if requested
-if (isset($_REQUEST['json']) && $_REQUEST['json'] === 'true') {
+if (isset($_REQUEST['json'])) {
   header('Content-type: application/json; charset='.$_ODATA['s_charset']);
   die(json_encode($_SDATA['json'], JSON_INVALID_UTF8_IGNORE));
 } ?>
