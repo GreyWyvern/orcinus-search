@@ -1,0 +1,78 @@
+progress {
+  height:1.6em;
+}
+progress::-webkit-progress-bar {
+  background:transparent;
+}
+progress::-moz-progress-bar {
+  background-color:lightblue !important;
+}
+progress::-webkit-progress-value {
+  background-color:lightblue !important;
+}
+progress::after {
+  content:attr(data-progress);
+  position:absolute;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  color:black;
+  font-weight:bold;
+  line-height:1.5em;
+  text-align:center;
+  vertical-align:middle;
+  white-space:nowrap;
+}
+
+#crawlerModal .crawl-log-prev,
+#crawlerModal .modal-footer button,
+#crawlerModal.crawler-log .crawl-controls,
+#crawlerModal.crawler-log .modal-footer p,
+#crawlerModal.crawler-log .crawl-progress,
+#crawlerModal.crawler-log .crawl-log {
+  display:none;
+}
+#crawlerModal.crawler-log .modal-footer button,
+#crawlerModal.crawler-log .crawl-log-prev {
+  display:block;
+}
+
+input[type="number"] {
+  max-width:5em;
+}
+
+.mw-90 {
+  max-width:90%;
+}
+.mw-10em {
+  max-width:10em;
+}
+
+.table-fixed {
+  table-layout:fixed;
+}
+
+.text-ellipsis {
+  text-overflow:ellipsis;
+}
+
+img.svg-icon {
+  height:1.2em;
+}
+img.svg-icon-sm {
+  height:0.75em;
+}
+img.svg-icon-flag {
+  width:1.5em;
+}
+
+#os_queries_thead > tr > th > img {
+  visibility:hidden;
+}
+#os_queries_thead > tr > th.os_sorting > img {
+  visibility:visible;
+}
+#os_queries_thead > tr > th.os_asc > img {
+  transform:rotate(180deg);
+}

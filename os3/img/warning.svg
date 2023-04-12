@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <defs><style>.cls-1 { fill: none; stroke: #000; stroke-linecap: round; stroke-linejoin: round; stroke-width: 66.67px; }</style></defs>
+  <path class="cls-1" d="m400,233.33v200m300-33.33c0,165.69-134.31,300-300,300S100,565.69,100,400,234.31,100,400,100s300,134.31,300,300Z"/>
+  <circle cx="400" cy="550" r="33.33"/>
+</svg>

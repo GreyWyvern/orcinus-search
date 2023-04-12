@@ -1,0 +1,36 @@
+#os_results ol > li {
+  margin-bottom:1em;
+}
+#os_results ol > li > header > span,
+#os_results ol > li > header > a {
+  font-size:120%;
+}
+#os_results ol > li > blockquote,
+#os_results ol > li > blockquote > p{
+  margin:0.2em 0;
+}
+#os_results ol > li > footer > cite {
+  color:#008800;
+}
+#os_results ol > li *:empty {
+  display:none;
+}
+
+#os_results nav > ul {
+  list-style-type:none;
+  padding-left:0;
+  display:flex;
+  justify-content:center;
+}
+#os_results nav > ul li {
+  padding-left:0.3em;
+  padding-right:0.3em;
+}
+
+#os_results > form {
+  text-align:center;
+}
+
+#os_results > footer {
+  text-align:center;
+}
