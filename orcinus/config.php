@@ -483,7 +483,7 @@ if (!$_ODATA['s_result_template']) {
 
     <form action="{{form_action}}" method="get">
       <label>
-        <input type="text" name="q" value="{{request_q}}" placeholder="Search...">
+        <input type="text" name="q" value="{{request_q}}" class="os_typeahead" placeholder="Search...">
       </label>
       {{#categories}}
         <label>
