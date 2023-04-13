@@ -141,7 +141,7 @@ if (!count($testConf)) {
       `sp_cookies`=1,
       `sp_sitemap_file`=\'\',
       `sp_sitemap_hostname`=\''.$_SERVER['HTTP_HOST'].'\',
-      `sp_useragent`=\'OrcinusSearch/3.0 (https://greywyvern.com/orcinus/#search)\',
+      `sp_useragent`=\'OrcinusSearch/3.0 (https://greywyvern.com/orcinus/)\',
       `sp_crawling`=0,
       `sp_cancel`=0,
       `sp_progress`=\'\',
@@ -515,7 +515,7 @@ if (!$_ODATA['s_result_template']) {
     <p>
       <small>
         Powered by
-        <a href="https://greywyvern.com/orcinus/#search" target="_blank">
+        <a href="https://greywyvern.com/orcinus/" target="_blank">
           Orcinus
         </a>
       </small>
