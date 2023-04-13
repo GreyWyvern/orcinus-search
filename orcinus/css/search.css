@@ -30,23 +30,29 @@
 #os_results form {
   text-align:center;
 }
-#os_results form .tt-menu {
+
+#os_results > footer {
+  text-align:center;
+}
+
+/* ***** Typeahead input and dropdown menu styles ****************** */
+.twitter-typeahead .os_typeahead.tt-hint {}
+.twitter-typeahead .os_typeahead.tt-input {}
+.twitter-typeahead .os_typeahead ~ .tt-menu {
   background-color:#fff;
   border:1px solid #000;
   width:200%;
   max-width:90vw;
   text-align:left;
+  left:50%!important;
+  transform:translate(-50%, 0);
 }
-#os_results form .tt-suggestion {
+.twitter-typeahead .os_typeahead ~ .tt-menu .tt-suggestion {
   overflow:hidden;
   white-space:nowrap;
   text-overflow:ellipsis;
 }
-#os_results form .tt-suggestion.tt-cursor {
+.twitter-typeahead .os_typeahead ~ .tt-menu .tt-suggestion.tt-cursor {
   background-color: #ccc;
   cursor:pointer;
-}
-
-#os_results > footer {
-  text-align:center;
 }
