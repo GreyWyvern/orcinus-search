@@ -481,7 +481,8 @@ if (!$_ODATA['s_result_template']) {
     <search role="search">
       <form action="{{form_action}}" method="get">
         <label>
-          <input type="search" name="q" value="{{request_q}}" class="os_typeahead" placeholder="Search...">
+          <input type="search" name="q" value="{{request_q}}"
+            class="os_typeahead" placeholder="Search..." aria-label="Search">
         </label>
         {{#categories}}
           <label>
