@@ -1,3 +1,4 @@
+/* ***** Orcinus Site Search - Default Search Result Javascript **** */
 let remoteValue;
 if (typeof os_return_all !== 'function') {
   function os_return_all() { return []; }

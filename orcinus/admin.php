@@ -1,7 +1,4 @@
-<?php /* **************************************************************
- * Orcinus Site Search - Administration UI
- *
- */
+<?php /* ***** Orcinus Site Search - Administration UI ************* */
 
 
 session_start();

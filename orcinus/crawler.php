@@ -1,10 +1,7 @@
-<?php /* **************************************************************
- * Orcinus Site Search - Web Crawling Engine
- *
- */
+<?php /* ***** Orcinus Site Search - Web Crawling Engine *********** */
 
 
-$_DEBUGMODE = ($_SERVER['REQUEST_METHOD'] == 'GET') ? true : false;
+$_DEBUGMODE = ($_SERVER['REQUEST_METHOD'] == 'GET') ? false : false;
 require __DIR__.'/config.php';
 
 

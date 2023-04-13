@@ -1,7 +1,4 @@
-<?php /* **************************************************************
- * Orcinus Site Search - Global Configuration
- *
- */
+<?php /* ***** Orcinus Site Search - Global Configuration ********** */
 
 
 $_DDATA = array();

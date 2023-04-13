@@ -1,27 +1,12 @@
-/* ********************************************************************
- * Orcinus Site Search - Administration UI Javascript
- *
- */
+/* ***** Orcinus Site Search - Administration UI Javascript ******** */
 
 
-/**
- * Generates a readable filesize string from an integer byte-count
- *
- */
-let readSize = function(bytes, abbr = false) {
-  bytes = parseInt(bytes);
-  if (bytes >= 1020054733) return Math.round((bytes / 1073741824), 1) + ' ' + ((abbr) ? '<abbr title="gibibytes">GiB</abbr>' : 'GiB');
-  if (bytes >= 996148) return Math.round((bytes / 1048576), 1) + ' ' + ((abbr) ? '<abbr title="mebibytes">MiB</abbr>' : 'MiB');
-  if (bytes >= 973) return Math.round((bytes / 1024), 1) + ' ' + ((abbr) ? '<abbr title="kibibytes">kiB</abbr>' : 'kiB');
-  if (bytes >= 0) return bytes + ' ' + ((abbr) ? '<abbr title="bytes">B</abbr>' : 'B');
-  return '';
-}
-
-
+// Enable Popper.js tooltips
 let toolTipElems = document.querySelectorAll('[data-bs-toggle="tooltip"]');
 let toolTipList = [...toolTipElems].map(elem => new bootstrap.Tooltip(elem));
 
 
+/* ***** Page >> Crawler Managment ********************************* */
 let countUpTimers = document.querySelectorAll('span.countup_timer');
 let timeTracker = (new Date()).getTime();
 let countUpPeriods = [['day', 'days'], ['hour', 'hours'], ['minute', 'minutes'], ['second', 'seconds']];
