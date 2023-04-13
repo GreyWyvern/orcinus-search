@@ -12,7 +12,7 @@ let os_bloodhound = new Bloodhound({
   local: os_return_all
 });
 
-$('input[type="text"].os_typeahead').attr('autocomplete', 'off').typeahead({
+$('input.os_typeahead').attr('autocomplete', 'off').typeahead({
   hint: true,
   highlight: true,
   minLength: 3

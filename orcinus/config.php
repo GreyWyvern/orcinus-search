@@ -481,25 +481,27 @@ if (!$_ODATA['s_result_template']) {
       </div>
     {{/searched}}
 
-    <form action="{{form_action}}" method="get">
-      <label>
-        <input type="text" name="q" value="{{request_q}}" class="os_typeahead" placeholder="Search...">
-      </label>
-      {{#categories}}
+    <search role="search">
+      <form action="{{form_action}}" method="get">
         <label>
-          <select name="c">
-            {{#category_list}}
-              <option value="{{name}}"{{#selected}} selected="selected"{{/selected}}>
-                {{name}}
-              </option>
-            {{/category_list}}
-          </select>
+          <input type="search" name="q" value="{{request_q}}" class="os_typeahead" placeholder="Search...">
         </label>
-      {{/categories}}
-      <button type="submit">
-        Search
-      </button>
-    </form>
+        {{#categories}}
+          <label>
+            <select name="c">
+              {{#category_list}}
+                <option value="{{name}}"{{#selected}} selected="selected"{{/selected}}>
+                  {{name}}
+                </option>
+              {{/category_list}}
+            </select>
+          </label>
+        {{/categories}}
+        <button type="submit">
+          Search
+        </button>
+      </form>
+    </search>
   {{/searchable}}
   {{^searchable}}
     <div>
