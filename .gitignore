@@ -1,6 +1,7 @@
 
-os3/geoip2/LICENSE.txt
-os3/geoip2/GeoLite2-Country.mmdb
-os3/geoip2/geoip2.phar
-os3/geoip2/COPYRIGHT.txt
+orcinus/GeoIP2/LICENSE.txt
+orcinus/GeoIP2/GeoLite2-Country.mmdb
+orcinus/GeoIP2/geoip2.phar
+orcinus/GeoIP2/COPYRIGHT.txt
+orcinus/config.ini.php
 *.7z
