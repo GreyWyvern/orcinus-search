@@ -1,4 +1,4 @@
-#Maxmind GeoIP2 Geolocation
+# Maxmind GeoIP2 Geolocation
 
 To enable the Geo-Location service for items in the Query Log, follow the steps below:
 
