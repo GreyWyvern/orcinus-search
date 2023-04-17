@@ -1008,6 +1008,7 @@ switch ($_SERVER['REQUEST_METHOD']) {
       header('Content-type: text/plain; charset='.strtolower($_ODATA['s_charset']));
       die($_ODATA['sp_useragent']);
     }
+    break;
 
   // Allow CLI requests through
   case '':
@@ -1023,6 +1024,7 @@ switch ($_SERVER['REQUEST_METHOD']) {
   case 'GET':
     header('Content-type: text/plain; charset='.strtolower($_ODATA['s_charset']));
     if (!$_RDATA['debug']) die($_ODATA['sp_useragent']);
+    break;
 
   // Exit for all other request types
   default:
