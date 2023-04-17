@@ -6,6 +6,11 @@ $_RDATA = array();
 require __DIR__.'/config.ini.php';
 
 
+// Check version compatibility
+if (PHP_VERSION_ID < 70200)
+  throw new Exception('Orcinus Site Search requires a PHP version ">= 7.2.0". You are running '.PHP_VERSION.'.');
+
+
 // ***** Connect to the database
 $_DDATA['pdo'] = new PDO(
   'mysql:host='.$_DDATA['hostname'].';dbname='.$_DDATA['database'].';charset=UTF8',
@@ -13,7 +18,9 @@ $_DDATA['pdo'] = new PDO(
   $_DDATA['password']
 );
 $err = $_DDATA['pdo']->errorInfo();
-if ($err[0]) die('Fatal database connection error: '.$err[0]);
+if ($err[0])
+  throw new Exception('Database connection error: '.$err[2]);
+
 $_DDATA['pdo']->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
 $_DDATA['pdo']->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
@@ -21,11 +28,12 @@ $_DDATA['tables'] = $_DDATA['pdo']->query(
   'SHOW TABLES FROM `'.$_DDATA['database'].'` LIKE \''.$_DDATA['tbprefix'].'%\';'
 );
 $err = $_DDATA['tables']->errorInfo();
-if ($err[0] == '00000') {
-  $_DDATA['tables'] = $_DDATA['tables']->fetchAll(PDO::FETCH_NUM);
-  foreach($_DDATA['tables'] as $key => $value)
-    $_DDATA['tables'][$key] = $value[0];
-} else die('Fatal database read error: '.$err[2]);
+if ($err[0] != '00000')
+  throw new Exception('Database table read error: '.$err[2]);
+
+$_DDATA['tables'] = $_DDATA['tables']->fetchAll(PDO::FETCH_NUM);
+foreach($_DDATA['tables'] as $key => $value)
+  $_DDATA['tables'][$key] = $value[0];
 
 
 // ***** Create the configuration table if it doesn't exist
@@ -33,7 +41,9 @@ if (!in_array($_DDATA['tbprefix'].'config', $_DDATA['tables'])) {
   $create = $_DDATA['pdo']->query(
     'CREATE TABLE `'.$_DDATA['tbprefix'].'config` (
       `version` VARCHAR(8) NOT NULL,
+      `admin_from` TINYTEXT NOT NULL,
       `admin_email` TEXT NOT NULL,
+      `admin_install_root` TINYTEXT NOT NULL,
       `admin_install_domain` TINYTEXT NOT NULL,
       `admin_index_pagination` SMALLINT UNSIGNED NOT NULL,
       `sp_key` TINYTEXT NOT NULL,
@@ -92,22 +102,26 @@ if (!in_array($_DDATA['tbprefix'].'config', $_DDATA['tables'])) {
       PRIMARY KEY (`version`)
     ) ENGINE = MyISAM, COLLATE = utf8_general_ci;'
   );
+  $err = $create->errorInfo();
+  if ($err[0] != '00000')
+    throw new Exception('Could not create configuration database table: '.$err[2]);
 }
 
 $testConf = $_DDATA['pdo']->query(
   'SELECT `version` FROM `'.$_DDATA['tbprefix'].'config`;'
 );
 $err = $testConf->errorInfo();
-if ($err[0] == '00000') {
-  $testConf = $testConf->fetchAll();
-} else die('Fatal configuration table read error: '.$err[2]);
+if ($err[0] != '00000')
+  throw new Exception('Configuration table read error: '.$err[2]);
 
 // ***** Set default configuration table values
-if (!count($testConf)) {
+if (!count($testConf->fetchAll())) {
   $insert = $_DDATA['pdo']->query(
     'INSERT INTO `'.$_DDATA['tbprefix'].'config` SET
       `version`=\'3.0\',
+      `admin_from`=\'\',
       `admin_email`=\'\',
+      `admin_install_root`=\'\',
       `admin_install_domain`=\'\',
       `admin_index_pagination`=100,
       `sp_key`=\'\',
@@ -140,8 +154,8 @@ if (!count($testConf)) {
       `sp_ifmodifiedsince`=1,
       `sp_cookies`=1,
       `sp_sitemap_file`=\'\',
-      `sp_sitemap_hostname`=\''.$_SERVER['HTTP_HOST'].'\',
-      `sp_useragent`=\'OrcinusSearch/3.0 (https://greywyvern.com/orcinus/)\',
+      `sp_sitemap_hostname`=\'\',
+      `sp_useragent`=\'OrcinusCrawler/3.0 (https://greywyvern.com/orcinus/)\',
       `sp_crawling`=0,
       `sp_cancel`=0,
       `sp_progress`=\'\',
@@ -165,7 +179,11 @@ if (!count($testConf)) {
       `jw_compression`=25
     ;'
   );
+  $err = $insert->errorInfo();
+  if ($err[0] != '00000' || !$insert->rowCount())
+    throw new Exception('Could not fill configuration database table: '.$err[2]);
 }
+
 
 // ***** Create the crawldata table if it doesn't exist
 if (!in_array($_DDATA['tbprefix'].'crawldata', $_DDATA['tables'])) {
@@ -193,6 +211,9 @@ if (!in_array($_DDATA['tbprefix'].'crawldata', $_DDATA['tables'])) {
       UNIQUE `content_checksum` (`content_checksum`)
     ) ENGINE = MyISAM, COLLATE = utf8_general_ci;'
   );
+  $err = $create->errorInfo();
+  if ($err[0] != '00000')
+    throw new Exception('Could not create crawldata database table: '.$err[2]);
 }
 
 // ***** Create the query log table if it doesn't exist
@@ -206,6 +227,9 @@ if (!in_array($_DDATA['tbprefix'].'query', $_DDATA['tables'])) {
       `cache` MEDIUMBLOB NOT NULL
     ) ENGINE = MyISAM, COLLATE = utf8_general_ci;'
   );
+  $err = $create->errorInfo();
+  if ($err[0] != '00000')
+    throw new Exception('Could not create query log database table: '.$err[2]);
 }
 
 
@@ -279,7 +303,7 @@ function OS_getValue($columnName) {
 
 /**
  * Initialize a generic cURL connection
- *  - If creating a cURL connection fails, we should try some fallbacks
+ *  - If creating a cURL connection fails, we could try some fallbacks
  *
  */
 function OS_getConnection() {
@@ -317,16 +341,28 @@ date_default_timezone_set($_ODATA['sp_timezone']);
 ini_set('mbstring.substitute_character', 'none');
 
 
+// Determine the correct HTTP scheme by which we are accessing the page
+if (!isset($_SERVER['REQUEST_SCHEME'])) {
+  if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
+    $_SERVER['REQUEST_SCHEME'] = $_SERVER['HTTP_X_FORWARDED_PROTO'];
+  } else if (!empty($_SERVER['HTTPS'])) {
+    $_SERVER['REQUEST_SCHEME'] = ($_SERVER['HTTPS'] == 'on') ? 'https' : 'http';
+  } else if (!empty($_SERVER['SERVER_PORT'])) {
+    if ($_SERVER['SERVER_PORT'] == 443) {
+      $_SERVER['REQUEST_SCHEME'] = 'https';
+    } else $_SERVER['REQUEST_SCHEME'] = 'http';
+  } else $_SERVER['REQUEST_SCHEME'] = '';
+}
+
 // ***** Determine the install domain from run location
 if (!$_ODATA['admin_install_domain']) {
-  if (isset($_SERVER['REQUEST_SCHEME']) && $_SERVER['REQUEST_SCHEME'] &&
-      isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST']) {
+  if ($_SERVER['REQUEST_SCHEME'] && !empty($_SERVER['HTTP_HOST'])) {
     $base = $_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['HTTP_HOST'];
-    if (isset($_SERVER['SCRIPT_URI']) && $_SERVER['SCRIPT_URI']) {
+    if (!empty($_SERVER['SCRIPT_URI'])) {
       $psuri = parse_url($_SERVER['SCRIPT_URI']);
-      if ($psuri && isset($psuri['port']) && !is_null($psuri['port']))
+      if ($psuri && !empty($psuri['port']))
         $base .= ':'.$psuri['port'];
-    } else if (isset($_SERVER['SERVER_PORT'])) {
+    } else if (!empty($_SERVER['SERVER_PORT'])) {
       if ($_SERVER['SERVER_PORT'] == '80') {
         if ($_SERVER['REQUEST_SCHEME'] != 'http')
           $base .= ':'.$_SERVER['SERVER_PORT'];
@@ -340,8 +376,19 @@ if (!$_ODATA['admin_install_domain']) {
 }
 if (!$_ODATA['sp_starting']) {
   if (!$_ODATA['admin_install_domain']) {
-    die('Fatal error, could not determine install domain. Please run this script from a web browser.');
+    throw new Exception('Could not determine install domain. Please run this script from a web browser.');
   } else OS_setValue('sp_starting', $_ODATA['admin_install_domain'].'/');
+}
+
+
+// ***** Set the admin From: email value
+if (!$_ODATA['admin_from']) {
+  if (!empty($_SERVER['SERVER_ADMIN'])) {
+    OS_setValue('admin_from', $_SERVER['SERVER_ADMIN']);
+  } else if (!empty($_SERVER['MAILTO'])) {
+    OS_setValue('admin_from', $_SERVER['MAILTO']);
+  } else if (isset($_SESSION['error']))
+    $_SESSION['error'][] = 'Could not determine the admin email for this server. Please set your server\'s \'SERVER_ADMIN\' value.';
 }
 
 
@@ -355,8 +402,10 @@ if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
 }
 if (class_exists('PHPMailer\PHPMailer\PHPMailer')) {
   $_MAIL = new PHPMailer\PHPMailer\PHPMailer();
-  $_MAIL->From = $_SERVER['SERVER_ADMIN'];
-  $_MAIL->FromName = "Orcinus Site Search Crawler";
+  if ($_ODATA['admin_from']) {
+    $_MAIL->From = $_ODATA['admin_from'];
+    $_MAIL->FromName = "Orcinus Crawler";
+  }
   $_MAIL->CharSet = $_ODATA['s_charset'];
   if (count($ad = $_MAIL->parseAddresses($_ODATA['admin_email'])))
     foreach ($ad as $a) $_MAIL->AddAddress($a['address'], $a['name']);
@@ -365,8 +414,7 @@ if (class_exists('PHPMailer\PHPMailer\PHPMailer')) {
 
 // ***** Load the default Search Result Template
 if (!$_ODATA['s_result_template']) {
-  OS_setValue('s_result_template', <<<ORCINUS
-<section id="os_results">
+  OS_setValue('s_result_template', '<section id="os_results">
   <!-- Orcinus Site Search {{version}} - HTML Template -->
 
   {{#errors}}
@@ -473,7 +521,7 @@ if (!$_ODATA['s_result_template']) {
           <li>Search terms with fewer than {{limit_term_length}} characters are ignored</li>
           <li>Enclose groups of terms in quotes ("") to search for phrases</li>
           <li>Prefix terms with a plus-sign (+) to make them important</li>
-          <li>Prefix terms with a minus-sign (-) or exclamation point (!) to exclude terms</li>
+          <li>Prefix terms with a minus-sign (-) to exclude terms</li>
         </ul>
       </div>
     {{/searched}}
@@ -521,17 +569,16 @@ if (!$_ODATA['s_result_template']) {
       </small>
     </p>
   </footer>
-</section>
-ORCINUS);
+</section>');
 }
 
 // {{{{{ Initialize the Mustache templating engine
 class OS_Mustache {
   public $errors;
 
-  public function __construct() {}
+  function __construct() {}
 
-  public function addError($text) {
+  function addError($text) {
     if (!$this->errors) {
       $this->errors = new stdClass();
       $this->errors->error_list = array();
@@ -540,7 +587,7 @@ class OS_Mustache {
   }
 
   // We'll only autoload the Mustache engine if we need it
-  public function render() {
+  function render() {
     global $_ODATA;
 
     require_once __DIR__.'/Mustache/Autoloader.php';
@@ -719,6 +766,7 @@ $_RDATA['s_latin'] = array(
    'x' => array('×'),
    'y' => array('ý', 'Ý', 'ÿ', 'Ÿ'),
    'z' => array('ź', 'Ź', 'ž', 'Ž', 'ż', 'Ż'),
+   '!' => array('¡'),
    '?' => array('¿')
 );
 $_RDATA['s_filetypes'] = array(
@@ -729,16 +777,31 @@ $_RDATA['s_filetypes'] = array(
    'TXT' => array('text/plain')
 );
 
+
+// Store the DOCUMENT_ROOT while we have access to it
+if (!empty($_SERVER['DOCUMENT_ROOT'])) {
+  if ($_SERVER['DOCUMENT_ROOT'] != $_ODATA['admin_install_root'])
+    OS_setValue('admin_install_root', $_SERVER['DOCUMENT_ROOT']);
+} else $_SERVER['DOCUMENT_ROOT'] = $_ODATA['admin_install_root'];
+
+// Adjust the REQUEST_URI to remove query strings
+if (isset($_SERVER['REQUEST_URI']))
+  $_SERVER['REQUEST_URI'] = preg_replace('/\?.*$/', '', $_SERVER['REQUEST_URI']);
+
+
 // Locate the sitemap file if given
+if (!$_ODATA['sp_sitemap_hostname'] && !empty($_SERVER['HTTP_HOST']))
+    OS_setValue('sp_sitemap_hostname', $_SERVER['HTTP_HOST']);
+
 if ($_ODATA['sp_sitemap_file']) {
-  $sitemapPath = ($_ODATA['sp_sitemap_file'][0] == '/') ? $_SERVER['DOCUMENT_ROOT'] : __DIR__.'/';
+  $sitemapPath = ($_ODATA['sp_sitemap_file'][0] == '/') ? $_ODATA['admin_install_root'] : __DIR__.'/';
   $sitemapPath .= $_ODATA['sp_sitemap_file'];
   $sitemapPath = preg_replace(array('/\/[^\/]+\/\.\.\//', '/\/\.\//'), '/', $sitemapPath);
 
   // If we did not try going beyond the document_root
-  if (strpos($sitemapPath, $_SERVER['DOCUMENT_ROOT']) === 0) {
+  if (strpos($sitemapPath, $_ODATA['admin_install_root']) === 0) {
     if (file_exists($sitemapPath)) {
-      $sitemapNewFile = str_replace($_SERVER['DOCUMENT_ROOT'], '', $sitemapPath);
+      $sitemapNewFile = str_replace($_ODATA['admin_install_root'], '', $sitemapPath);
       if ($sitemapNewFile != $_ODATA['sp_sitemap_file'])
         OS_setValue('sp_sitemap_file', $sitemapNewFile);
       if (is_writable($sitemapPath)) {
@@ -752,9 +815,6 @@ if ($_ODATA['sp_sitemap_file']) {
       $_SESSION['error'][] = 'Cannot set sitemap file location above the DOCUMENT_ROOT.';
   }
 } else $_RDATA['sp_sitemap_file'] = '';
-
-
-$_SERVER['REQUEST_URI'] = preg_replace('/\?.*$/', '', $_SERVER['REQUEST_URI']);
 
 
 $_RDATA['x_generated_by'] = 'X-Generated-By: Orcinus Site Search/'.$_ODATA['version'];

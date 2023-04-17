@@ -1,8 +1,8 @@
 <?php /* ***** Orcinus Site Search - Web Crawling Engine *********** */
 
 
-$_DEBUGMODE = ($_SERVER['REQUEST_METHOD'] == 'GET') ? false : false;
 require __DIR__.'/config.php';
+$_RDATA['debug'] = false;
 
 
 /**
@@ -10,16 +10,20 @@ require __DIR__.'/config.php';
  *
  */
 function OS_crawlLog($text, $level = 0) {
-  global $_RDATA, $_DEBUGMODE;
+  global $_RDATA;
 
   switch ($level) {
-    case 1: $level = ''; break;
-    case 2: $level = '[ERROR] '; break;
-    default: $level = ' -> ';
+    case 1: $prefix = ''; break;
+    case 2: $prefix = '[ERROR] '; break;
+    default: $prefix = ' -> ';
   }
 
-  fwrite($_RDATA['sp_log'], $level.$text."\n");
-  if ($_DEBUGMODE) echo $level.$text."\n";
+  fwrite($_RDATA['sp_log'], $prefix.$text."\n");
+  if ($_RDATA['debug'] ||
+       ($_SERVER['REQUEST_METHOD'] == 'CLI' &&
+        $level >= $_RDATA['sp_log_clilevel'])) {
+     echo $prefix.$text."\n";
+  }
 }
 
 
@@ -33,7 +37,7 @@ function OS_formatURL($_, $base) {
   $_ = str_replace('%20', ' ', $_);
   $dirbase = preg_replace('/(?<!:\/)\/[^\/]*$/', '', $base).'/';
   $pdb = parse_url($dirbase);
-  $port = (isset($pdb['port']) && !is_null($pdb['port'])) ? ':'.$pdb['port'] : '';
+  $port = (!empty($pdb['port'])) ? ':'.$pdb['port'] : '';
 
   if (substr($_, 0, 3) == '../') {
     $p = preg_replace('/\/[^\/]*\/$/', '/', $pdb['path']);
@@ -69,7 +73,7 @@ function OS_filterURL($_, $base) {
   if (!preg_match('/^https?:\/\//', $_))
     $_ = OS_formatURL($_, $base);
 
-  if (isset($_RDATA['sp_filter'][$_]))
+  if (!empty($_RDATA['sp_filter'][$_]))
     return $_RDATA['sp_filter'][$_];
 
   $_RDATA['sp_filter'][$_] = '';
@@ -107,7 +111,7 @@ function OS_filterURL($_, $base) {
     return $_RDATA['sp_filter'][$_] = 'ignore-extension';
 
   // robots.txt rules
-  if (isset($_RDATA['sp_robots'][$plink['host']]))
+  if (!empty($_RDATA['sp_robots'][$plink['host']]))
     foreach ($_RDATA['sp_robots'][$plink['host']] as $disallowURL)
       if (strpos($_, $disallowURL) === 0)
         return $_RDATA['sp_filter'][$_] = 'robots-txt';
@@ -216,7 +220,7 @@ function OS_fetchURL($url, $referer = '') {
       OS_crawlLog($_['errno'], 1);
       OS_crawlLog($_['error'], 1);
       OS_crawlLog(print_r($_['info'], true), 1);
-      die('Uncaught cURL error');
+      throw new Exception('Uncaught cURL error');
 
   }
 
@@ -241,7 +245,7 @@ function OS_parseURLContent($_) {
 
 
   // Detect MIME-type using extension?
-  if (!isset($_['info']['content_type']))
+  if (empty($_['info']['content_type']))
     $_['info']['content_type'] = 'text/plain';
 
   // Parse MIME-type
@@ -256,10 +260,11 @@ function OS_parseURLContent($_) {
     $_['info']['charset'] = 'ISO-8859-1';
 
 
+  $_['info']['sha1'] = sha1($_['body'], true);
+
+
   while (strpos($_['body'], "\x1f\x8b") === 0)
     $_['body'] = gzinflate(substr($_['body'], 10));
-
-  $_['info']['sha1'] = sha1($_['body']);
 
 
   switch ($_['info']['mime_type']) {
@@ -349,7 +354,7 @@ function OS_parseURLContent($_) {
         $head = $document->getElementsByTagName('head');
 
         $base = $head[0]->getElementsByTagName('base');
-        if (isset($base[0]))
+        if (!empty($base[0]))
           for ($x = 0; $x < count($base[0]->attributes); $x++)
             if (strtolower($base[0]->attributes[$x]->name) == 'href')
               $_['base'] = filter_var($base[0]->attributes[$x]->value, FILTER_SANITIZE_URL);
@@ -604,9 +609,9 @@ function OS_parseURLContent($_) {
           $_['title'] = basename($_['info']['url']);
 
           $meta = $pdf->getDetails();
-          if (isset($meta['Title'])) $_['title'] = strtr($meta['Title'], $_RDATA['sp_utf_replace']);
-          if (isset($meta['Subject'])) $_['description'] = strtr($meta['Subject'], $_RDATA['sp_utf_replace']);
-          if (isset($meta['Keywords'])) $_['keywords'] = strtr($meta['Keywords'], $_RDATA['sp_utf_replace']);
+          if (!empty($meta['Title'])) $_['title'] = strtr($meta['Title'], $_RDATA['sp_utf_replace']);
+          if (!empty($meta['Subject'])) $_['description'] = strtr($meta['Subject'], $_RDATA['sp_utf_replace']);
+          if (!empty($meta['Keywords'])) $_['keywords'] = strtr($meta['Keywords'], $_RDATA['sp_utf_replace']);
 
           // remove escaped whitespace
           $_['title'] = str_replace(array("\\\n\r", "\\\n"), '', $_['title']);
@@ -678,7 +683,7 @@ function OS_parseURLContent($_) {
  *
  */
 function OS_crawlCleanUp() {
-  global $_DDATA, $_ODATA, $_RDATA, $_cURL, $_MAIL, $_DEBUGMODE;
+  global $_DDATA, $_ODATA, $_RDATA, $_cURL, $_MAIL;
 
   // If the crawl has already been canceled, don't bother
   if (!$_ODATA['sp_crawling']) return;
@@ -796,10 +801,10 @@ function OS_crawlCleanUp() {
         if (!$_MAIL->Send()) OS_crawlLog('Could not send notification email', 2);
       }
 
-      $cronMessage = 'Crawl completed successfully';
+      $cliMessage = 'Crawl completed successfully';
       $jsonMessage = json_encode(array(
         'status' => 'Success',
-        'message' => $cronMessage
+        'message' => $cliMessage
       ), JSON_INVALID_UTF8_IGNORE);
 
     // We truncated the search table but FAILED to populate it!
@@ -820,10 +825,10 @@ function OS_crawlCleanUp() {
         if (!$_MAIL->Send()) OS_crawlLog('Could not send notification email', 2);
       }
 
-      $cronMessage = 'Could not populate search table; search table is currently empty!';
+      $cliMessage = 'Could not populate search table; search table is currently empty!';
       $jsonMessage = json_encode(array(
         'status' => 'Error',
-        'message' => $cronMessage
+        'message' => $cliMessage
       ), JSON_INVALID_UTF8_IGNORE);
     }
 
@@ -842,10 +847,10 @@ function OS_crawlCleanUp() {
       if (!$_MAIL->Send()) OS_crawlLog('Could not send notification email', 2);
     }
 
-    $cronMessage = 'Crawl failed; see the log for details';
+    $cliMessage = 'Crawl failed; see the log for details';
     $jsonMessage = json_encode(array(
       'status' => 'Error',
-      'message' => $cronMessage
+      'message' => $cliMessage
     ), JSON_INVALID_UTF8_IGNORE);
   }
 
@@ -866,25 +871,22 @@ function OS_crawlCleanUp() {
 
   OS_setValue('sp_crawling', 0);
 
-  if ($_SERVER['REQUEST_METHOD'] != 'CRON') {
-    if (!$_DEBUGMODE)
+  if ($_SERVER['REQUEST_METHOD'] != 'CLI') {
+    if (!$_RDATA['debug'])
       header('Content-type: application/json; charset='.strtolower($_ODATA['s_charset']));
     die($jsonMessage);
-  } else die($cronMessage);
+  } else die($cliMessage."\n");
 }
 
 
 
 
-// This is most likely a crontab request
-if (!isset($_SERVER['REQUEST_METHOD'])) {
-  $_SERVER['REQUEST_METHOD'] = 'CRON';
-  chdir(dirname($_SERVER['argv'][0]));
+if (empty($_SERVER['REQUEST_METHOD'])) $_SERVER['REQUEST_METHOD'] = '';
 
-} else {
+switch ($_SERVER['REQUEST_METHOD']) {
 
-  /* ***** Handle POST Requests ************************************** */
-  if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+  /* ***** Handle POST Requests ************************************ */
+  case 'POST':
 
     // JSON POST request
     // These are usually sent by javascript fetch()
@@ -894,10 +896,10 @@ if (!isset($_SERVER['REQUEST_METHOD'])) {
 
       $response = array();
 
-      if (!isset($_POST->action)) $_POST->action = '';
+      if (empty($_POST->action)) $_POST->action = '';
       switch ($_POST->action) {
         case 'crawl':
-          if (isset($_POST->sp_key) &&
+          if (!empty($_POST->sp_key) &&
               $_ODATA['sp_key'] &&
               $_POST->sp_key == $_ODATA['sp_key']) {
             if ($_ODATA['sp_crawling']) {
@@ -925,7 +927,7 @@ if (!isset($_SERVER['REQUEST_METHOD'])) {
               $lines = file($_ODATA['sp_log'], FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
           } else $lines = explode("\n", $_ODATA['sp_log']);
 
-          if (!isset($_POST->grep)) $_POST->grep = 'all';
+          if (empty($_POST->grep)) $_POST->grep = '';
           switch ($_POST->grep) {
             case 'all': break;
             case 'errors': $lines = preg_grep('/^[\[\*]/', $lines); break;
@@ -949,11 +951,11 @@ if (!isset($_SERVER['REQUEST_METHOD'])) {
             // IF the crawler 'time_start' is more than 'timeout_crawl'
             // seconds ago, or the 'force' token is set, the crawler is
             // probably stuck. Unstick it.
-            if (!isset($_POST->force)) $_POST->force = '';
+            if (empty($_POST->force)) $_POST->force = '';
             if ($_POST->force || time() - $_ODATA['sp_time_start'] > $_ODATA['sp_timeout_crawl']) {
               OS_setValue('sp_crawling', 0);
 
-              if (!isset($_POST->reason) || !$_POST->reason)
+              if (empty($_POST->reason))
                 $_POST->reason = 'The crawler halted unexpectedly';
 
               if (strpos($_ODATA['sp_log'], "\n") === false && file_exists($_ODATA['sp_log'])) {
@@ -1007,11 +1009,26 @@ if (!isset($_SERVER['REQUEST_METHOD'])) {
       die($_ODATA['sp_useragent']);
     }
 
-  // Don't do anything for GET requests
-  } else if ($_SERVER['REQUEST_METHOD'] == 'GET') {
+  // Allow CLI requests through
+  case '':
+    if (!empty($_SERVER['argv'][0]) && $_SERVER['argv'][0] == $_SERVER['PHP_SELF']) {
+      $_SERVER['REQUEST_METHOD'] = 'CLI';
+      if (!empty($_SERVER['argv'][1]) && preg_match('/^-log=([012])$/', $_SERVER['argv'][1], $match)) {
+        $_RDATA['sp_log_clilevel'] = (int)$match[1];
+      } else $_RDATA['sp_log_clilevel'] = 2;
+    } else die($_ODATA['sp_useragent']);
+    break;
+
+  // Don't do anything for GET requests, unless in debug mode
+  case 'GET':
     header('Content-type: text/plain; charset='.strtolower($_ODATA['s_charset']));
-    if (!$_DEBUGMODE) die($_ODATA['sp_useragent']);
-  }
+    if (!$_RDATA['debug']) die($_ODATA['sp_useragent']);
+
+  // Exit for all other request types
+  default:
+    header('Content-type: text/plain; charset='.strtolower($_ODATA['s_charset']));
+    die($_ODATA['sp_useragent']);
+
 }
 
 
@@ -1251,7 +1268,7 @@ while ($_cURL && count($_QUEUE)) {
 
   // Check robots.txt for newly encountered hostnames
   $purl = parse_url($url);
-  $port = (isset($purl['port']) && !is_null($purl['port'])) ? ':'.$purl['port'] : '';
+  $port = (!empty($purl['port'])) ? ':'.$purl['port'] : '';
   if (!isset($_RDATA['sp_robots'][$purl['host']])) {
     $_RDATA['sp_robots'][$purl['host']] = array();
     OS_crawlLog('Fetching robots.txt for domain: '.$purl['host'], 1);
@@ -1265,7 +1282,7 @@ while ($_cURL && count($_QUEUE)) {
       $robolines = explode("\n", $robotstxt['content']);
       foreach ($robolines as $line) {
         if (preg_match('/^user-agent\s*:\s*(.*)\s*$/i', $line, $r)) {
-          if (!isset($robots[$robot = $r[1]]))
+          if (empty($robots[$robot = $r[1]]))
             $robots[$robot] = array('disallow' => array(), 'allow' => array());
         } else if (preg_match('/((dis)?allow)\s*:\s*(.*)\s*$/i', $line, $r))
           $robots[$robot][strtolower($r[1])][] = OS_formatURL($r[3], $url);
@@ -1284,7 +1301,7 @@ while ($_cURL && count($_QUEUE)) {
     }
   }
 
-  if ($_DEBUGMODE)
+  if ($_RDATA['debug'])
     OS_crawlLog('Memory used: '.OS_readSize(memory_get_usage(true)), 1);
 
   OS_crawlLog('Crawling: '.$url.' (Depth: '.$depth.')', 1);
@@ -1319,7 +1336,7 @@ while ($_cURL && count($_QUEUE)) {
       if (!$data['info']['noindex']) {
 
         // Prevent duplicate content
-        if (isset($_RDATA['sp_sha1'][$data['info']['sha1']])) {
+        if (!empty($_RDATA['sp_sha1'][$data['info']['sha1']])) {
           OS_crawlLog('Content is a duplicate of already indexed page: '.$_RDATA['sp_sha1'][$data['info']['sha1']], 2);
           OS_crawlLog('Consider editing faulty redirects, or setting a \'canonical\' <link> element to avoid this', 0);
 
@@ -1361,7 +1378,7 @@ while ($_cURL && count($_QUEUE)) {
           if ($data['info']['filetime'] <= 0)
             $data['info']['filetime'] = time();
 
-          if (isset($row['url'])) {
+          if (!empty($row['url'])) {
             $_RDATA['sp_status']['Updated']++;
           } else $_RDATA['sp_status']['New']++;
 
@@ -1371,7 +1388,7 @@ while ($_cURL && count($_QUEUE)) {
           $data['info']['filetime'] = $row['last_modified'];
         }
 
-        $port = (isset($data['url']['port']) && !is_null($data['url']['port'])) ? ':'.$data['url']['port'] : '';
+        $port = (!empty($data['url']['port'])) ? ':'.$data['url']['port'] : '';
         $insertTemp->execute(array(
           'url' => $url,
           'url_base' => $data['url']['scheme'].'://'.$data['url']['host'].$port,

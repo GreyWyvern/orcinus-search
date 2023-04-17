@@ -35,7 +35,7 @@ if ($_RDATA['s_searchable_pages']) {
   $_TEMPLATE->searchable = new stdClass();
   $_TEMPLATE->searchable->form_action = $_SERVER['REQUEST_URI'];
 
-  if (!isset($_REQUEST['c']) || !isset($_RDATA['s_category_list'][$_REQUEST['c']]))
+  if (empty($_REQUEST['c']) || empty($_RDATA['s_category_list'][$_REQUEST['c']]))
     $_REQUEST['c'] = '<none>';
 
   if (count($_RDATA['s_category_list']) > 2) {
@@ -50,8 +50,7 @@ if ($_RDATA['s_searchable_pages']) {
     }
   }
   
-  if (!isset($_REQUEST['q']) || !is_string($_REQUEST['q']))
-    $_REQUEST['q'] = '';
+  if (empty($_REQUEST['q'])) $_REQUEST['q'] = '';
 
   $_REQUEST['q'] = preg_replace(array('/\s/', '/ {2,}/'), ' ', trim($_REQUEST['q']));
 
@@ -87,8 +86,8 @@ if ($_RDATA['s_searchable_pages']) {
             // Just count it as a 'phrase' of one word, functionally equivalent
             $_SDATA['terms'][] = array('phrase', substr($t, 1), false);
 
-          // Leading - or ! means negative, a MUST exclude
-          } else if ($t[0] == '-' || $t[0] == '!') {
+          // Leading - means negative, a MUST exclude
+          } else if ($t[0] == '-') {
             $_SDATA['terms'][] = array('exclude', substr($t, 1), false);
 
           // Restrict to a specific filetype (not yet implemented)
@@ -701,7 +700,7 @@ if ($_ODATA['sp_interval'] &&
       curl_setopt($_cURL, CURLOPT_CONNECTTIMEOUT, 1);
       curl_setopt($_cURL, CURLOPT_TIMEOUT, 1);
 
-      $crawlerDir = str_replace($_SERVER['DOCUMENT_ROOT'], '', __DIR__);
+      $crawlerDir = str_replace($_ODATA['admin_install_root'], '', __DIR__);
       $crawlerURL = $_ODATA['admin_install_domain'].$crawlerDir.'/crawler.php';
       curl_setopt($_cURL, CURLOPT_URL, str_replace(' ', '%20', $crawlerURL));
 

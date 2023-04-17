@@ -51,7 +51,7 @@ function requireFilesOfFolder($dir)
         if (!$fileInfo->isDot()) {
             if ($fileInfo->isDir()) {
                 requireFilesOfFolder($fileInfo->getPathname());
-            } else {
+            } else if ($fileInfo->getExtension() == 'php') {
                 require_once $fileInfo->getPathname();
             }
         }

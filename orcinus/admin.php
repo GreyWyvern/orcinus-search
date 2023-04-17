@@ -137,7 +137,7 @@ $_RDATA['sp_starting'] = array_filter(array_map('trim', explode("\n", $_ODATA['s
 $_RDATA['s_starting_domains'] = array();
 foreach ($_RDATA['sp_starting'] as $starting) {
   $starting = parse_url($starting);
-  if (isset($starting['host']) && $starting['host'])
+  if (!empty($starting['host']))
     $_RDATA['s_starting_domains'][] = $starting['host'];
 }
 $_RDATA['s_starting_domains'] = array_unique($_RDATA['s_starting_domains']);
@@ -164,22 +164,22 @@ $_RDATA['index_status_list'] = array(
 
 
 // ***** Set session defaults
-if (!isset($_SESSION['admin_page']) || !isset($_RDATA['admin_pages'][$_SESSION['admin_page']]))
+if (empty($_SESSION['admin_page']) || empty($_RDATA['admin_pages'][$_SESSION['admin_page']]))
   $_SESSION['admin_page'] = 'crawler';
 
-if (!isset($_SESSION['index_page'])) $_SESSION['index_page'] = 1;
-if (!isset($_SESSION['index_filter_category'])) $_SESSION['index_filter_category'] = '<none>';
-if (!isset($_SESSION['index_filter_status'])) $_SESSION['index_filter_status'] = '<none>';
-if (!isset($_SESSION['index_filter_text'])) $_SESSION['index_filter_text'] = '';
-if (!isset($_SESSION['error'])) $_SESSION['error'] = array();
-if (!isset($_SESSION['message'])) $_SESSION['message'] = array();
-if (!isset($_SESSION['admin_username'])) $_SESSION['admin_username'] = '';
+if (empty($_SESSION['index_page'])) $_SESSION['index_page'] = 1;
+if (empty($_SESSION['index_filter_category'])) $_SESSION['index_filter_category'] = '<none>';
+if (empty($_SESSION['index_filter_status'])) $_SESSION['index_filter_status'] = '<none>';
+if (empty($_SESSION['index_filter_text'])) $_SESSION['index_filter_text'] = '';
+if (empty($_SESSION['error'])) $_SESSION['error'] = array();
+if (empty($_SESSION['message'])) $_SESSION['message'] = array();
+if (empty($_SESSION['admin_username'])) $_SESSION['admin_username'] = '';
 
 if (!$_SESSION['admin_username']) {
   if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    if (isset($_POST['os_submit']) && $_POST['os_submit'] == 'os_admin_login') {
-      if (!isset($_POST['os_admin_username'])) $_POST['os_admin_username'] = '';
-      if (!isset($_POST['os_admin_password'])) $_POST['os_admin_password'] = '';
+    if (!empty($_POST['os_submit']) && $_POST['os_submit'] == 'os_admin_login') {
+      if (empty($_POST['os_admin_username'])) $_POST['os_admin_username'] = '';
+      if (empty($_POST['os_admin_password'])) $_POST['os_admin_password'] = '';
 
       if ($_POST['os_admin_username'] == $_RDATA['admin_username'] &&
           $_POST['os_admin_password'] == $_RDATA['admin_password']) {
@@ -206,7 +206,7 @@ if (!$_SESSION['admin_username']) {
 
       $response = array();
 
-      if (!isset($_POST->action)) $_POST->action = '';
+      if (empty($_POST->action)) $_POST->action = '';
       switch ($_POST->action) {
 
         // Set the key for initiating the crawler
@@ -232,14 +232,14 @@ if (!$_SESSION['admin_username']) {
 
         // Download a text file log of the most recent crawl
         case 'download':
-          if (!isset($_POST->content)) $_POST->content = '';
+          if (empty($_POST->content)) $_POST->content = '';
           switch ($_POST->content) {
             case 'crawl_log':
               if (!$_ODATA['sp_crawling']) {
                 if ($_ODATA['sp_time_end']) {
                   $lines = explode("\n", $_ODATA['sp_log']);
 
-                  if (!isset($_POST->grep)) $_POST->grep = 'all';
+                  if (empty($_POST->grep)) $_POST->grep = '';
                   switch ($_POST->grep) {
                     case 'all': break;
                     case 'errors': $lines = preg_grep('/^[\[\*]/', $lines); break;
@@ -278,8 +278,8 @@ if (!$_SESSION['admin_username']) {
 
         // Not used?
         case 'fetch':
-          if (!isset($_POST->value)) $_POST->value = '';
-          if (isset($_ODATA[$_POST->value])) {
+          if (empty($_POST->value)) $_POST->value = '';
+          if (!empty($_ODATA[$_POST->value])) {
             $response = array(
               'status' => 'Success',
               'message' => trim($_ODATA[$_POST->value])
@@ -299,7 +299,7 @@ if (!$_SESSION['admin_username']) {
 
 
     // Normal POST request
-    } else if (isset($_POST['os_submit'])) {
+    } else if (!empty($_POST['os_submit'])) {
 
       switch ($_POST['os_submit']) {
 
@@ -484,7 +484,7 @@ if (!$_SESSION['admin_username']) {
                     $_POST['os_admin_email'][$key] = $email[0]['name'].' <'.$email[0]['address'].'>';
                   } else $_POST['os_admin_email'][$key] = $email[0]['address'];
                 } else {
-                  $_SESSION['error'][] = 'Invalid email address \''.$admin_email.'\'.';
+                  $_SESSION['error'][] = 'Invalid To: email address \''.$admin_email.'\'.';
                   unset($_POST['os_admin_email'][$key]);
                 }
               }
@@ -520,7 +520,7 @@ if (!$_SESSION['admin_username']) {
 
         // ***** Page Index >> With Selected...
         case 'os_index_with_selected':
-          if (!isset($_POST['os_index_pages'])) $_POST['os_index_pages'] = array();
+          if (empty($_POST['os_index_pages'])) $_POST['os_index_pages'] = array();
           if (is_array($_POST['os_index_pages'])) {
 
             $checksums_good = true;
@@ -532,7 +532,7 @@ if (!$_SESSION['admin_username']) {
             }
 
             if ($checksums_good) {
-              if (!isset($_POST['os_index_select_action'])) $_POST['os_index_select_action'] = '';
+              if (empty($_POST['os_index_select_action'])) $_POST['os_index_select_action'] = '';
               switch ($_POST['os_index_select_action']) {
                 case 'delete':
                   $delete = $_DDATA['pdo']->prepare(
@@ -550,33 +550,35 @@ if (!$_SESSION['admin_username']) {
                   break;
 
                 case 'category':
-                  if (isset($_POST['os_apply_new_category'])) {
+                  if (!empty($_POST['os_apply_new_category'])) {
                     $_POST['os_apply_new_category'] = preg_replace(array('/\s/', '/ {2,}/'), ' ', trim($_POST['os_apply_new_category']));
                     $_POST['os_apply_new_category'] = preg_replace('/[^\w \d-]/', '', $_POST['os_apply_new_category']);
                     $_POST['os_apply_new_category'] = substr($_POST['os_apply_new_category'], 0, 30);
 
-                    $update = $_DDATA['pdo']->prepare(
-                      'UPDATE `'.$_DDATA['tbprefix'].'crawldata` SET `category`=:category WHERE `content_checksum`=:content_checksum;'
-                    );
+                    if ($_POST['os_apply_new_category']) {
+                      $update = $_DDATA['pdo']->prepare(
+                        'UPDATE `'.$_DDATA['tbprefix'].'crawldata` SET `category`=:category WHERE `content_checksum`=:content_checksum;'
+                      );
 
-                    foreach ($_POST['os_index_pages'] as $content_checksum) {
-                      $update->execute(array(
-                        'category' => $_POST['os_apply_new_category'],
-                        'content_checksum' => $content_checksum
-                      ));
-                      $err = $update->errorInfo();
-                      if ($err[0] != '00000') {
-                        $_SESSION['error'][] = 'Database error on attempt to update category: '.$err[2];
-                        break;
+                      foreach ($_POST['os_index_pages'] as $content_checksum) {
+                        $update->execute(array(
+                          'category' => $_POST['os_apply_new_category'],
+                          'content_checksum' => $content_checksum
+                        ));
+                        $err = $update->errorInfo();
+                        if ($err[0] != '00000') {
+                          $_SESSION['error'][] = 'Database error on attempt to update category: '.$err[2];
+                          break;
+                        }
                       }
-                    }
 
-                    $_SESSION['index_filter_category'] = '<none>';
+                      $_SESSION['index_filter_category'] = '<none>';
+                    } else $_SESSION['error'][] = 'Category names may only contain letters, numbers, spaces or dashes.';
                   } else $_SESSION['error'][] = 'Please supply a category name.';
                   break;
 
                 case 'priority':
-                  if (isset($_POST['os_apply_new_priority'])) {
+                  if (!empty($_POST['os_apply_new_priority'])) {
                     $_POST['os_apply_new_priority'] = (float)$_POST['os_apply_new_priority'];
                     $_POST['os_apply_new_priority'] = max(0, min(1, $_POST['os_apply_new_priority']));
                     $_POST['os_apply_new_priority'] = round($_POST['os_apply_new_priority'], 5);
@@ -625,7 +627,7 @@ if (!$_SESSION['admin_username']) {
 
         // ***** Page Index >> Text Match filter
         case 'os_index_filter_text':
-          if (!isset($_POST['os_index_filter_text'])) $_POST['os_index_filter_text'] = '';
+          if (empty($_POST['os_index_filter_text'])) $_POST['os_index_filter_text'] = '';
           $_POST['os_index_filter_text'] = filter_var($_POST['os_index_filter_text'], FILTER_SANITIZE_URL);
           $_SESSION['index_filter_text'] = $_POST['os_index_filter_text'];
           $_SESSION['index_page'] = 1;
@@ -806,7 +808,7 @@ if (!$_SESSION['admin_username']) {
 
                 foreach ($select[$key]['words'] as $index => $word) {
                   if (!$word) continue;
-                  if (!isset($words[$word])) {
+                  if (empty($words[$word])) {
                     $words[$word] = 1;
                   } else $words[$word]++;
                 }
@@ -1007,8 +1009,7 @@ if (os_crawldata.length) {
   }
 
   os_request.q = os_params.get('q');
-  if (!os_request.q)
-    os_request.q = '';
+  if (!os_request.q) os_request.q = '';
 
   os_request.q = os_request.q.trim().replace(/\s/, ' ').replace(/ {2,}/, ' ');
 
@@ -1046,8 +1047,8 @@ if (os_crawldata.length) {
             // Just count it as a 'phrase' of one word, functionally equivalent
             os_sdata.terms.push(['phrase', t.substring(1), false]);
 
-          // Leading - or ! means negative, a MUST exclude
-          } else if (t[0] == '-' || t[0] == '!') {
+          // Leading - means negative, a MUST exclude
+          } else if (t[0] == '-') {
             os_sdata.terms.push(['exclude', t.substring(1), false]);
 
           // Restrict to a specific filetype (not yet implemented)
@@ -1387,7 +1388,7 @@ document.write(mustache.render(
 ));<?php
 
 
-// Dodgy character check on output
+// Dodgy character check on javascript output
 // [^\w\s()\[\]{};:.‖‘’‟„…/@©~®§⇔⇕⇒⇨⇩↪&\\^<>›×™*·,±_²°|≥!#$¢£+≤=•«%½»?"'-]
 
 
@@ -1408,7 +1409,7 @@ document.write(mustache.render(
         default:
           header('Content-type: text/plain; charset='.strtolower($_ODATA['s_charset']));
           var_dump($_POST);
-          die();
+          exit();
 
       }
 
@@ -1421,7 +1422,7 @@ document.write(mustache.render(
     } else {
 
       // Set new Page Index pagination value
-      if (isset($_POST['os_index_hidden_pagination']) && $_POST['os_index_hidden_pagination']) {
+      if (!empty($_POST['os_index_hidden_pagination'])) {
         $_POST['os_index_hidden_pagination'] = (int)$_POST['os_index_hidden_pagination'];
         if (in_array($_POST['os_index_hidden_pagination'], $_RDATA['admin_pagination_options'])) {
           OS_setValue('admin_index_pagination', $_POST['os_index_hidden_pagination']);
@@ -1433,8 +1434,8 @@ document.write(mustache.render(
       }
 
       // Select a Page Index Category filter
-      if (isset($_POST['os_index_new_filter_category']) && $_POST['os_index_new_filter_category']) {
-        if (isset($_RDATA['s_category_list'][$_POST['os_index_new_filter_category']])) {
+      if (!empty($_POST['os_index_new_filter_category'])) {
+        if (!empty($_RDATA['s_category_list'][$_POST['os_index_new_filter_category']])) {
           $_SESSION['index_filter_category'] = $_POST['os_index_new_filter_category'];
           $_SESSION['index_page'] = 1;
         }
@@ -1444,7 +1445,7 @@ document.write(mustache.render(
       }
 
       // Select a Page Index Status filter
-      if (isset($_POST['os_index_new_filter_status']) && $_POST['os_index_new_filter_status']) {
+      if (!empty($_POST['os_index_new_filter_status'])) {
         if (in_array($_POST['os_index_new_filter_status'], $_RDATA['index_status_list'])) {
           $_SESSION['index_filter_status'] = $_POST['os_index_new_filter_status'];
           $_SESSION['index_page'] = 1;
@@ -1457,17 +1458,17 @@ document.write(mustache.render(
       // Unknown POST command
       header('Content-type: text/plain; charset='.strtolower($_ODATA['s_charset']));
       var_dump($_POST);
-      die();
+      exit();
     }
 
 
   // Select a new Administration UI page
-  } else if (isset($_GET['page'])) {
-    if (isset($_RDATA['admin_pages'][$_GET['page']]))
+  } else if (!empty($_GET['page'])) {
+    if (!empty($_RDATA['admin_pages'][$_GET['page']]))
       $_SESSION['admin_page'] = $_GET['page'];
 
   // Select a new page within the Page Index list
-  } else if (isset($_GET['ipage'])) {
+  } else if (!empty($_GET['ipage'])) {
     $_GET['ipage'] = (int)$_GET['ipage'];
     $_SESSION['index_page'] = $_GET['ipage'];
 
@@ -2474,11 +2475,14 @@ document.write(mustache.render(
                       </li>
                       <li class="list-group-item">
                         <label class="d-flex w-100">
-                          <strong class="pe-2">Current Cache Size</strong>
+                          <strong class="pe-2">Current Cache Size
+                            <img src="img/help.svg" alt="Information" class="align-middle svg-icon mb-1"
+                              data-bs-toggle="tooltip" data-bs-placement="top" title="The Search Result Cache is cleared after each successful crawl, or you can purge the cache manually below.">
+                          </strong>
                           <var class="text-end flex-grow-1 text-nowrap"><?php
                             if (!function_exists('gzcompress')) { ?> 
                               <img src="img/warning.svg" alt="Notice" class="align-middle svg-icon mb-1 me-1"
-                                data-bs-toggle="tooltip" data-bs-placement="top" title="PHP's GZip functions are not enabled. This means your Search Cache won't be able to store as many results. You may want to consider increasing the Search Result Cache limit to compensate for this."><?php
+                                data-bs-toggle="tooltip" data-bs-placement="top" title="PHP's GZip functions are not enabled. This means your Search Result Cache won't be able to store as many results. You may want to consider increasing the Search Result Cache limit to compensate for this."><?php
                             }
                             echo OS_readSize($_RDATA['s_cache_size'], true);
                           ?></var>
