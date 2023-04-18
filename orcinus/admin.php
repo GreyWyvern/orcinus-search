@@ -2,6 +2,9 @@
 
 
 session_start();
+if (empty($_SESSION['error'])) $_SESSION['error'] = array();
+if (empty($_SESSION['message'])) $_SESSION['message'] = array();
+
 require __DIR__.'/config.php';
 
 
@@ -171,8 +174,6 @@ if (empty($_SESSION['index_page'])) $_SESSION['index_page'] = 1;
 if (empty($_SESSION['index_filter_category'])) $_SESSION['index_filter_category'] = '<none>';
 if (empty($_SESSION['index_filter_status'])) $_SESSION['index_filter_status'] = '<none>';
 if (empty($_SESSION['index_filter_text'])) $_SESSION['index_filter_text'] = '';
-if (empty($_SESSION['error'])) $_SESSION['error'] = array();
-if (empty($_SESSION['message'])) $_SESSION['message'] = array();
 if (empty($_SESSION['admin_username'])) $_SESSION['admin_username'] = '';
 
 if (!$_SESSION['admin_username']) {
