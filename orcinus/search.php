@@ -579,10 +579,10 @@ if ($_RDATA['s_searchable_pages']) {
             $result['url'] = preg_replace($repStr, '', $result['url']);
 
           // Highlight the terms in the title, url and matchtext
-          $_RESULT->title = $result['title']; // htmlspecialchars($result['title']);
-          $_RESULT->url = $result['url']; // htmlspecialchars($result['url']);
-          $_RESULT->matchtext = $result['matchtext']; // htmlspecialchars($result['matchtext']);
-          $_RESULT->description = $result['description']; // htmlspecialchars($result['description']);
+          $_RESULT->title = htmlspecialchars($result['title']);
+          $_RESULT->url = htmlspecialchars($result['url']);
+          $_RESULT->matchtext = htmlspecialchars($result['matchtext']);
+          $_RESULT->description = htmlspecialchars($result['description']);
           $_RESULT->title_highlight = $_RESULT->title;
           $_RESULT->url_highlight = $_RESULT->url;
           $_RESULT->matchtext_highlight = $_RESULT->matchtext;

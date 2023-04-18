@@ -13,9 +13,6 @@
 #os_results ol > li > footer > cite {
   color:#008800;
 }
-#os_results ol > li *:empty {
-  display:none;
-}
 
 #os_results nav > ul {
   list-style-type:none;

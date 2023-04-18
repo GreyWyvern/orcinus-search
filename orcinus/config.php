@@ -303,11 +303,18 @@ function OS_getValue($columnName) {
 
 /**
  * Initialize a generic cURL connection
- *  - If creating a cURL connection fails, we could try some fallbacks
+ *  - If creating a cURL connection fails, try using libcurlemu as a
+ *    backup option
  *
  */
 function OS_getConnection() {
   global $_ODATA;
+
+  // Attempt using libcurlemu as a backup; this may or may not work!
+  // https://github.com/m1k3lm/libcurlemu
+  if (!function_exists('curl_init'))
+    if (file_exists(__DIR__.'/libcurlemu/libcurlemu.inc.php'))
+      include_once __DIR__.'/libcurlemu/libcurlemu.inc.php';
 
   if (function_exists('curl_init')) {
     $_ = curl_init();
@@ -318,16 +325,9 @@ function OS_getConnection() {
     curl_setopt($_, CURLOPT_ENCODING, 'gzip');
     curl_setopt($_, CURLOPT_FILETIME, true);
     curl_setopt($_, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+    return $_;
 
-  } else {
-    // Fall back to file_get_contents with stream context?
-
-    // Fall back to socket connection?
-
-    $_ = false;
-  }
-
-  return $_;
+  } else return false;
 }
 
 
@@ -526,28 +526,26 @@ if (!$_ODATA['s_result_template']) {
       </div>
     {{/searched}}
 
-    <search role="search">
-      <form action="{{form_action}}" method="get">
+    <form action="{{form_action}}" method="get" role="search">
+      <label>
+        <input type="search" name="q" value="{{request_q}}"
+          class="os_typeahead" placeholder="Search..." aria-label="Search">
+      </label>
+      {{#categories}}
         <label>
-          <input type="search" name="q" value="{{request_q}}"
-            class="os_typeahead" placeholder="Search..." aria-label="Search">
+          <select name="c">
+            {{#category_list}}
+              <option value="{{name}}"{{#selected}} selected="selected"{{/selected}}>
+                {{name}}
+              </option>
+            {{/category_list}}
+          </select>
         </label>
-        {{#categories}}
-          <label>
-            <select name="c">
-              {{#category_list}}
-                <option value="{{name}}"{{#selected}} selected="selected"{{/selected}}>
-                  {{name}}
-                </option>
-              {{/category_list}}
-            </select>
-          </label>
-        {{/categories}}
-        <button type="submit">
-          Search
-        </button>
-      </form>
-    </search>
+      {{/categories}}
+      <button type="submit">
+        Search
+      </button>
+    </form>
   {{/searchable}}
   {{^searchable}}
     <div>
@@ -788,6 +786,8 @@ if (!empty($_SERVER['DOCUMENT_ROOT'])) {
 if (isset($_SERVER['REQUEST_URI']))
   $_SERVER['REQUEST_URI'] = preg_replace('/\?.*$/', '', $_SERVER['REQUEST_URI']);
 
+// Make sure REQUEST_METHOD is set if called via CLI
+if (empty($_SERVER['REQUEST_METHOD'])) $_SERVER['REQUEST_METHOD'] = '';
 
 // Locate the sitemap file if given
 if (!$_ODATA['sp_sitemap_hostname'] && !empty($_SERVER['HTTP_HOST']))

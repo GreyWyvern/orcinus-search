@@ -2413,23 +2413,23 @@ document.write(mustache.render(
                               echo $_RDATA['s_searchable_pages'];
                             ?></var>
                           </label>
+                        </li>
+                        <li class="list-group-item">
+                          <label class="d-flex w-100">
+                            <strong class="pe-2">Page Encodings</strong>
+                            <ol class="list-group list-group-flush flex-grow-1" id="os_crawl_info_charsets"><?php
+                              foreach ($_RDATA['s_crawldata_info']['Charsets'] as $encoding => $value) { ?> 
+                                <li class="list-group-item text-end p-0 border-0">
+                                  <strong><?php echo htmlspecialchars($encoding); ?>:</strong>
+                                  <var title="<?php echo $value; ?> pages"><?php
+                                    echo round(($value / $_RDATA['s_crawldata_info']['Rows']) * 100, 1);
+                                  ?>%</var>
+                                </li><?php
+                              } ?> 
+                            </ol>
+                          </label>
                         </li><?php
                       } ?> 
-                      <li class="list-group-item">
-                        <label class="d-flex w-100">
-                          <strong class="pe-2">Page Encodings</strong>
-                          <ol class="list-group list-group-flush flex-grow-1" id="os_crawl_info_charsets"><?php
-                            foreach ($_RDATA['s_crawldata_info']['Charsets'] as $encoding => $value) { ?> 
-                              <li class="list-group-item text-end p-0 border-0">
-                                <strong><?php echo htmlspecialchars($encoding); ?>:</strong>
-                                <var title="<?php echo $value; ?> pages"><?php
-                                  echo round(($value / $_RDATA['s_crawldata_info']['Rows']) * 100, 1);
-                                ?>%</var>
-                              </li><?php
-                            } ?> 
-                          </ol>
-                        </label>
-                      </li>
                     </ul>
                   </div>
                 </div><?php

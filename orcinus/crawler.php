@@ -28,6 +28,25 @@ function OS_crawlLog($text, $level = 0) {
 
 
 /**
+ * Final prep to store content in UTF-8 format in the database
+ *
+ */
+function OS_cleanTextUTF8(&$_, $charset, $entity = false) {
+  global $_RDATA;
+
+  if (strtoupper($charset) != 'UTF-8')
+    $_ = mb_convert_encoding($_, 'UTF-8', $charset);
+
+  if ($entity)
+    $_ = html_entity_decode($_, $entity | ENT_SUBSTITUTE, 'UTF-8');
+
+  $_ = strtr($_, $_RDATA['sp_smart']);
+  $_ = strtr($_, $_RDATA['sp_utf_replace']);
+  $_ = preg_replace(array('/\s/', '/ {2,}/'), ' ', trim($_));
+}
+
+
+/**
  * Format a full or partial URL into a full URL according to a base URL
  *
  */
@@ -63,8 +82,8 @@ function OS_formatURL($_, $base) {
 
 /**
  * Filter a URL by the crawling rules provided by the user
- * Sets an $_RDATA['sp_filter'] array key + value and returns the
- * REASON why the URL was rejected, NOT a 'filtered' URL
+ * - Sets an $_RDATA['sp_filter'] array key + value and returns the
+ *   REASON why the URL was rejected, NOT a 'filtered' URL
  *
  */
 function OS_filterURL($_, $base) {
@@ -149,70 +168,55 @@ function OS_fetchURL($url, $referer = '') {
   );
 
   $_['info']['url'] = $url;
+  $_['info']['noindex'] = '';
+  $_['info']['nofollow'] = false;
 
   // Process any cURL errors
   switch ($_['errno']) {
     case 0: // Success
-      $_['info']['noindex'] = '';
-      $_['info']['nofollow'] = false;
-
     case 42: // Aborted by callback
       if ($_['info']['http_code'] >= 400) {
         $_['errno'] = 22;
         $_['error'] = $_['info']['http_code'].' error';
-        $_['body'] = $url;
         $_['info']['noindex'] = '400';
-        $_['info']['nofollow'] = true;
 
       } else if ($_['info']['redirect_url']) {
         $_['errno'] = 300;
         $_['error'] = 'Redirected by HTTP header to: '.$_['info']['redirect_url'];
-        $_['links'][] = $_['info']['redirect_url'];
         $_['info']['noindex'] = 'redirect-location';
-        $_['info']['nofollow'] = true;
 
       } else if ($_RDATA['sp_robots_header']) {
         $_['errno'] = 777;
         $_['error'] = 'Blocked by \'X-Robots-Tag\' HTTP header';
         $_['info']['noindex'] = 'robots-http';
-        $_['info']['nofollow'] = true;
 
       } else if ($_RDATA['sp_self_reference']) {
         $_['errno'] = 888;
         $_['error'] = 'Refused to index myself';
         $_['info']['noindex'] = 'self-reference';
-        $_['info']['nofollow'] = true;
 
       } else if ($_['errno'] == 42) {
         $_['errno'] = 999;
         $_['error'] = 'Max filesize exceeded';
-        $_['body'] = $url;
         $_['info']['noindex'] = 'too-large';
-        $_['info']['nofollow'] = true;
       }
       break;
 
     case 28: // Timeout
       $_['error'] = 'Timed out waiting for data';
-      $_['body'] = $url;
       $_['info']['noindex'] = 'timeout';
-      $_['info']['nofollow'] = true;
       break;
 
     case 55: // Network send error
     case 56: // Network receive error
       $_['error'] = 'Network error retrieving data';
-      $_['body'] = $url;
       $_['info']['noindex'] = 'network-error';
-      $_['info']['nofollow'] = true;
       break;
 
     case 6: // Could not resolve host
     case 7: // Could not connect to host
       $_['error'] = 'Couldn\'t connect to host: '.$_['url']['host'];
-      $_['body'] = $url;
       $_['info']['noindex'] = 'couldnt-connect';
-      $_['info']['nofollow'] = true;
       break;
 
     default: // Uncaught cURL error
@@ -223,456 +227,6 @@ function OS_fetchURL($url, $referer = '') {
       throw new Exception('Uncaught cURL error');
 
   }
-
-  return $_;
-}
-
-
-/**
- * Parse the content of a fetched URL for the crawler
- *  - Modifies the supplied argument array from a OS_fetchURL() call
- *  - Returns nothing
- *
- */
-function OS_parseURLContent($_) {
-  global $_ODATA, $_RDATA, $_PDF;
-
-  if ($_['info']['http_code'] == 304) {
-    OS_crawlLog('Page hasn\'t been modified since the last successful crawl', 0);
-    $_['info']['noindex'] = 'not-modified';
-    return $_;
-  }
-
-
-  // Detect MIME-type using extension?
-  if (empty($_['info']['content_type']))
-    $_['info']['content_type'] = 'text/plain';
-
-  // Parse MIME-type
-  $_['info']['mime_type'] = '';
-  if (preg_match('/\w+\/[\w.+-]+/', $_['info']['content_type'], $m))
-    $_['info']['mime_type'] = $m[0];
-
-  $_['info']['charset'] = '';
-  if (preg_match('/charset=([\w\d.:-]+)/i', $_['info']['content_type'], $m))
-    $_['info']['charset'] = $m[1];
-  if (!$_['info']['charset'])
-    $_['info']['charset'] = 'ISO-8859-1';
-
-
-  $_['info']['sha1'] = sha1($_['body'], true);
-
-
-  while (strpos($_['body'], "\x1f\x8b") === 0)
-    $_['body'] = gzinflate(substr($_['body'], 10));
-
-
-  switch ($_['info']['mime_type']) {
-    case 'text/plain':
-
-      $_['content'] = strtr($_['body'], $_RDATA['sp_smart']);
-      $_['content'] = strtr($_['content'], $_RDATA['sp_utf_replace']);
-
-      if (!trim($_['content'])) {
-        $_['error'] = 'Server returned no content for';
-        $_['info']['noindex'] = 'empty';
-        break;
-      }
-
-      $_['title'] = basename($_['info']['url']);
-      break;
-
-
-    case 'text/xml':
-    case 'application/xml':
-
-      parseDocXML:
-      $_['content'] = preg_replace(array('/<!--.*?-->/s', '/<script.*?\/script>/is'), '', $_['body']);
-      $_['content'] = str_replace('><', '> <', $_['content']);
-
-      $_['content'] = html_entity_decode($_['content'], ENT_XML1 | ENT_SUBSTITUTE, $_['info']['charset']);
-      if (strtoupper($_['info']['charset']) != 'UTF-8')
-        $_['content'] = mb_convert_encoding($_['content'], 'UTF-8', $_['info']['charset']);
-
-      $_['content'] = strtr($_['content'], $_RDATA['sp_smart']);
-      $_['content'] = strtr($_['content'], $_RDATA['sp_utf_replace']);
-
-      if (!trim($_['content'])) {
-        $_['error'] = 'Server returned no content';
-        $_['info']['noindex'] = 'empty';
-        break;
-      }
-
-      $document = new DOMDocument();
-      if ($document->loadXML($_['content'], LIBXML_PARSEHUGE | LIBXML_BIGLINES | LIBXML_NOBLANKS | LIBXML_NSCLEAN)) {
-
-        // Check XML document charset
-        if (strtolower($_['info']['charset']) != strtolower($document->xmlEncoding)) {
-          OS_crawlLog('Charset in Content-type header ('.(($_['info']['charset']) ? $_['info']['charset'] : '<none>').') differs from document charset ('.(($document->xmlEncoding) ? $document->xmlEncoding : '<none>').') at: '.$_['info']['url'], 1);
-          $_['info']['charset'] = $document->xmlEncoding;
-          goto parseDocXML;
-        }
-
-        $_['content'] = $document->textContent;
-
-      } else {
-        $_['error'] = 'Invalid XML; could not parse content';
-        $_['info']['nofollow'] = true;
-
-        $_['content'] = strip_tags($_['content']);
-      }
-
-      $_['title'] = basename($_['info']['url']);
-      break;
-
-
-    case 'text/html':
-    case 'application/xhtml+xml':
-
-      parseDocHTML:
-      $_['content'] = preg_replace(array('/<!--.*?-->/s', '/<script.*?\/script>/is'), '', $_['body']);
-      $_['content'] = str_replace('><', '> <', $_['content']);
-      $_['content'] = preg_replace('/<br(\s?\/)?>/', "\n", $_['content']);
-
-      $_['content'] = html_entity_decode($_['content'], ENT_HTML5 | ENT_SUBSTITUTE, $_['info']['charset']);
-      if (strtoupper($_['info']['charset']) != 'UTF-8')
-        $_['content'] = mb_convert_encoding($_['content'], 'UTF-8', $_['info']['charset']);
-
-      $_['content'] = strtr($_['content'], $_RDATA['sp_smart']);
-      $_['content'] = strtr($_['content'], $_RDATA['sp_utf_replace']);
-
-      if (!trim($_['content'])) {
-        $_['error'] = 'Server returned no content';
-        $_['info']['noindex'] = 'empty';
-        break;
-      }
-
-      $document = new DOMDocument();
-      if ($document->loadHTML($_['content'], LIBXML_PARSEHUGE | LIBXML_BIGLINES | LIBXML_NOBLANKS | LIBXML_NSCLEAN)) {
-
-        // ***** Process <head> elements
-        $head = $document->getElementsByTagName('head');
-
-        $base = $head[0]->getElementsByTagName('base');
-        if (!empty($base[0]))
-          for ($x = 0; $x < count($base[0]->attributes); $x++)
-            if (strtolower($base[0]->attributes[$x]->name) == 'href')
-              $_['base'] = filter_var($base[0]->attributes[$x]->value, FILTER_SANITIZE_URL);
-
-        $metas = $head[0]->getElementsByTagName('meta');
-        foreach ($metas as $meta) {
-          for ($x = 0; $x < count($meta->attributes); $x++) {
-            if (strtolower($meta->attributes[$x]->name) == 'charset') {
-              if (strtolower($_['info']['charset']) != strtolower($meta->attributes[$x]->value)) {
-                OS_crawlLog('Charset in Content-type header ('.(($_['info']['charset']) ? $_['info']['charset'] : '<none>').') differs from document charset ('.(($meta->attributes[$x]->value) ? $meta->attributes[$x]->value : '<none>').') at: '.$_['info']['url'], 1);
-                $_['info']['charset'] = $meta->attributes[$x]->value;
-                goto parseDocHTML;
-              }
-
-            } else if (strtolower($meta->attributes[$x]->name) == 'http-equiv') {
-              switch (strtolower($meta->attributes[$x]->value)) {
-                case 'refresh':
-                  for ($y = 0; $y < count($meta->attributes); $y++) {
-                    if (strtolower($meta->attributes[$y]->name) == 'content') {
-                      if (preg_match('/(\d+)\s?;\s?url\s?=\s?([\'"])(.+?)\2?\s?$/i', $meta->attributes[$y]->value, $m)) {
-                        $_['links'][] = $m[3];
-                        if ((int)$m[1] <= $_ODATA['sp_timeout_url']) {
-                          $_['errno'] = 300;
-                          $_['error'] = $_['info']['url'].' redirected by <meta> element to: '.$m[3];
-                          $_['info']['noindex'] = 'redirect-meta';
-                          $_['info']['nofollow'] = true;
-                          break 4;
-                        }
-                      }
-                    }
-                  }
-                  break;
-
-                case 'content-type':
-                  for ($y = 0; $y < count($meta->attributes); $y++) {
-                    if (strtolower($meta->attributes[$y]->name) == 'content' && preg_match('/charset=([\w\d.:-]+)/i', $meta->attributes[$y]->value, $m)) {
-                      if (strtolower($_['info']['charset']) != strtolower($m[1])) {
-                        OS_crawlLog('Charset in Content-type header ('.(($_['info']['charset']) ? $_['info']['charset'] : '<none>').') differs from document charset ('.(($m[1]) ? $m[1] : '<none>').') at: '.$_['info']['url'], 1);
-                        $_['info']['charset'] = $m[1];
-                        goto parseDocHTML;
-                      }
-                    }
-                  }
-
-              }
-
-            } else if (strtolower($meta->attributes[$x]->name) == 'name') {
-              switch (strtolower($meta->attributes[$x]->value)) {
-                case 'keywords':
-                  for ($y = 0; $y < count($meta->attributes); $y++)
-                    if (strtolower($meta->attributes[$y]->name) == 'content')
-                      $_['keywords'] = $meta->attributes[$y]->value;
-                  break;
-
-                case 'description':
-                  for ($y = 0; $y < count($meta->attributes); $y++)
-                    if (strtolower($meta->attributes[$y]->name) == 'content')
-                      $_['description'] = $meta->attributes[$y]->value;
-                  break;
-
-                case 'robots':
-                case 'orcacrawler':
-                case 'orcaphpcrawler':
-                case 'orca-crawler':
-                case 'orcaphp-crawler':
-                case 'orca-phpcrawler':
-                case 'orca-php-crawler':
-                case 'orcinuscrawler':
-                case 'orcinus-crawler':
-                  for ($y = 0; $y < count($meta->attributes); $y++) {
-                    if (strtolower($meta->attributes[$y]->name) == 'content') {
-                      $content = explode(',', $meta->attributes[$y]->value);
-                      foreach ($content as $con) {
-                        switch (trim(strtolower($con))) {
-                          case 'nofollow':
-                            $_['info']['nofollow'] = true;
-                            break;
-
-                          case 'noindex':
-                            $_['error'] = 'Not indexed due to robots <meta> element';
-                            $_['info']['noindex'] = 'robots-meta';
-
-                        }
-                      }
-                    }
-                  }
-
-              }
-            }
-          }
-        }
-
-        $title = $head[0]->getElementsByTagName('title');
-        $_['title'] = $title[0]->textContent;
-
-        $links = $head[0]->getElementsByTagName('link');
-        foreach ($links as $link) {
-          for ($x = 0; $x < count($link->attributes); $x++) {
-            if (strtolower($link->attributes[$x]->name) == 'rel') {
-              for ($y = 0; $y < count($link->attributes); $y++) {
-                if (strtolower($link->attributes[$y]->name) == 'href') {
-                  $linkurl = filter_var($link->attributes[$y]->value, FILTER_SANITIZE_URL);
-
-                  switch (strtolower($link->attributes[$x]->value)) {
-                    case 'canonical':
-                      if (OS_formatURL($linkurl, $_['base']) != $_['info']['url']) {
-                        $_['info']['noindex'] = 'non-canonical';
-                        $_['info']['canonical'] = $linkurl;
-                      }
-
-                    case 'alternate':
-                    case 'author':
-                    case 'help':
-                    case 'license':
-                    case 'me':
-                    case 'next':
-                    case 'prev':
-                    case 'search':
-                    case 'alternate':
-                      $_['links'][] = $linkurl;
-
-                  }
-                  break;
-                }
-              }
-            }
-          }
-        }
-
-
-        // ***** Process <body> elements
-        $body = $document->getElementsByTagName('body');
-
-        // Replace <img> tags with their alt text
-        $imgs = $body[0]->getElementsByTagName('img');
-        foreach ($imgs as $img) {
-          for ($x = 0; $x < count($img->attributes); $x++) {
-            if (strtolower($img->attributes[$x]->name) == 'alt') {
-              $img->parentNode->replaceChild(
-                $document->createTextNode(' '.$img->attributes[$x]->value.' '),
-                $img
-              );
-              break;
-            }
-          }
-        }
-
-        $as = $body[0]->getElementsByTagName('a');
-        foreach ($as as $a) {
-          for ($x = 0; $x < count($a->attributes); $x++) {
-            if (strtolower($a->attributes[$x]->name) == 'href') {
-              for ($y = 0; $y < count($a->attributes); $y++)
-                if (strtolower($a->attributes[$y]->name) == 'rel' && strtolower($a->attributes[$y]->value) == 'nofollow') continue 3;
-              $_['links'][] = $a->attributes[$x]->value;
-            }
-          }
-        }
-
-        $areas = $body[0]->getElementsByTagName('area');
-        foreach ($areas as $area) {
-          for ($x = 0; $x < count($area->attributes); $x++) {
-            if (strtolower($area->attributes[$x]->name) == 'href') {
-              for ($y = 0; $y < count($area->attributes); $y++)
-                if (strtolower($area->attributes[$y]->name) == 'rel' && strtolower($area->attributes[$y]->value) == 'nofollow') continue 3;
-              $_['links'][] = $area->attributes[$x]->value;
-            }
-          }
-        }
-
-        $frames = $body[0]->getElementsByTagName('frame');
-        foreach ($frames as $frame)
-          for ($x = 0; $x < count($frame->attributes); $x++)
-            if (strtolower($frame->attributes[$x]->name) == 'src')
-              $_['links'][] = $frame->attributes[$x]->value;
-
-        $iframes = $body[0]->getElementsByTagName('iframe');
-        foreach ($iframes as $iframe)
-          for ($x = 0; $x < count($iframe->attributes); $x++)
-            if (strtolower($iframe->attributes[$x]->name) == 'src')
-              $_['links'][] = $iframe->attributes[$x]->value;
-
-        $_['links'] = array_map(function($l) {
-          if (preg_match('/^(tel|telnet|mailto|ftp|sftp|ssh|gopher|news|ldap|urn|onion|magnet):/i', $l)) return '';
-          return preg_replace('/#.*$/', '', $l);
-        }, $_['links']);
-        $_['links'] = array_filter(array_unique($_['links']));
-
-        // Remove tags
-        foreach ($_RDATA['sp_ignore_css'] as $ignoreCSS) {
-          switch ($ignoreCSS[0]) {
-            case '#': // Remove by ID
-              $id = $document->getElementById(substr($ignoreCSS, 1));
-              if (!is_null($id)) $id->parentNode->removeChild($id);
-              break;
-
-            case '.': // Remove by class
-              $xpath = new DOMXpath($document);
-              foreach ($xpath->evaluate('//*[contains(concat(" ", normalize-space(@class), " "), " '.substr($ignoreCSS, 1).' ")]') as $cls)
-                $cls->parentNode->removeChild($cls);
-              break;
-
-            default: // Remove by tag name
-              $tags = $document->getElementsByTagName($ignoreCSS);
-              foreach ($tags as $tag)
-                $tag->parentNode->removeChild($tag);
-
-          }
-        }
-
-        // Weighted elements
-        foreach ($_RDATA['s_weight_css'] as $weightCSS) {
-          switch ($weightCSS[0]) {
-            case '#': // Get content by ID
-              $id = $document->getElementById(substr($weightCSS, 1));
-              if (!is_null($id)) $_['weighted'] .= $id->textContent.' ';
-              break;
-
-            case '.': // Get content by class
-              $xpath = new DOMXpath($document);
-              foreach ($xpath->evaluate('//*[contains(concat(" ", normalize-space(@class), " "), " '.substr($weightCSS, 1).' ")]') as $cls)
-                $_['weighted'] .= $cls->textContent.' ';
-              break;
-
-            default: // Get content by tag name
-              $tags = $document->getElementsByTagName($weightCSS);
-              foreach ($tags as $tag)
-                $_['weighted'] .= $tag->textContent.' ';
-
-          }
-        }
-
-        $_['content'] = $document->textContent;
-
-      } else {
-        $_['error'] = 'Invalid HTML; could not parse content';
-        $_['info']['nofollow'] = true;
-
-        $_['content'] = strip_tags($_['content']);
-      }
-      break;
-
-
-    case 'application/pdf':
-      $_['info']['charset'] = 'ISO-8859-1';
-
-      if ($_PDF) {
-        try {
-          $pdf = $_PDF->parseContent($_['body']);
-
-          $_['content'] = $pdf->getText();
-
-          $_['title'] = basename($_['info']['url']);
-
-          $meta = $pdf->getDetails();
-          if (!empty($meta['Title'])) $_['title'] = strtr($meta['Title'], $_RDATA['sp_utf_replace']);
-          if (!empty($meta['Subject'])) $_['description'] = strtr($meta['Subject'], $_RDATA['sp_utf_replace']);
-          if (!empty($meta['Keywords'])) $_['keywords'] = strtr($meta['Keywords'], $_RDATA['sp_utf_replace']);
-
-          // remove escaped whitespace
-          $_['title'] = str_replace(array("\\\n\r", "\\\n"), '', $_['title']);
-          $_['description'] = str_replace(array("\\\n\r", "\\\n"), '', $_['description']);
-          $_['keywords'] = str_replace(array("\\\n\r", "\\\n"), '', $_['keywords']);
-          $_['content'] = str_replace(array("\\\n\r", "\\\n"), '', $_['content']);
-
-          $_['info']['charset'] = mb_detect_encoding($_['content']);
-
-          if (!$_['info']['charset']) $_['info']['charset'] = 'ISO-8859-1';
-          if (strtoupper($_['info']['charset']) != 'UTF-8') {
-            $_['title'] = mb_convert_encoding($_['title'], 'UTF-8', $_['info']['charset']);
-            $_['description'] = mb_convert_encoding($_['description'], 'UTF-8', $_['info']['charset']);
-            $_['keywords'] = mb_convert_encoding($_['keywords'], 'UTF-8', $_['info']['charset']);
-            $_['content'] = mb_convert_encoding($_['content'], 'UTF-8', $_['info']['charset']);
-          }
-
-          // Discard the PDF text if it contains Unicode control
-          // characters; some of these might be simple PDF ligatures
-          // but PdfParser doesn't support them
-          if (strpos($_['content'], "\u{3}") === false &&
-              strpos($_['content'], "\u{2}") === false &&
-              strpos($_['content'], "\u{1}") === false) {
-
-            $_['content'] = strtr($_['content'], $_RDATA['sp_smart']);
-            $_['content'] = strtr($_['content'], $_RDATA['sp_utf_replace']);
-
-          } else {
-            $_['errno'] = 702;
-            $_['error'] = 'Failed to decode PDF text';
-            $_['content'] = '';
-            $_['info']['noindex'] = 'couldnt-decode-pdf';
-          }
-
-        } catch (Exception $e) {
-          $_['errno'] = 701;
-          $_['error'] = 'PDF is secured/encrypted; text extraction failed';
-          $_['content'] = '';
-          $_['info']['noindex'] = 'secured-pdf';
-        }
-
-      } else $_['info']['noindex'] = 'missing-pdfparser';
-      break;
-
-
-    // Unknown MIME-type
-    default:
-      $_['info']['charset'] = 'ISO-8859-1';
-
-      $_['error'] = 'Not indexed due to unknown MIME type ('.$_['info']['mime_type'].')';
-      $_['info']['noindex'] = 'unknown-mime';
-      $_['info']['nofollow'] = true;
-
-  }
-
-  // White-space normalize
-  $_['title'] = preg_replace(array('/\s/', '/ {2,}/'), ' ', trim($_['title']));
-  $_['description'] = preg_replace(array('/\s/', '/ {2,}/'), ' ', trim($_['description']));
-  $_['keywords'] = preg_replace(array('/\s/', '/ {2,}/'), ' ', trim($_['keywords']));
-  $_['weighted'] = preg_replace(array('/\s/', '/ {2,}/'), ' ', trim($_['weighted']));
-  $_['content'] = preg_replace(array('/\s/', '/ {2,}/'), ' ', trim($_['content']));
 
   return $_;
 }
@@ -704,13 +258,16 @@ function OS_crawlCleanUp() {
   OS_setValue('sp_time_last', $_ODATA['sp_time_end'] - $_ODATA['sp_time_start']);
   OS_setValue('sp_data_transferred', $_RDATA['sp_data_transferred']);
 
+  // If crawl completed successfully
   if ($_RDATA['sp_complete']) {
     OS_crawlLog('Cleaning up database tables...', 1);
 
+    // Add a natural sort order value to each entry
     natcasesort($_RDATA['sp_store']);
     $_RDATA['sp_store'] = array_values($_RDATA['sp_store']);
     $url_sort = $_DDATA['pdo']->prepare(
-      'UPDATE `'.$_DDATA['tbprefix'].'crawltemp` SET `url_sort`=:url_sort WHERE `url`=:url;'
+      'UPDATE `'.$_DDATA['tbprefix'].'crawltemp`
+         SET `url_sort`=:url_sort WHERE `url`=:url;'
     );
     foreach ($_RDATA['sp_store'] as $key => $stored_url) {
       $url_sort->execute(array(
@@ -725,6 +282,7 @@ function OS_crawlCleanUp() {
       }
     }
 
+    // Truncate the existing search database
     $truncate = $_DDATA['pdo']->query(
       'TRUNCATE `'.$_DDATA['tbprefix'].'crawldata`;'
     );
@@ -732,20 +290,20 @@ function OS_crawlCleanUp() {
     if ($err[0] != '00000') {
       OS_crawlLog('Could not truncate the search database', 1);
       OS_crawlLog($err[2], 0);
+
+      // Last chance to bail out before we make actual changes
       $_RDATA['sp_complete'] = false;
     }
   }
 
-  // If crawl completed successfully
+  // If crawl completed successfully AND we truncated the old table
   if ($_RDATA['sp_complete']) {
 
     // Select all rows from the temp table into the existing search table
     $insert = $_DDATA['pdo']->query(
       'INSERT INTO `'.$_DDATA['tbprefix'].'crawldata`
-        SELECT * FROM `'.$_DDATA['tbprefix'].'crawltemp`
-      ;'
+        SELECT * FROM `'.$_DDATA['tbprefix'].'crawltemp`;'
     );
-
     $err = $insert->errorInfo();
     if ($err[0] == '00000') {
       $tableinfo = $_DDATA['pdo']->query(
@@ -832,7 +390,7 @@ function OS_crawlCleanUp() {
       ), JSON_INVALID_UTF8_IGNORE);
     }
 
-  // ... else if the crawl failed
+  // Else the crawl failed
   } else {
     OS_crawlLog('***** Crawl failed; runtime '.$_ODATA['sp_time_last'].'s *****', 1);
     OS_crawlLog('Search table was NOT updated', 1);
@@ -868,7 +426,7 @@ function OS_crawlCleanUp() {
   OS_setValue('sp_log', file_get_contents($_ODATA['sp_log']));
   fclose($_RDATA['sp_log']);
 
-
+  // Unset the crawling flag
   OS_setValue('sp_crawling', 0);
 
   if ($_SERVER['REQUEST_METHOD'] != 'CLI') {
@@ -881,8 +439,8 @@ function OS_crawlCleanUp() {
 
 
 
-if (empty($_SERVER['REQUEST_METHOD'])) $_SERVER['REQUEST_METHOD'] = '';
 
+// ***** Accept incoming commands by REQUEST_METHOD
 switch ($_SERVER['REQUEST_METHOD']) {
 
   /* ***** Handle POST Requests ************************************ */
@@ -998,12 +556,14 @@ switch ($_SERVER['REQUEST_METHOD']) {
 
       }
 
+      // If we have a response to give, display it and exit
       if ($response) {
         header('Content-type: application/json; charset='.strtolower($_ODATA['s_charset']));
         die(json_encode($response, JSON_INVALID_UTF8_IGNORE));
       }
 
     // Don't do anything for normal POST request
+    // These are usually sent by <form> HTML elements
     } else {
       header('Content-type: text/plain; charset='.strtolower($_ODATA['s_charset']));
       die($_ODATA['sp_useragent']);
@@ -1176,12 +736,15 @@ foreach ($_RDATA['sp_starting'] as $starting) {
 }
 
 // ***** List of previously crawled links from the database
-$_EXIST = $_DDATA['pdo']->query(
-  'SELECT `url` FROM `'.$_DDATA['tbprefix'].'crawldata`'
-)->fetchAll();
-foreach ($_EXIST as $key => $value)
-  $_EXIST[$key] = $value['url'];
-
+$_EXIST = array();
+$crawldata = $_DDATA['pdo']->query(
+  'SELECT `url`, `content_checksum` FROM `'.$_DDATA['tbprefix'].'crawldata`'
+);
+$err = $crawldata->errorInfo();
+if ($err[0] == '00000') {
+  foreach ($crawldata as $value)
+    $_EXIST[$value['content_checksum']] = $value['url'];
+} else OS_crawlLog('Error getting list of previous URLs from crawldata table', 2);
 
 
 // Drop previous temp table if it exists
@@ -1191,15 +754,15 @@ $drop = $_DDATA['pdo']->query(
 
 // Create a temp MySQL storage table using schema of the existing table
 $create = $_DDATA['pdo']->query(
-  'CREATE TABLE `'.$_DDATA['tbprefix'].'crawltemp` LIKE `'.$_DDATA['tbprefix'].'crawldata`;'
+  'CREATE TABLE `'.$_DDATA['tbprefix'].'crawltemp`
+     LIKE `'.$_DDATA['tbprefix'].'crawldata`;'
 );
 
 
 // Prepare SQL statements
 $selectData = $_DDATA['pdo']->prepare(
-  'SELECT
-    `url`, `links`, `content_checksum`, `flag_updated`,
-    `last_modified`, `flag_unlisted`, `priority`
+  'SELECT `url`, `links`, `content_checksum`, `last_modified`,
+          `flag_updated`, `flag_unlisted`, `priority`
   FROM `'.$_DDATA['tbprefix'].'crawldata` WHERE `url`=:url;'
 );
 $updateURL = $_DDATA['pdo']->prepare(
@@ -1230,10 +793,12 @@ $insertTemp = $_DDATA['pdo']->prepare(
   ;'
 );
 $insertNotModified = $_DDATA['pdo']->prepare(
-  'INSERT INTO `'.$_DDATA['tbprefix'].'crawltemp` SELECT * FROM `'.$_DDATA['tbprefix'].'crawldata` WHERE `url`=:url;'
+  'INSERT INTO `'.$_DDATA['tbprefix'].'crawltemp`
+     SELECT * FROM `'.$_DDATA['tbprefix'].'crawldata` WHERE `url`=:url;'
 );
 $updateNotModified = $_DDATA['pdo']->prepare(
-  'UPDATE `'.$_DDATA['tbprefix'].'crawltemp` SET `flag_updated`=0, `status`=:status WHERE `url`=:url;'
+  'UPDATE `'.$_DDATA['tbprefix'].'crawltemp`
+     SET `flag_updated`=0, `status`=:status WHERE `url`=:url;'
 );
 
 
@@ -1309,24 +874,486 @@ while ($_cURL && count($_QUEUE)) {
   OS_crawlLog('Crawling: '.$url.' (Depth: '.$depth.')', 1);
   OS_setValue('sp_progress', count($_RDATA['sp_links']).'/'.(count($_RDATA['sp_links']) + count($_QUEUE)));
 
+  // Set the correct If-Modified-Since request header
   if ($_ODATA['sp_ifmodifiedsince'] && (!count($_EXIST) || in_array($url, $_EXIST))) {
     curl_setopt($_cURL, CURLOPT_TIMECONDITION, CURL_TIMECOND_IFMODSINCE);
   } else curl_setopt($_cURL, CURLOPT_TIMECONDITION, CURL_TIMECOND_NONE);
 
+  // Fetch the URL
   $data = OS_fetchURL($url, $referer);
 
+  // Record cURL timing and data info for this fetch
   $_RDATA['sp_data_transferred'] += $data['info']['size_download'];
   $_RDATA['sp_time_curl'] += $data['info']['total_time'];
 
-  if (!$data['errno'])
-   $data = OS_parseURLContent($data);
+
+  // If there were cURL errors while fetching this URL
+  if ($data['errno']) {
+
+
+  // Else if the page hasn't been modified since the last crawl
+  } else if ($data['info']['http_code'] == 304) {
+    $data['info']['noindex'] = 'not-modified-304';
+
+
+  // Else if we received any content at all
+  } else if (trim($data['body'])) {
+
+    // Get a 20-byte binary hash of the raw content
+    $data['info']['sha1'] = sha1($data['body'], true);
+
+    // If this content does not duplicate previously stored content
+    if (empty($_RDATA['sp_sha1'][$data['info']['sha1']])) {
+
+      // Add the content hash to the tally
+      $_RDATA['sp_sha1'][$data['info']['sha1']] = $url;
+
+      // If this is a new page, or an existing page but the content
+      // hash has changed
+      if (!isset($_EXIST[$data['info']['sha1']]) || $_EXIST[$data['info']['sha1']] != $url) {
+
+        // Detect MIME-type using extension?
+        if (empty($data['info']['content_type']))
+          $data['info']['content_type'] = 'text/plain';
+
+        // Parse MIME-type
+        $data['info']['mime_type'] = '';
+        if (preg_match('/\w+\/[\w.+-]+/', $data['info']['content_type'], $m))
+          $data['info']['mime_type'] = $m[0];
+
+        // Parse Character Encoding
+        $data['info']['charset'] = '';
+        if (preg_match('/charset=([\w\d.:-]+)/i', $data['info']['content_type'], $m))
+          $data['info']['charset'] = $m[1];
+        if (!$data['info']['charset'])
+          $data['info']['charset'] = 'ISO-8859-1';
+
+        // GZ-Unzip the content if necessary
+        while (strpos($data['body'], "\x1f\x8b") === 0)
+          $data['body'] = gzinflate(substr($data['body'], 10));
+
+        // Title defaults to filename
+        $data['title'] = basename($data['info']['url']);
+
+        // Determine how to parse the content by MIME-type
+        switch ($data['info']['mime_type']) {
+
+          /* ***** PLAIN TEXT **************************************** */
+          case 'text/plain':
+            $data['content'] = $data['body'];
+
+            OS_cleanTextUTF8($data['content'], $data['info']['charset']);
+            break;
+
+
+          /* ***** XML DOCUMENT ************************************** */
+          case 'text/xml':
+          case 'application/xml':
+            $data['body'] = preg_replace('/<br(\s?\/)?>/', ' ', $data['body']);
+
+            $document = new DOMDocument();
+            if ($document->loadXML($data['body'], LIBXML_PARSEHUGE | LIBXML_BIGLINES | LIBXML_COMPACT)) {
+
+              // Remove <script> elements
+              $scripts = $document->getElementsByTagName('script');
+              foreach ($scripts as $script)
+                $script->parentNode->removeChild($script);
+
+              // Remove <!-- comments -->
+              $xpath = new DOMXpath($document);
+              $comments = $xpath->query('//comment()');
+              foreach ($comments as $comment)
+                $comment->parentNode->removeChild($comment);
+
+              // Check XML document charset
+              if (strtolower($data['info']['charset']) != strtolower($document->xmlEncoding)) {
+                OS_crawlLog('Charset in Content-type header ('.(($data['info']['charset']) ? $data['info']['charset'] : '<none>').') differs from document charset ('.(($document->xmlEncoding) ? $document->xmlEncoding : '<none>').') at: '.$data['info']['url'], 1);
+                $data['info']['charset'] = $document->xmlEncoding;
+              }
+
+              $data['content'] = $document->textContent;
+
+            // Could not parse XML; try to store content anyway
+            } else {
+              $data['error'] = 'Invalid XML - could not parse content; storing as-is';
+              $data['info']['nofollow'] = true;
+
+              // Remove <script> elements and <!-- comments -->
+              $data['content'] = preg_replace(array('/<!--.*?-->/s', '/<script.*?\/script>/is'), '', $data['body']);
+              $data['content'] = strip_tags($data['content']);
+            }
+
+            OS_cleanTextUTF8($data['content'], $data['info']['charset'], ENT_XML1);
+            break;
+
+
+          /* ***** HTML DOCUMENT ************************************* */
+          case 'text/html':
+          case 'application/xhtml+xml':
+            $data['body'] = preg_replace('/<br(\s?\/)?>/', ' ', $data['body']);
+
+            $document = new DOMDocument();
+            if ($document->loadHTML($data['body'], LIBXML_PARSEHUGE | LIBXML_BIGLINES | LIBXML_COMPACT | LIBXML_NOCDATA)) {
+
+              // Remove <script> elements
+              $scripts = $document->getElementsByTagName('script');
+              foreach ($scripts as $script)
+                $script->parentNode->removeChild($script);
+
+              // Remove <!-- comments -->
+              $xpath = new DOMXpath($document);
+              $comments = $xpath->query('//comment()');
+              foreach ($comments as $comment)
+                $comment->parentNode->removeChild($comment);
+
+              // ***** Process <head> elements
+              $head = $document->getElementsByTagName('head');
+
+              $base = $head[0]->getElementsByTagName('base');
+              if (!empty($base[0]))
+                for ($x = 0; $x < count($base[0]->attributes); $x++)
+                  if (strtolower($base[0]->attributes[$x]->name) == 'href')
+                    if (!empty($base[0]->attributes[$x]->value))
+                      $data['base'] = filter_var($base[0]->attributes[$x]->value, FILTER_SANITIZE_URL);
+
+              $metas = $head[0]->getElementsByTagName('meta');
+              foreach ($metas as $meta) {
+                for ($x = 0; $x < count($meta->attributes); $x++) {
+                  if (strtolower($meta->attributes[$x]->name) == 'charset') {
+                    if (strtolower($data['info']['charset']) != strtolower($meta->attributes[$x]->value)) {
+                      OS_crawlLog('Charset in Content-type header ('.(($data['info']['charset']) ? $data['info']['charset'] : '<none>').') differs from document charset ('.(($meta->attributes[$x]->value) ? $meta->attributes[$x]->value : '<none>').') at: '.$data['info']['url'], 1);
+                      $data['info']['charset'] = $meta->attributes[$x]->value;
+                    }
+
+                  } else if (strtolower($meta->attributes[$x]->name) == 'http-equiv') {
+                    switch (strtolower($meta->attributes[$x]->value)) {
+                      case 'refresh':
+                        for ($y = 0; $y < count($meta->attributes); $y++) {
+                          if (strtolower($meta->attributes[$y]->name) == 'content') {
+                            if (preg_match('/(\d+)\s?;\s?url\s?=\s?([\'"])(.+?)\2?\s?$/i', $meta->attributes[$y]->value, $m)) {
+                              if ((int)$m[1] <= $_ODATA['sp_timeout_url']) {
+                                $data['errno'] = 300;
+                                $data['error'] = 'Redirected by <meta> element to: '.$m[3];
+                                $data['info']['redirect_url'] = $m[3];
+                                $data['info']['noindex'] = 'redirect-meta';
+                                $data['info']['nofollow'] = true;
+                                break 4;
+                              } else $data['links'][] = $m[3];
+                            }
+                          }
+                        }
+                        break;
+
+                      case 'content-type':
+                        for ($y = 0; $y < count($meta->attributes); $y++) {
+                          if (strtolower($meta->attributes[$y]->name) == 'content' && preg_match('/charset=([\w\d.:-]+)/i', $meta->attributes[$y]->value, $m)) {
+                            if (strtolower($data['info']['charset']) != strtolower($m[1])) {
+                              OS_crawlLog('Charset in Content-type header ('.(($data['info']['charset']) ? $data['info']['charset'] : '<none>').') differs from document charset ('.(($m[1]) ? $m[1] : '<none>').') at: '.$data['info']['url'], 1);
+                              $data['info']['charset'] = $m[1];
+                            }
+                          }
+                        }
+
+                    }
+
+                  } else if (strtolower($meta->attributes[$x]->name) == 'name') {
+                    switch (strtolower($meta->attributes[$x]->value)) {
+                      case 'keywords':
+                        for ($y = 0; $y < count($meta->attributes); $y++)
+                          if (strtolower($meta->attributes[$y]->name) == 'content')
+                            $data['keywords'] = $meta->attributes[$y]->value;
+                        break;
+
+                      case 'description':
+                        for ($y = 0; $y < count($meta->attributes); $y++)
+                          if (strtolower($meta->attributes[$y]->name) == 'content')
+                            $data['description'] = $meta->attributes[$y]->value;
+                        break;
+
+                      case 'robots':
+                      case 'orcacrawler':
+                      case 'orcaphpcrawler':
+                      case 'orca-crawler':
+                      case 'orcaphp-crawler':
+                      case 'orca-phpcrawler':
+                      case 'orca-php-crawler':
+                      case 'orcinuscrawler':
+                      case 'orcinus-crawler':
+                        for ($y = 0; $y < count($meta->attributes); $y++) {
+                          if (strtolower($meta->attributes[$y]->name) == 'content') {
+                            $content = explode(',', $meta->attributes[$y]->value);
+                            foreach ($content as $con) {
+                              switch (trim(strtolower($con))) {
+                                case 'nofollow':
+                                  $data['info']['nofollow'] = true;
+                                  break;
+
+                                case 'noindex':
+                                  $data['error'] = 'Not indexed due to robots <meta> element';
+                                  $data['info']['noindex'] = 'robots-meta';
+
+                              }
+                            }
+                          }
+                        }
+
+                    }
+                  }
+                }
+              }
+
+              $title = $head[0]->getElementsByTagName('title');
+              $data['title'] = $title[0]->textContent;
+
+              $links = $head[0]->getElementsByTagName('link');
+              foreach ($links as $link) {
+                for ($x = 0; $x < count($link->attributes); $x++) {
+                  if (strtolower($link->attributes[$x]->name) == 'rel') {
+                    for ($y = 0; $y < count($link->attributes); $y++) {
+                      if (strtolower($link->attributes[$y]->name) == 'href') {
+                        $linkurl = filter_var($link->attributes[$y]->value, FILTER_SANITIZE_URL);
+
+                        switch (strtolower($link->attributes[$x]->value)) {
+                          case 'canonical':
+                            if (OS_formatURL($linkurl, $data['base']) != $data['info']['url']) {
+                              $data['info']['noindex'] = 'non-canonical';
+                              $data['info']['canonical'] = $linkurl;
+                            }
+
+                          case 'alternate':
+                          case 'author':
+                          case 'help':
+                          case 'license':
+                          case 'me':
+                          case 'next':
+                          case 'prev':
+                          case 'search':
+                          case 'alternate':
+                            $data['links'][] = $linkurl;
+
+                        }
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+
+
+              // ***** Process <body> elements
+              $body = $document->getElementsByTagName('body');
+
+              // Replace <img> tags with their alt text
+              $imgs = $body[0]->getElementsByTagName('img');
+              foreach ($imgs as $img) {
+                for ($x = 0; $x < count($img->attributes); $x++) {
+                  if (strtolower($img->attributes[$x]->name) == 'alt') {
+                    $img->parentNode->replaceChild(
+                      $document->createTextNode(' '.$img->attributes[$x]->value.' '),
+                      $img
+                    );
+                    break;
+                  }
+                }
+              }
+
+              $as = $body[0]->getElementsByTagName('a');
+              foreach ($as as $a) {
+                for ($x = 0; $x < count($a->attributes); $x++) {
+                  if (strtolower($a->attributes[$x]->name) == 'href') {
+                    for ($y = 0; $y < count($a->attributes); $y++)
+                      if (strtolower($a->attributes[$y]->name) == 'rel' && strtolower($a->attributes[$y]->value) == 'nofollow') continue 3;
+                    $data['links'][] = $a->attributes[$x]->value;
+                  }
+                }
+              }
+
+              $areas = $body[0]->getElementsByTagName('area');
+              foreach ($areas as $area) {
+                for ($x = 0; $x < count($area->attributes); $x++) {
+                  if (strtolower($area->attributes[$x]->name) == 'href') {
+                    for ($y = 0; $y < count($area->attributes); $y++)
+                      if (strtolower($area->attributes[$y]->name) == 'rel' && strtolower($area->attributes[$y]->value) == 'nofollow') continue 3;
+                    $data['links'][] = $area->attributes[$x]->value;
+                  }
+                }
+              }
+
+              $frames = $body[0]->getElementsByTagName('frame');
+              foreach ($frames as $frame)
+                for ($x = 0; $x < count($frame->attributes); $x++)
+                  if (strtolower($frame->attributes[$x]->name) == 'src')
+                    $data['links'][] = $frame->attributes[$x]->value;
+
+              $iframes = $body[0]->getElementsByTagName('iframe');
+              foreach ($iframes as $iframe)
+                for ($x = 0; $x < count($iframe->attributes); $x++)
+                  if (strtolower($iframe->attributes[$x]->name) == 'src')
+                    $data['links'][] = $iframe->attributes[$x]->value;
+
+              $data['links'] = array_map(function($l) {
+                if (preg_match('/^(tel|telnet|mailto|ftp|sftp|ssh|gopher|news|ldap|urn|onion|magnet):/i', $l)) return '';
+                return preg_replace('/#.*$/', '', $l);
+              }, $data['links']);
+              $data['links'] = array_filter(array_unique($data['links']));
+
+              // Remove tags
+              foreach ($_RDATA['sp_ignore_css'] as $ignoreCSS) {
+                switch ($ignoreCSS[0]) {
+                  case '#': // Remove by ID
+                    $id = $document->getElementById(substr($ignoreCSS, 1));
+                    if (!is_null($id)) $id->parentNode->removeChild($id);
+                    break;
+
+                  case '.': // Remove by class
+                    foreach ($xpath->evaluate('//*[contains(concat(" ", normalize-space(@class), " "), " '.substr($ignoreCSS, 1).' ")]') as $cls)
+                      $cls->parentNode->removeChild($cls);
+                    break;
+
+                  default: // Remove by tag name
+                    $tags = $document->getElementsByTagName($ignoreCSS);
+                    foreach ($tags as $tag)
+                      $tag->parentNode->removeChild($tag);
+
+                }
+              }
+
+              // Weighted elements
+              foreach ($_RDATA['s_weight_css'] as $weightCSS) {
+                switch ($weightCSS[0]) {
+                  case '#': // Get content by ID
+                    $id = $document->getElementById(substr($weightCSS, 1));
+                    if (!is_null($id)) $data['weighted'] .= $id->textContent.' ';
+                    break;
+
+                  case '.': // Get content by class
+                    foreach ($xpath->evaluate('//*[contains(concat(" ", normalize-space(@class), " "), " '.substr($weightCSS, 1).' ")]') as $cls)
+                      $data['weighted'] .= $cls->textContent.' ';
+                    break;
+
+                  default: // Get content by tag name
+                    $tags = $document->getElementsByTagName($weightCSS);
+                    foreach ($tags as $tag)
+                      $data['weighted'] .= $tag->textContent.' ';
+
+                }
+              }
+
+              $data['content'] = $document->textContent;
+
+            // Could not parse HTML; try to store content anyway
+            } else {
+              $data['error'] = 'Invalid HTML - could not parse content; storing as-is';
+              $data['info']['nofollow'] = true;
+
+              // Remove <script> elements and <!-- comments -->
+              $data['content'] = preg_replace(array('/<!--.*?-->/s', '/<script.*?\/script>/is'), '', $data['body']);
+              $data['content'] = strip_tags($data['content']);
+            }
+
+            OS_cleanTextUTF8($data['title'], $data['info']['charset'], ENT_HTML5);
+            OS_cleanTextUTF8($data['keywords'], $data['info']['charset'], ENT_HTML5);
+            OS_cleanTextUTF8($data['description'], $data['info']['charset'], ENT_HTML5);
+            OS_cleanTextUTF8($data['weighted'], $data['info']['charset'], ENT_HTML5);
+            OS_cleanTextUTF8($data['content'], $data['info']['charset'], ENT_HTML5);
+            break;
+
+
+          /* ***** PDF *********************************************** */
+          case 'application/pdf':
+            if ($_PDF) {
+              try {
+                $pdf = $_PDF->parseContent($data['body']);
+
+                $meta = $pdf->getDetails();
+                if (!empty($meta['Title'])) $data['title'] = $meta['Title'];
+                if (!empty($meta['Subject'])) $data['description'] = $meta['Subject'];
+                if (!empty($meta['Keywords'])) $data['keywords'] = $meta['Keywords'];
+                $data['content'] = $pdf->getText();
+
+                // remove escaped whitespace
+                $data['title'] = str_replace(array("\\\n\r", "\\\n"), '', $data['title']);
+                $data['description'] = str_replace(array("\\\n\r", "\\\n"), '', $data['description']);
+                $data['keywords'] = str_replace(array("\\\n\r", "\\\n"), '', $data['keywords']);
+                $data['content'] = str_replace(array("\\\n\r", "\\\n"), '', $data['content']);
+
+                $data['info']['charset'] = mb_detect_encoding($data['content']);
+                if (!$data['info']['charset']) $data['info']['charset'] = 'ISO-8859-1';
+                OS_cleanTextUTF8($data['content'], $data['info']['charset']);
+
+                // Discard the PDF text if it contains Unicode control
+                // characters; some of these might be simple PDF ligatures
+                // but PdfParser doesn't support them; any content that
+                // contains these is usually mostly gobbledegook
+                if (strpos($data['content'], "\u{3}") === false &&
+                    strpos($data['content'], "\u{2}") === false &&
+                    strpos($data['content'], "\u{1}") === false) {
+
+                  OS_cleanTextUTF8($data['title'], $data['info']['charset']);
+                  OS_cleanTextUTF8($data['keywords'], $data['info']['charset']);
+                  OS_cleanTextUTF8($data['description'], $data['info']['charset']);
+
+                } else {
+                  $data['errno'] = 702;
+                  $data['error'] = 'Failed to decode PDF text';
+                  $data['content'] = '';
+                  $data['info']['noindex'] = 'couldnt-decode-pdf';
+                }
+
+              } catch (Exception $e) {
+                $data['errno'] = 701;
+                $data['error'] = 'PDF is secured/encrypted; text extraction failed';
+                $data['content'] = '';
+                $data['info']['noindex'] = 'secured-pdf';
+              }
+
+            } else $data['info']['noindex'] = 'missing-pdfparser';
+            break;
+
+
+          /* ***** JPG EXIF? ***************************************** */
+
+
+          /* ***** Unknown MIME-type ********************************* */
+          default:
+            $data['error'] = 'Not indexed due to unknown MIME type ('.$data['info']['mime_type'].')';
+            $data['info']['noindex'] = 'unknown-mime';
+
+        }
+
+      // Else content is identical to the old entry so don't parse
+      } else {
+        $data['info']['noindex'] = 'not-modified-sha1';
+      }
+
+    // Else content is a duplicate of a previously stored page
+    } else {
+
+      // Update the stored URL to the shortest version
+      if (strlen($url) < strlen($_RDATA['sp_sha1'][$data['info']['sha1']])) {
+        $updateURL->execute(array(
+          'url' => $url,
+          'content_checksum' => $data['info']['sha1']
+        ));
+      }
+      $data['info']['noindex'] = 'duplicate';
+    }
+
+  // Else the 'body' of the response was empty
+  } else {
+    $data['error'] = 'Server returned no content';
+    $data['info']['noindex'] = 'empty';
+  }
+
+
 
   // Decide whether or not to 'index' / store this page
   switch ($data['info']['noindex']) {
 
     // ***** There is no 'noindex' reason, so store the page
     case '':
-    case 'not-modified':
+    case 'not-modified-304':
+    case 'not-modified-sha1':
 
       $data['info']['status'] = 'OK';
       if ($referer == '<orphan>') {
@@ -1334,61 +1361,34 @@ while ($_cURL && count($_QUEUE)) {
         $_RDATA['sp_status']['Orphan']++;
       }
 
-      // ***** Successfully scanned this URL and got content
+      // ***** If we got new or updated content for this URL
       if (!$data['info']['noindex']) {
-
-        // Prevent duplicate content
-        if (!empty($_RDATA['sp_sha1'][$data['info']['sha1']])) {
-          OS_crawlLog('Content is a duplicate of already indexed page: '.$_RDATA['sp_sha1'][$data['info']['sha1']], 2);
-          OS_crawlLog('Consider editing faulty redirects, or setting a \'canonical\' <link> element to avoid this', 0);
-
-          // Update the stored URL to the shortest version
-          if (strlen($url) < strlen($_RDATA['sp_sha1'][$data['info']['sha1']])) {
-            $updateURL->execute(array(
-              'url' => $url,
-              'content_checksum' => $data['info']['sha1']
-            ));
-          }
-          break;
-        }
-        $_RDATA['sp_sha1'][$data['info']['sha1']] = $url;
 
         // If this URL exists (or existed) in the live table...
         if (in_array($url, $_EXIST) || $referer == '<orphan>') {
+          $_RDATA['sp_status']['Updated']++;
+
           $selectData->execute(array('url' => $url));
           $err = $selectData->errorInfo();
           if ($err[0] != '00000') {
             OS_crawlLog('Database select error: '.$url, 2);
             OS_crawlLog($err[2], 0);
-            break;
+            break 2;
           }
           $row = $selectData->fetchAll()[0];
 
-        // else provide default values to compare a new url against
+        // Else provide default values for a new URL
         } else {
+          $_RDATA['sp_status']['New']++;
+
           $row = array(
-            'content_checksum' => '',
             'flag_unlisted' => 0,
-            'last_modified' => time(),
             'priority' => 0.5
           );
         }
 
-        // If the content checksum is new
-        if ($row['content_checksum'] != $data['info']['sha1']) {
-          $row['flag_updated'] = 1;
-          if ($data['info']['filetime'] <= 0)
-            $data['info']['filetime'] = time();
-
-          if (!empty($row['url'])) {
-            $_RDATA['sp_status']['Updated']++;
-          } else $_RDATA['sp_status']['New']++;
-
-        // else the content hasn't changed
-        } else {
-          $row['flag_updated'] = 0;
-          $data['info']['filetime'] = $row['last_modified'];
-        }
+        if ($data['info']['filetime'] <= 0)
+          $data['info']['filetime'] = time();
 
         $port = (!empty($data['url']['port'])) ? ':'.$data['url']['port'] : '';
         $insertTemp->execute(array(
@@ -1407,7 +1407,7 @@ while ($_cURL && count($_QUEUE)) {
           'status' => $data['info']['status'],
           'status_noindex' => $data['info']['noindex'],
           'flag_unlisted' => $row['flag_unlisted'],
-          'flag_updated' => $row['flag_updated'],
+          'flag_updated' => 1,
           'last_modified' => $data['info']['filetime'],
           'priority' => $row['priority']
         ));
@@ -1420,44 +1420,49 @@ while ($_cURL && count($_QUEUE)) {
 
       // ***** URL hasn't been modified since the last successful crawl
       } else { 
+        OS_crawlLog('Page hasn\'t been modified since the last successful crawl', 0);
 
-        // Preset the 'last_modified' time until we can find out the
-        // actual value from the previous database record
+        // Preset the 'last_modified' time and 'priority' until we can
+        // find out the actual values from the previous database record
         $data['info']['filetime'] = time();
+        $row = array('priority' => 0.5);
 
         // Get previous entry from existing search database
         $insertNotModified->execute(array('url' => $url));
-        if (!$insertNotModified->rowCount()) {
-          OS_crawlLog('Database \'not-modified\' insert error: '.$url, 2);
-          $err = $insertNotModified->errorInfo();
-          if ($err[0] != '00000') OS_crawlLog($err[2], 0);
+        if ($insertNotModified->rowCount()) {
 
-        } else {
+          // Mark as 'stored'
           $_RDATA['sp_store'][] = $url;
 
-          // Unset the 'flag_updated' column
+          // Try to unset 'flag_updated' and update 'status'
           $updateNotModified->execute(array(
             'url' => $url,
             'status' => $data['info']['status']
           ));
           $err = $updateNotModified->errorInfo();
           if ($err[0] != '00000') {
-            OS_crawlLog('Database unset \'flag_updated\' update error: '.$url, 2);
+            OS_crawlLog('Database unset \'flag_updated\', set \'status\' update error: '.$url, 2);
             OS_crawlLog($err[2], 0);
-          } else {
-
-            // Select the 'priority' value for use in the sitemap
-            $selectData->execute(array('url' => $url));
-            $err = $selectData->errorInfo();
-            if ($err[0] == '00000') {
-              $row = $selectData->fetchAll()[0];
-              $data['links'] = json_decode($row['links'], true);
-              $data['info']['filetime'] = $row['last_modified'];
-            } else {
-              OS_crawlLog('Database existing table row read error: '.$url, 2);
-              $row = array('priority' => 0.5);
-            }
           }
+
+          // Get 'priority' & 'last_modified' values for the sitemap
+          // Load the previously saved link list to add to the queue
+          $selectData->execute(array('url' => $url));
+          $err = $selectData->errorInfo();
+          if ($err[0] == '00000') {
+            $row = $selectData->fetchAll()[0];
+            $data['links'] = json_decode($row['links'], true);
+            $data['info']['filetime'] = $row['last_modified'];
+
+          } else {
+            OS_crawlLog('Database existing table row read error: '.$url, 2);
+          }
+
+        // Could not insert previously stored row into temp table
+        } else {
+          OS_crawlLog('Database \'not-modified\' insert error: '.$url, 2);
+          $err = $insertNotModified->errorInfo();
+          if ($err[0] != '00000') OS_crawlLog($err[2], 0);
         }
       }
 
@@ -1484,6 +1489,11 @@ while ($_cURL && count($_QUEUE)) {
 
 
     // ***** Otherwise, log the reason why this page was not stored
+    case 'duplicate':
+      OS_crawlLog('Content is a duplicate of already indexed page: '.$_RDATA['sp_sha1'][$data['info']['sha1']], 2);
+      OS_crawlLog('Consider editing faulty redirects, or setting a \'canonical\' <link> element to avoid this', 0);
+      break;
+
     case 'timeout':
     case 'network-error':
     case 'couldnt-connect':
@@ -1511,7 +1521,8 @@ while ($_cURL && count($_QUEUE)) {
     case 'redirect-meta':
     case 'redirect-location':
       OS_crawlLog($data['error'].': '.$url.' (Referrer was: '.$referer.')', 2);
-      OS_crawlLog('Previously indexed page was removed in favour of redirected URL', 0);
+      OS_crawlLog('Page was removed in favour of redirected URL', 0);
+      $data['links'][] = $data['info']['redirect_url'];
       break;
 
     case 'non-canonical':
@@ -1561,12 +1572,15 @@ while ($_cURL && count($_QUEUE)) {
 
   // If we've completed the queue, check for orphans
   if (!count($_QUEUE)) {
+
+    // Diff the previous URL list with the links we've already scanned
     $_EXIST = array_diff($_EXIST, $_RDATA['sp_links']);
+
+    // If we have leftover links, and we aren't autodeleting them
     if (count($_EXIST) && !$_ODATA['sp_autodelete']) {
       OS_crawlLog('Adding '.count($_EXIST).' orphan(s) to queue...', 1);
-      while (count($_EXIST)) {
 
-        $link = array_shift($_EXIST);
+      foreach ($_EXIST as $key => $link) {
 
         // If orphan URL passes our user filters
         if ($nx = OS_filterURL($link, $data['base'])) {
@@ -1575,12 +1589,15 @@ while ($_cURL && count($_QUEUE)) {
           continue;
         }
 
+        // ... then add the orphan to the queue
         $_QUEUE[] = array($link, 0, '<orphan>');
       }
 
+    // Else if we stored some pages, we're done
     } else if (count($_RDATA['sp_store'])) {
       $_RDATA['sp_complete'] = true;
 
+    // No pages were stored
     } else OS_crawlLog('No pages could be indexed; check your starting URL(s)', 2);
   }
 
