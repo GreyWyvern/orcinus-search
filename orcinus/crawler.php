@@ -1251,11 +1251,23 @@ while ($_cURL && count($_QUEUE)) {
               $data['content'] = strip_tags($data['content']);
             }
 
-            OS_cleanTextUTF8($data['title'], $data['info']['charset'], ENT_HTML5);
-            OS_cleanTextUTF8($data['keywords'], $data['info']['charset'], ENT_HTML5);
-            OS_cleanTextUTF8($data['description'], $data['info']['charset'], ENT_HTML5);
-            OS_cleanTextUTF8($data['weighted'], $data['info']['charset'], ENT_HTML5);
-            OS_cleanTextUTF8($data['content'], $data['info']['charset'], ENT_HTML5);
+            // Not sure I need to do this, but hey... I could, so...
+            if ($data['info']['mime_type'] == 'application/xhtml+xml') {
+              $ent = ENT_XHTML;
+            } else if (!empty($document->doctype->publicId)) {
+              $publicId = strtoupper($document->doctype->publicId);
+              if (strpos($publicId, 'DTD XHTML') !== false) {
+                $ent = ENT_XHTML;
+              } else if (strpos($publicId, 'DTD HTML') !== false) {
+                $ent = ENT_HTML401;
+              } else $ent = ENT_XML1;
+            } else $ent = ENT_HTML5;
+
+            OS_cleanTextUTF8($data['title'], $data['info']['charset'], $ent);
+            OS_cleanTextUTF8($data['keywords'], $data['info']['charset'], $ent);
+            OS_cleanTextUTF8($data['description'], $data['info']['charset'], $ent);
+            OS_cleanTextUTF8($data['weighted'], $data['info']['charset'], $ent);
+            OS_cleanTextUTF8($data['content'], $data['info']['charset'], $ent);
             break;
 
 
