@@ -8,3 +8,4 @@ Orcinus can generate a sitemap XML file of your pages after every crawl, suitabl
 
 Requires:
 - PHP >= 7.2.x
+- MySQL / MariaDB
