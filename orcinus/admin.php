@@ -976,22 +976,23 @@ function os_return_all() {
 }
 
 // {{{{{ Create the Mustache template
-let os_TEMPLATE = {}
-os_TEMPLATE.addError = function(text) {
-  if (!this.errors) {
-    this.errors = {};
-    this.errors.error_list = [];
+let os_TEMPLATE = {
+  version: '<?php echo $_ODATA['version']; ?>',
+  searchable: false,
+  addError: function(text) {
+    if (!this.errors) {
+      this.errors = {};
+      this.errors.error_list = [];
+    }
+    this.errors.error_list.push(text);
   }
-  this.errors.error_list.push(text);
 };
-os_TEMPLATE.version = '<?php echo $_ODATA['version']; ?>';
-os_TEMPLATE.limit_term_length = <?php echo $_ODATA['s_limit_term_length']; ?>;
-
 
 // Check if there are rows in the search database
 if (os_crawldata.length) {
   os_TEMPLATE.searchable = {};
   os_TEMPLATE.searchable.form_action = window.location.pathname;
+  os_TEMPLATE.searchable.limit_term_length = <?php echo $_ODATA['s_limit_term_length']; ?>;
 
   os_request.c = os_params.get('c');
   if (!os_request.c || !os_rdata.s_category_list[os_request.c])

@@ -26,14 +26,13 @@ foreach ($_RDATA['s_weights'] as $key => $weight)
 
 // {{{{{ Create the Mustache template
 $_TEMPLATE = new OS_Mustache();
-$_TEMPLATE->version = $_ODATA['version'];
-$_TEMPLATE->limit_term_length = $_ODATA['s_limit_term_length'];
 
 
 // Check if there are rows in the search database
 if ($_RDATA['s_searchable_pages']) {
   $_TEMPLATE->searchable = new stdClass();
   $_TEMPLATE->searchable->form_action = $_SERVER['REQUEST_URI'];
+  $_TEMPLATE->searchable->limit_term_length = $_ODATA['s_limit_term_length'];
 
   if (empty($_REQUEST['c']) || empty($_RDATA['s_category_list'][$_REQUEST['c']]))
     $_REQUEST['c'] = '<none>';

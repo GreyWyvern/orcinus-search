@@ -325,6 +325,11 @@ function OS_crawlCleanUp() {
           OS_crawlLog('Could not purge search result cache', 1);
       }
 
+      // Optimize the query log table
+      $optimize = $_DDATA['pdo']->query(
+        'OPTIMIZE TABLE `'.$_DDATA['tbprefix'].'query`;'
+      );
+
       OS_setValue('sp_links_crawled', count($_RDATA['sp_links']));
       OS_setValue('sp_pages_stored', count($_RDATA['sp_store']));
       OS_setValue('sp_time_end_success', $_ODATA['sp_time_end']);
@@ -721,10 +726,10 @@ if ($_cURL) {
 
 
 // ***** Pre-fill queue with starting URL(s) at depth 0, blank referer
-$_QUEUE = array();
+$_RDATA['sp_queue'] = array();
 foreach ($_RDATA['sp_starting'] as $starting) {
   $starting = OS_formatURL($starting, $_ODATA['admin_install_domain'].'/');
-  $_QUEUE[] = array($starting, 0, '');
+  $_RDATA['sp_queue'][] = array($starting, 0, '');
 
   // Add starting URLs to required URLs so the crawler cannot travel
   // into parent directories
@@ -736,14 +741,14 @@ foreach ($_RDATA['sp_starting'] as $starting) {
 }
 
 // ***** List of previously crawled links from the database
-$_EXIST = array();
+$_RDATA['sp_exist'] = array();
 $crawldata = $_DDATA['pdo']->query(
   'SELECT `url`, `content_checksum` FROM `'.$_DDATA['tbprefix'].'crawldata`'
 );
 $err = $crawldata->errorInfo();
 if ($err[0] == '00000') {
   foreach ($crawldata as $value)
-    $_EXIST[$value['content_checksum']] = $value['url'];
+    $_RDATA['sp_exist'][$value['content_checksum']] = $value['url'];
 } else OS_crawlLog('Error getting list of previous URLs from crawldata table', 2);
 
 
@@ -803,7 +808,7 @@ $updateNotModified = $_DDATA['pdo']->prepare(
 
 
 // ***** Begin crawling URLs from the queue
-while ($_cURL && count($_QUEUE)) {
+while ($_cURL && count($_RDATA['sp_queue'])) {
 
   // Check if we have run out of execution time
   if ($_ODATA['sp_time_start'] + $_ODATA['sp_timeout_crawl'] <= time()) {
@@ -824,7 +829,7 @@ while ($_cURL && count($_QUEUE)) {
   }
 
   // Retrieve next link to crawl from the queue
-  list($url, $depth, $referer) = array_shift($_QUEUE);
+  list($url, $depth, $referer) = array_shift($_RDATA['sp_queue']);
   $_RDATA['sp_links'][] = $url;
 
   // Check if URL is beyond the depth limit
@@ -872,10 +877,10 @@ while ($_cURL && count($_QUEUE)) {
     OS_crawlLog('Memory used: '.OS_readSize(memory_get_usage(true)), 1);
 
   OS_crawlLog('Crawling: '.$url.' (Depth: '.$depth.')', 1);
-  OS_setValue('sp_progress', count($_RDATA['sp_links']).'/'.(count($_RDATA['sp_links']) + count($_QUEUE)));
+  OS_setValue('sp_progress', count($_RDATA['sp_links']).'/'.(count($_RDATA['sp_links']) + count($_RDATA['sp_queue'])));
 
   // Set the correct If-Modified-Since request header
-  if ($_ODATA['sp_ifmodifiedsince'] && (!count($_EXIST) || in_array($url, $_EXIST))) {
+  if ($_ODATA['sp_ifmodifiedsince'] && (!count($_RDATA['sp_exist']) || in_array($url, $_RDATA['sp_exist']))) {
     curl_setopt($_cURL, CURLOPT_TIMECONDITION, CURL_TIMECOND_IFMODSINCE);
   } else curl_setopt($_cURL, CURLOPT_TIMECONDITION, CURL_TIMECOND_NONE);
 
@@ -910,7 +915,8 @@ while ($_cURL && count($_QUEUE)) {
 
       // If this is a new page, or an existing page but the content
       // hash has changed
-      if (!isset($_EXIST[$data['info']['sha1']]) || $_EXIST[$data['info']['sha1']] != $url) {
+      if (!isset($_RDATA['sp_exist'][$data['info']['sha1']]) ||
+          $_RDATA['sp_exist'][$data['info']['sha1']] != $url) {
 
         // Detect MIME-type using extension?
         if (empty($data['info']['content_type']))
@@ -1008,131 +1014,133 @@ while ($_cURL && count($_QUEUE)) {
 
               // ***** Process <head> elements
               $head = $document->getElementsByTagName('head');
+              if (!empty($head[0])) {
 
-              $base = $head[0]->getElementsByTagName('base');
-              if (!empty($base[0]))
-                for ($x = 0; $x < count($base[0]->attributes); $x++)
-                  if (strtolower($base[0]->attributes[$x]->name) == 'href')
-                    if (!empty($base[0]->attributes[$x]->value))
-                      $data['base'] = filter_var($base[0]->attributes[$x]->value, FILTER_SANITIZE_URL);
+                $base = $head[0]->getElementsByTagName('base');
+                if (!empty($base[0]))
+                  for ($x = 0; $x < count($base[0]->attributes); $x++)
+                    if (strtolower($base[0]->attributes[$x]->name) == 'href')
+                      if (!empty($base[0]->attributes[$x]->value))
+                        $data['base'] = filter_var($base[0]->attributes[$x]->value, FILTER_SANITIZE_URL);
 
-              $metas = $head[0]->getElementsByTagName('meta');
-              foreach ($metas as $meta) {
-                for ($x = 0; $x < count($meta->attributes); $x++) {
-                  if (strtolower($meta->attributes[$x]->name) == 'charset') {
-                    if (strtolower($data['info']['charset']) != strtolower($meta->attributes[$x]->value)) {
-                      OS_crawlLog('Charset in Content-type header ('.(($data['info']['charset']) ? $data['info']['charset'] : '<none>').') differs from document charset ('.(($meta->attributes[$x]->value) ? $meta->attributes[$x]->value : '<none>').') at: '.$data['info']['url'], 1);
-                      $data['info']['charset'] = $meta->attributes[$x]->value;
-                    }
+                $metas = $head[0]->getElementsByTagName('meta');
+                foreach ($metas as $meta) {
+                  for ($x = 0; $x < count($meta->attributes); $x++) {
+                    if (strtolower($meta->attributes[$x]->name) == 'charset') {
+                      if (strtolower($data['info']['charset']) != strtolower($meta->attributes[$x]->value)) {
+                        OS_crawlLog('Charset in Content-type header ('.(($data['info']['charset']) ? $data['info']['charset'] : '<none>').') differs from document charset ('.(($meta->attributes[$x]->value) ? $meta->attributes[$x]->value : '<none>').') at: '.$data['info']['url'], 1);
+                        $data['info']['charset'] = $meta->attributes[$x]->value;
+                      }
 
-                  } else if (strtolower($meta->attributes[$x]->name) == 'http-equiv') {
-                    switch (strtolower($meta->attributes[$x]->value)) {
-                      case 'refresh':
-                        for ($y = 0; $y < count($meta->attributes); $y++) {
-                          if (strtolower($meta->attributes[$y]->name) == 'content') {
-                            if (preg_match('/(\d+)\s?;\s?url\s?=\s?([\'"])(.+?)\2?\s?$/i', $meta->attributes[$y]->value, $m)) {
-                              if ((int)$m[1] <= $_ODATA['sp_timeout_url']) {
-                                $data['errno'] = 300;
-                                $data['error'] = 'Redirected by <meta> element to: '.$m[3];
-                                $data['info']['redirect_url'] = $m[3];
-                                $data['info']['noindex'] = 'redirect-meta';
-                                $data['info']['nofollow'] = true;
-                                break 4;
-                              } else $data['links'][] = $m[3];
-                            }
-                          }
-                        }
-                        break;
-
-                      case 'content-type':
-                        for ($y = 0; $y < count($meta->attributes); $y++) {
-                          if (strtolower($meta->attributes[$y]->name) == 'content' && preg_match('/charset=([\w\d.:-]+)/i', $meta->attributes[$y]->value, $m)) {
-                            if (strtolower($data['info']['charset']) != strtolower($m[1])) {
-                              OS_crawlLog('Charset in Content-type header ('.(($data['info']['charset']) ? $data['info']['charset'] : '<none>').') differs from document charset ('.(($m[1]) ? $m[1] : '<none>').') at: '.$data['info']['url'], 1);
-                              $data['info']['charset'] = $m[1];
-                            }
-                          }
-                        }
-
-                    }
-
-                  } else if (strtolower($meta->attributes[$x]->name) == 'name') {
-                    switch (strtolower($meta->attributes[$x]->value)) {
-                      case 'keywords':
-                        for ($y = 0; $y < count($meta->attributes); $y++)
-                          if (strtolower($meta->attributes[$y]->name) == 'content')
-                            $data['keywords'] = $meta->attributes[$y]->value;
-                        break;
-
-                      case 'description':
-                        for ($y = 0; $y < count($meta->attributes); $y++)
-                          if (strtolower($meta->attributes[$y]->name) == 'content')
-                            $data['description'] = $meta->attributes[$y]->value;
-                        break;
-
-                      case 'robots':
-                      case 'orcacrawler':
-                      case 'orcaphpcrawler':
-                      case 'orca-crawler':
-                      case 'orcaphp-crawler':
-                      case 'orca-phpcrawler':
-                      case 'orca-php-crawler':
-                      case 'orcinuscrawler':
-                      case 'orcinus-crawler':
-                        for ($y = 0; $y < count($meta->attributes); $y++) {
-                          if (strtolower($meta->attributes[$y]->name) == 'content') {
-                            $content = explode(',', $meta->attributes[$y]->value);
-                            foreach ($content as $con) {
-                              switch (trim(strtolower($con))) {
-                                case 'nofollow':
+                    } else if (strtolower($meta->attributes[$x]->name) == 'http-equiv') {
+                      switch (strtolower($meta->attributes[$x]->value)) {
+                        case 'refresh':
+                          for ($y = 0; $y < count($meta->attributes); $y++) {
+                            if (strtolower($meta->attributes[$y]->name) == 'content') {
+                              if (preg_match('/(\d+)\s?;\s?url\s?=\s?([\'"])(.+?)\2?\s?$/i', $meta->attributes[$y]->value, $m)) {
+                                if ((int)$m[1] <= $_ODATA['sp_timeout_url']) {
+                                  $data['errno'] = 300;
+                                  $data['error'] = 'Redirected by <meta> element to: '.$m[3];
+                                  $data['info']['redirect_url'] = $m[3];
+                                  $data['info']['noindex'] = 'redirect-meta';
                                   $data['info']['nofollow'] = true;
-                                  break;
-
-                                case 'noindex':
-                                  $data['error'] = 'Not indexed due to robots <meta> element';
-                                  $data['info']['noindex'] = 'robots-meta';
-
+                                  break 4;
+                                } else $data['links'][] = $m[3];
                               }
                             }
                           }
-                        }
+                          break;
 
+                        case 'content-type':
+                          for ($y = 0; $y < count($meta->attributes); $y++) {
+                            if (strtolower($meta->attributes[$y]->name) == 'content' && preg_match('/charset=([\w\d.:-]+)/i', $meta->attributes[$y]->value, $m)) {
+                              if (strtolower($data['info']['charset']) != strtolower($m[1])) {
+                                OS_crawlLog('Charset in Content-type header ('.(($data['info']['charset']) ? $data['info']['charset'] : '<none>').') differs from document charset ('.(($m[1]) ? $m[1] : '<none>').') at: '.$data['info']['url'], 1);
+                                $data['info']['charset'] = $m[1];
+                              }
+                            }
+                          }
+
+                      }
+
+                    } else if (strtolower($meta->attributes[$x]->name) == 'name') {
+                      switch (strtolower($meta->attributes[$x]->value)) {
+                        case 'keywords':
+                          for ($y = 0; $y < count($meta->attributes); $y++)
+                            if (strtolower($meta->attributes[$y]->name) == 'content')
+                              $data['keywords'] = $meta->attributes[$y]->value;
+                          break;
+
+                        case 'description':
+                          for ($y = 0; $y < count($meta->attributes); $y++)
+                            if (strtolower($meta->attributes[$y]->name) == 'content')
+                              $data['description'] = $meta->attributes[$y]->value;
+                          break;
+
+                        case 'robots':
+                        case 'orcacrawler':
+                        case 'orcaphpcrawler':
+                        case 'orca-crawler':
+                        case 'orcaphp-crawler':
+                        case 'orca-phpcrawler':
+                        case 'orca-php-crawler':
+                        case 'orcinuscrawler':
+                        case 'orcinus-crawler':
+                          for ($y = 0; $y < count($meta->attributes); $y++) {
+                            if (strtolower($meta->attributes[$y]->name) == 'content') {
+                              $content = explode(',', $meta->attributes[$y]->value);
+                              foreach ($content as $con) {
+                                switch (trim(strtolower($con))) {
+                                  case 'nofollow':
+                                    $data['info']['nofollow'] = true;
+                                    break;
+
+                                  case 'noindex':
+                                    $data['error'] = 'Not indexed due to robots <meta> element';
+                                    $data['info']['noindex'] = 'robots-meta';
+
+                                }
+                              }
+                            }
+                          }
+
+                      }
                     }
                   }
                 }
-              }
 
-              $title = $head[0]->getElementsByTagName('title');
-              $data['title'] = $title[0]->textContent;
+                $title = $head[0]->getElementsByTagName('title');
+                $data['title'] = $title[0]->textContent;
 
-              $links = $head[0]->getElementsByTagName('link');
-              foreach ($links as $link) {
-                for ($x = 0; $x < count($link->attributes); $x++) {
-                  if (strtolower($link->attributes[$x]->name) == 'rel') {
-                    for ($y = 0; $y < count($link->attributes); $y++) {
-                      if (strtolower($link->attributes[$y]->name) == 'href') {
-                        $linkurl = filter_var($link->attributes[$y]->value, FILTER_SANITIZE_URL);
+                $links = $head[0]->getElementsByTagName('link');
+                foreach ($links as $link) {
+                  for ($x = 0; $x < count($link->attributes); $x++) {
+                    if (strtolower($link->attributes[$x]->name) == 'rel') {
+                      for ($y = 0; $y < count($link->attributes); $y++) {
+                        if (strtolower($link->attributes[$y]->name) == 'href') {
+                          $linkurl = filter_var($link->attributes[$y]->value, FILTER_SANITIZE_URL);
 
-                        switch (strtolower($link->attributes[$x]->value)) {
-                          case 'canonical':
-                            if (OS_formatURL($linkurl, $data['base']) != $data['info']['url']) {
-                              $data['info']['noindex'] = 'non-canonical';
-                              $data['info']['canonical'] = $linkurl;
-                            }
+                          switch (strtolower($link->attributes[$x]->value)) {
+                            case 'canonical':
+                              if (OS_formatURL($linkurl, $data['base']) != $data['info']['url']) {
+                                $data['info']['noindex'] = 'non-canonical';
+                                $data['info']['canonical'] = $linkurl;
+                              }
 
-                          case 'alternate':
-                          case 'author':
-                          case 'help':
-                          case 'license':
-                          case 'me':
-                          case 'next':
-                          case 'prev':
-                          case 'search':
-                          case 'alternate':
-                            $data['links'][] = $linkurl;
+                            case 'alternate':
+                            case 'author':
+                            case 'help':
+                            case 'license':
+                            case 'me':
+                            case 'next':
+                            case 'prev':
+                            case 'search':
+                            case 'alternate':
+                              $data['links'][] = $linkurl;
 
+                          }
+                          break;
                         }
-                        break;
                       }
                     }
                   }
@@ -1142,54 +1150,58 @@ while ($_cURL && count($_QUEUE)) {
 
               // ***** Process <body> elements
               $body = $document->getElementsByTagName('body');
+              if (!empty($body[0])) {
 
-              // Replace <img> tags with their alt text
-              $imgs = $body[0]->getElementsByTagName('img');
-              foreach ($imgs as $img) {
-                for ($x = 0; $x < count($img->attributes); $x++) {
-                  if (strtolower($img->attributes[$x]->name) == 'alt') {
-                    $img->parentNode->replaceChild(
-                      $document->createTextNode(' '.$img->attributes[$x]->value.' '),
-                      $img
-                    );
-                    break;
+                // Replace <img> tags with their alt text
+                $imgs = $body[0]->getElementsByTagName('img');
+                foreach ($imgs as $img) {
+                  for ($x = 0; $x < count($img->attributes); $x++) {
+                    if (strtolower($img->attributes[$x]->name) == 'alt') {
+                      $img->parentNode->replaceChild(
+                        $document->createTextNode(' '.$img->attributes[$x]->value.' '),
+                        $img
+                      );
+                      break;
+                    }
                   }
                 }
-              }
 
-              $as = $body[0]->getElementsByTagName('a');
-              foreach ($as as $a) {
-                for ($x = 0; $x < count($a->attributes); $x++) {
-                  if (strtolower($a->attributes[$x]->name) == 'href') {
-                    for ($y = 0; $y < count($a->attributes); $y++)
-                      if (strtolower($a->attributes[$y]->name) == 'rel' && strtolower($a->attributes[$y]->value) == 'nofollow') continue 3;
-                    $data['links'][] = $a->attributes[$x]->value;
+                $as = $body[0]->getElementsByTagName('a');
+                foreach ($as as $a) {
+                  for ($x = 0; $x < count($a->attributes); $x++) {
+                    if (strtolower($a->attributes[$x]->name) == 'href') {
+                      for ($y = 0; $y < count($a->attributes); $y++)
+                        if (strtolower($a->attributes[$y]->name) == 'rel' && strtolower($a->attributes[$y]->value) == 'nofollow') continue 3;
+                      $data['links'][] = $a->attributes[$x]->value;
+                    }
                   }
                 }
-              }
 
-              $areas = $body[0]->getElementsByTagName('area');
-              foreach ($areas as $area) {
-                for ($x = 0; $x < count($area->attributes); $x++) {
-                  if (strtolower($area->attributes[$x]->name) == 'href') {
-                    for ($y = 0; $y < count($area->attributes); $y++)
-                      if (strtolower($area->attributes[$y]->name) == 'rel' && strtolower($area->attributes[$y]->value) == 'nofollow') continue 3;
-                    $data['links'][] = $area->attributes[$x]->value;
+                $areas = $body[0]->getElementsByTagName('area');
+                foreach ($areas as $area) {
+                  for ($x = 0; $x < count($area->attributes); $x++) {
+                    if (strtolower($area->attributes[$x]->name) == 'href') {
+                      for ($y = 0; $y < count($area->attributes); $y++)
+                        if (strtolower($area->attributes[$y]->name) == 'rel' && strtolower($area->attributes[$y]->value) == 'nofollow') continue 3;
+                      $data['links'][] = $area->attributes[$x]->value;
+                    }
                   }
                 }
+
+                $frames = $body[0]->getElementsByTagName('frame');
+                foreach ($frames as $frame)
+                  for ($x = 0; $x < count($frame->attributes); $x++)
+                    if (strtolower($frame->attributes[$x]->name) == 'src')
+                      $data['links'][] = $frame->attributes[$x]->value;
+
+                $iframes = $body[0]->getElementsByTagName('iframe');
+                foreach ($iframes as $iframe)
+                  for ($x = 0; $x < count($iframe->attributes); $x++)
+                    if (strtolower($iframe->attributes[$x]->name) == 'src')
+                      $data['links'][] = $iframe->attributes[$x]->value;
+
               }
 
-              $frames = $body[0]->getElementsByTagName('frame');
-              foreach ($frames as $frame)
-                for ($x = 0; $x < count($frame->attributes); $x++)
-                  if (strtolower($frame->attributes[$x]->name) == 'src')
-                    $data['links'][] = $frame->attributes[$x]->value;
-
-              $iframes = $body[0]->getElementsByTagName('iframe');
-              foreach ($iframes as $iframe)
-                for ($x = 0; $x < count($iframe->attributes); $x++)
-                  if (strtolower($iframe->attributes[$x]->name) == 'src')
-                    $data['links'][] = $iframe->attributes[$x]->value;
 
               $data['links'] = array_map(function($l) {
                 if (preg_match('/^(tel|telnet|mailto|ftp|sftp|ssh|gopher|news|ldap|urn|onion|magnet):/i', $l)) return '';
@@ -1377,7 +1389,7 @@ while ($_cURL && count($_QUEUE)) {
       if (!$data['info']['noindex']) {
 
         // If this URL exists (or existed) in the live table...
-        if (in_array($url, $_EXIST) || $referer == '<orphan>') {
+        if (in_array($url, $_RDATA['sp_exist']) || $referer == '<orphan>') {
           $_RDATA['sp_status']['Updated']++;
 
           $selectData->execute(array('url' => $url));
@@ -1567,7 +1579,7 @@ while ($_cURL && count($_QUEUE)) {
       if (!in_array($link, $_RDATA['sp_links'])) {
 
         // ... and if link hasn't been queued yet
-        foreach ($_QUEUE as $queue)
+        foreach ($_RDATA['sp_queue'] as $queue)
           if ($link == $queue[0]) continue 2;
 
         // ... and if link passes our user filters
@@ -1577,22 +1589,22 @@ while ($_cURL && count($_QUEUE)) {
         }
 
         // ... then add the link to the queue
-        $_QUEUE[] = array($link, $depth + 1, $url);
+        $_RDATA['sp_queue'][] = array($link, $depth + 1, $url);
       }
     }
   }
 
   // If we've completed the queue, check for orphans
-  if (!count($_QUEUE)) {
+  if (!count($_RDATA['sp_queue'])) {
 
     // Diff the previous URL list with the links we've already scanned
-    $_EXIST = array_diff($_EXIST, $_RDATA['sp_links']);
+    $_RDATA['sp_exist'] = array_diff($_RDATA['sp_exist'], $_RDATA['sp_links']);
 
     // If we have leftover links, and we aren't autodeleting them
-    if (count($_EXIST) && !$_ODATA['sp_autodelete']) {
-      OS_crawlLog('Adding '.count($_EXIST).' orphan(s) to queue...', 1);
+    if (count($_RDATA['sp_exist']) && !$_ODATA['sp_autodelete']) {
+      OS_crawlLog('Adding '.count($_RDATA['sp_exist']).' orphan(s) to queue...', 1);
 
-      foreach ($_EXIST as $key => $link) {
+      foreach ($_RDATA['sp_exist'] as $key => $link) {
 
         // If orphan URL passes our user filters
         if ($nx = OS_filterURL($link, $data['base'])) {
@@ -1602,7 +1614,7 @@ while ($_cURL && count($_QUEUE)) {
         }
 
         // ... then add the orphan to the queue
-        $_QUEUE[] = array($link, 0, '<orphan>');
+        $_RDATA['sp_queue'][] = array($link, 0, '<orphan>');
       }
 
     // Else if we stored some pages, we're done

@@ -336,6 +336,7 @@ $_ODATA = $_DDATA['pdo']->query(
   'SELECT * FROM `'.$_DDATA['tbprefix'].'config`;'
 )->fetchAll()[0];
 
+ini_set('display_errors', 1);
 error_reporting(E_ALL);
 date_default_timezone_set($_ODATA['sp_timezone']);
 ini_set('mbstring.substitute_character', 'none');
@@ -573,8 +574,14 @@ if (!$_ODATA['s_result_template']) {
 // {{{{{ Initialize the Mustache templating engine
 class OS_Mustache {
   public $errors;
+  public $version;
+  public $searchable;
 
-  function __construct() {}
+  function __construct() {
+    global $_ODATA;
+
+    $this->version = $_ODATA['version'];
+  }
 
   function addError($text) {
     if (!$this->errors) {
