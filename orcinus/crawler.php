@@ -944,7 +944,7 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
         // Determine how to parse the content by MIME-type
         switch ($data['info']['mime_type']) {
 
-          /* ***** PLAIN TEXT **************************************** */
+          /* ***** PLAIN TEXT ************************************** */
           case 'text/plain':
             $data['content'] = $data['body'];
 
@@ -952,7 +952,7 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
             break;
 
 
-          /* ***** XML DOCUMENT ************************************** */
+          /* ***** XML DOCUMENT ************************************ */
           case 'text/xml':
           case 'application/xml':
             $data['body'] = preg_replace('/<br(\s?\/)?>/', ' ', $data['body']);
@@ -993,7 +993,7 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
             break;
 
 
-          /* ***** HTML DOCUMENT ************************************* */
+          /* ***** HTML DOCUMENT *********************************** */
           case 'text/html':
           case 'application/xhtml+xml':
             $data['body'] = preg_replace('/<br(\s?\/)?>/', ' ', $data['body']);
@@ -1283,7 +1283,7 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
             break;
 
 
-          /* ***** PDF *********************************************** */
+          /* ***** PDF ********************************************* */
           case 'application/pdf':
             if ($_PDF) {
               try {
@@ -1335,10 +1335,7 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
             break;
 
 
-          /* ***** JPG EXIF? ***************************************** */
-
-
-          /* ***** Unknown MIME-type ********************************* */
+          /* ***** Unknown MIME-type ******************************* */
           default:
             $data['error'] = 'Not indexed due to unknown MIME type ('.$data['info']['mime_type'].')';
             $data['info']['noindex'] = 'unknown-mime';
