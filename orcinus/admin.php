@@ -97,56 +97,6 @@ if ($err[0] == '00000') {
   }
 } else $_SESSION['error'][] = 'Could not read charset counts from search database.';
 
-// Average hits per hour: First find the oldest `stamp` in the
-// database, then base all averages on the difference between that
-// time and now; also get average number of results
-$_RDATA['s_hours_since_oldest_hit'] = 0;
-$_RDATA['s_hits_per_hour'] = 0;
-$_RDATA['q_average_results'] = 0;
-$hits = $_DDATA['pdo']->query(
-  'SELECT MIN(`stamp`) AS `oldest`, COUNT(*) AS `hits`, AVG(`results`) AS `average`
-    FROM `'.$_DDATA['tbprefix'].'query`;'
-);
-$err = $hits->errorInfo();
-if ($err[0] == '00000') {
-  $hits = $hits->fetchAll();
-  if (count($hits) && !is_null($hits[0]['oldest']) && !is_null($hits[0]['hits'])) {
-    $_RDATA['s_hours_since_oldest_hit'] = (time() - $hits[0]['oldest']) / 3600;
-    $_RDATA['s_hits_per_hour'] = $hits[0]['hits'] / $_RDATA['s_hours_since_oldest_hit'];
-    $_RDATA['q_average_results'] = $hits[0]['average'];
-  }
-} else $_SESSION['error'][] = 'Could not read hit counts from query log.';
-
-// Median number of results
-$_RDATA['q_median_results'] = 0;
-$median = $_DDATA['pdo']->query(
-  'SELECT `results` FROM `'.$_DDATA['tbprefix'].'query` ORDER BY `results`;'
-);
-$err = $median->errorInfo();
-if ($err[0] == '00000') {
-  $median = $median->fetchAll();
-  if (count($median)) {
-    $index = floor(count($median) / 2);
-    if (count($median) & 1) {
-      $_RDATA['q_median_results'] = $median[$index]['results'];
-    } else {
-      $_RDATA['q_median_results'] = ($median[$index - 1]['results'] + $median[$index]['results']) / 2;
-    }
-  }
-} else $_SESSION['error'][] = 'Could not read result counts from query log.';
-
-// Get list of domains from the starting URLs
-$_RDATA['sp_starting'] = array_filter(array_map('trim', explode("\n", $_ODATA['sp_starting'])));
-$_RDATA['s_starting_domains'] = array();
-foreach ($_RDATA['sp_starting'] as $starting) {
-  $starting = parse_url($starting);
-  if (!empty($starting['host']))
-    $_RDATA['s_starting_domains'][] = $starting['host'];
-}
-$_RDATA['s_starting_domains'] = array_unique($_RDATA['s_starting_domains']);
-if (count($_RDATA['s_starting_domains']) == 1)
-  OS_setValue('sp_sitemap_hostname', $_RDATA['s_starting_domains'][0]);
-
 
 // ***** Other runtime data
 $_RDATA['admin_pagination_options'] = array(25, 50, 100, 250, 500, 1000);
@@ -1390,14 +1340,13 @@ document.write(mustache.render(
 ));<?php
 
 
-// Dodgy character check on javascript output
+// Use this for dodgy character check on javascript output
 // [^\w\s()\[\]{};:.‖‘’‟„…/@©~®§⇔⇕⇒⇨⇩↪&\\^<>›×™*·,±_²°|≥!#$¢£+≤=•«%½»?"'-]
 
 
             $_JS = ob_get_contents();
             ob_end_clean();
 
-            // Dump what we have for now while building
             header('Content-type: text/javascript; charset='.strtolower($_ODATA['s_charset']));
             header('Content-disposition: attachment; filename="offline-search.js"');
             mb_convert_encoding($_JS, 'UTF-8', $_ODATA['s_charset']);
@@ -1489,6 +1438,17 @@ document.write(mustache.render(
   // $_SESSION errors
   switch ($_SESSION['admin_page']) {
     case 'crawler':
+      // Get list of domains from the starting URLs
+      $_RDATA['sp_starting'] = array_filter(array_map('trim', explode("\n", $_ODATA['sp_starting'])));
+      $_RDATA['s_starting_domains'] = array();
+      foreach ($_RDATA['sp_starting'] as $starting) {
+        $starting = parse_url($starting);
+        if (!empty($starting['host']))
+          $_RDATA['s_starting_domains'][] = $starting['host'];
+      }
+      $_RDATA['s_starting_domains'] = array_unique($_RDATA['s_starting_domains']);
+      if (count($_RDATA['s_starting_domains']) == 1)
+        OS_setValue('sp_sitemap_hostname', $_RDATA['s_starting_domains'][0]);
       break;
 
     case 'index':
@@ -1563,18 +1523,47 @@ document.write(mustache.render(
       break;
 
     case 'search':
+      // Average hits per hour: First find the oldest `stamp` in the
+      // database, then base all averages on the difference between that
+      // time and now; also get average number of results
+      $_RDATA['s_hours_since_oldest_hit'] = 0;
+      $_RDATA['s_hits_per_hour'] = 0;
+      $_RDATA['q_average_results'] = 0;
+      $hits = $_DDATA['pdo']->query(
+        'SELECT MIN(`stamp`) AS `oldest`, COUNT(*) AS `hits`, AVG(`results`) AS `average`
+          FROM `'.$_DDATA['tbprefix'].'query`;'
+      );
+      $err = $hits->errorInfo();
+      if ($err[0] == '00000') {
+        $hits = $hits->fetchAll();
+        if (count($hits) && !is_null($hits[0]['oldest']) && !is_null($hits[0]['hits'])) {
+          $_RDATA['s_hours_since_oldest_hit'] = (time() - $hits[0]['oldest']) / 3600;
+          $_RDATA['s_hits_per_hour'] = $hits[0]['hits'] / $_RDATA['s_hours_since_oldest_hit'];
+          $_RDATA['q_average_results'] = $hits[0]['average'];
+        }
+      } else $_SESSION['error'][] = 'Could not read hit counts from query log.';
+
+      // Median number of results
+      $_RDATA['q_median_results'] = 0;
+      $median = $_DDATA['pdo']->query(
+        'SELECT `results` FROM `'.$_DDATA['tbprefix'].'query` ORDER BY `results`;'
+      );
+      $err = $median->errorInfo();
+      if ($err[0] == '00000') {
+        $median = $median->fetchAll();
+        if (count($median)) {
+          $index = floor(count($median) / 2);
+          if (count($median) & 1) {
+            $_RDATA['q_median_results'] = $median[$index]['results'];
+          } else {
+            $_RDATA['q_median_results'] = ($median[$index - 1]['results'] + $median[$index]['results']) / 2;
+          }
+        }
+      } else $_SESSION['error'][] = 'Could not read result counts from query log.';
       break;
 
     case 'queries':
       $_RDATA['query_log_rows'] = false;
-      // $queries = $_DDATA['pdo']->query(
-      //   'SELECT `query`, COUNT(`query`) AS `hits`,
-      //      TRIM(\'"\' FROM `query`) AS `alpha`, MAX(`stamp`) AS `last_hit`,
-      //      AVG(`results`) AS `avg_results`, INET_NTOA(`ip`) AS `ipaddr`
-      //        FROM `'.$_DDATA['tbprefix'].'query`
-      //          GROUP BY `query` HAVING MAX(`stamp`)
-      //            ORDER BY `alpha` ASC;'
-      // );
       $queries = $_DDATA['pdo']->query(
         'SELECT *, INET_NTOA(`ip`) AS `ipaddr`
            FROM `'.$_DDATA['tbprefix'].'query` AS `t`
