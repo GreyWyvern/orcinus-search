@@ -26,8 +26,9 @@ Optional:
 
 ## Getting Started
 
-1. Copy the 'orcinus' directory to your root web directory.
-2. Fill out your SQL and desired credential details in the config.ini.php file.
-3. Visit 'yourdomain.com/orcinus/admin.php' in your favourite web browser and log in.
+1. Copy the `orcinus` directory to your root web directory.
+2. Fill out your SQL and desired credential details in the `orcinus/config.ini.php` file.
+3. Visit `yourdomain.com/orcinus/admin.php` in your favourite web browser and log in.
+4. Optionally follow the instructions in `orcinus/geoip2/README.md` to enable geolocation of search queries.
 
-Examples of search interface integration are given in the 'example.php' (online) and 'example.html' (offline) files.
+Examples of search interface integration are given in the `example.php` (online / PHP) and `example.html` (offline / JavaScript) files.
