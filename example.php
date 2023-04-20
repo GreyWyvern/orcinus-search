@@ -14,7 +14,7 @@ require 'orcinus/search.php';
 <body>
   <h1>Orcinus Site Search - Online example</h1>
 
-  <?php $_TEMPLATE->render(); ?> 
+  <?php $_ORCINUS->render(); ?> 
 
   <!-- Script files below are only required for Typeahead -->
   <script src="orcinus/js/jquery-3.6.4.min.js"></script>

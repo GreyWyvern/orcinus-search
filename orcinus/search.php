@@ -56,28 +56,27 @@ class OS_Mustache {
   }
 }
 
-// {{{{{ Create the Mustache template
-$_TEMPLATE = new OS_Mustache();
+$_ORCINUS = new OS_Mustache();
 
 
 // Check if there are rows in the search database
 if ($_RDATA['s_searchable_pages']) {
-  $_TEMPLATE->searchable = new stdClass();
-  $_TEMPLATE->searchable->form_action = $_SERVER['REQUEST_URI'];
-  $_TEMPLATE->searchable->limit_term_length = $_ODATA['s_limit_term_length'];
+  $_ORCINUS->searchable = new stdClass();
+  $_ORCINUS->searchable->form_action = $_SERVER['REQUEST_URI'];
+  $_ORCINUS->searchable->limit_term_length = $_ODATA['s_limit_term_length'];
 
   if (empty($_REQUEST['c']) || empty($_RDATA['s_category_list'][$_REQUEST['c']]))
     $_REQUEST['c'] = '<none>';
 
   if (count($_RDATA['s_category_list']) > 2) {
-    $_TEMPLATE->searchable->categories = new stdClass();
-    $_TEMPLATE->searchable->categories->category_list = array();
+    $_ORCINUS->searchable->categories = new stdClass();
+    $_ORCINUS->searchable->categories->category_list = array();
     foreach ($_RDATA['s_category_list'] as $category => $count) {
       $cat = new stdClass();
       $cat->name = ($category = '<none>') ? 'All Categories' : $category;
       $cat->value = $category;
       $cat->selected = ($_REQUEST['c'] == $category);
-      $_TEMPLATE->searchable->categories->category_list[] = $cat;
+      $_ORCINUS->searchable->categories->category_list[] = $cat;
     }
   }
   
@@ -93,10 +92,10 @@ if ($_RDATA['s_searchable_pages']) {
 
     if (strlen($_REQUEST['q']) > 127) {
       $_REQUEST['q'] = substr($_REQUEST['q'], 0, 127);
-      $_TEMPLATE->addError('Search query truncated to maximum 127 characters');
+      $_ORCINUS->addError('Search query truncated to maximum 127 characters');
     }
 
-    $_TEMPLATE->searchable->request_q = $_REQUEST['q'];
+    $_ORCINUS->searchable->request_q = $_REQUEST['q'];
 
     // Split request string on quotation marks (")
     $request = explode('"', ' '.$_REQUEST['q'].' ');
@@ -140,10 +139,10 @@ if ($_RDATA['s_searchable_pages']) {
 
     // If we successfully procured some terms
     if (count($_SDATA['terms'])) {
-      $_TEMPLATE->searchable->searched = new stdClass();
+      $_ORCINUS->searchable->searched = new stdClass();
       if ($_REQUEST['c'] != '<none>') {
-        $_TEMPLATE->searchable->searched->category = new stdClass();
-        $_TEMPLATE->searchable->searched->category->request_c = $_REQUEST['c'];
+        $_ORCINUS->searchable->searched->category = new stdClass();
+        $_ORCINUS->searchable->searched->category->request_c = $_REQUEST['c'];
       }
 
       // Prepare PCRE match text for each phrase and term
@@ -215,7 +214,7 @@ if ($_RDATA['s_searchable_pages']) {
         }
 
       // Database error accessing the query log
-      } else $_TEMPLATE->addError('Error reading the search result cache');
+      } else $_ORCINUS->addError('Error reading the search result cache');
 
 
       // ***** Nothing in the cache, so do an actual search
@@ -483,7 +482,7 @@ if ($_RDATA['s_searchable_pages']) {
             unset($_SDATA['results'][$key]['phrase']);
           }
 
-        } else $_TEMPLATE->addError('Database error reading results: '.$err[2]);
+        } else $_ORCINUS->addError('Database error reading results: '.$err[2]);
 
 
       // ***** Else this is a cached set of results
@@ -515,7 +514,7 @@ if ($_RDATA['s_searchable_pages']) {
         $clear->execute(array('query' => $_SDATA['formatted']));
         $err = $clear->errorInfo();
         if ($err[0] != '00000')
-          $_TEMPLATE->addError('Could not clear previous search cache: '.$err[2]);
+          $_ORCINUS->addError('Could not clear previous search cache: '.$err[2]);
 
         // If we are caching search results
         if ($_ODATA['s_limit_cache']) {
@@ -549,10 +548,10 @@ if ($_RDATA['s_searchable_pages']) {
           'cache' => $searchCache
         ));
         if (!$insertQuery->rowCount()) {
-          $_TEMPLATE->addError('Could not cache search results');
+          $_ORCINUS->addError('Could not cache search results');
           $err = $insertQuery->errorInfo();
           if ($err[0] != '00000')
-            $_TEMPLATE->addError('MySQL error: '.$err[2]);
+            $_ORCINUS->addError('MySQL error: '.$err[2]);
         }
       }
 
@@ -572,8 +571,8 @@ if ($_RDATA['s_searchable_pages']) {
 
       // If we have more than zero results...
       if (count($resultsPage)) {
-        $_TEMPLATE->searchable->searched->results = new stdClass();
-        $_TEMPLATE->searchable->searched->results->result_list = array();
+        $_ORCINUS->searchable->searched->results = new stdClass();
+        $_ORCINUS->searchable->searched->results->result_list = array();
 
         // Prepare PCRE for removing base domains
         if (count($_RDATA['s_crawldata_domains']) == 1)
@@ -641,7 +640,7 @@ if ($_RDATA['s_searchable_pages']) {
             $_RESULT = json_decode($_RESULT, true);
           }
 
-          $_TEMPLATE->searchable->searched->results->result_list[] = $_RESULT;
+          $_ORCINUS->searchable->searched->results->result_list[] = $_RESULT;
         }
 
         // If there are more than just one page of results, prepare all
@@ -659,16 +658,16 @@ if ($_RDATA['s_searchable_pages']) {
           }
           $pagination->page_ltpages = ($_REQUEST['page'] < $_SDATA['pages']);
           $pagination->page_plus1 = $_REQUEST['page'] + 1;
-          $_TEMPLATE->searchable->searched->results->pagination = $pagination;
+          $_ORCINUS->searchable->searched->results->pagination = $pagination;
         }
 
         // Final numerical and stopwatch time values
-        $_TEMPLATE->searchable->searched->results->from = min(count($_SDATA['results']), ($_REQUEST['page'] - 1) * $_ODATA['s_results_pagination'] + 1);
-        $_TEMPLATE->searchable->searched->results->to = min(count($_SDATA['results']), $_REQUEST['page'] * $_ODATA['s_results_pagination']);
-        $_TEMPLATE->searchable->searched->results->of = count($_SDATA['results']);
-        $_TEMPLATE->searchable->searched->results->in = number_format(microtime(true) - $_SDATA['time'], 2, '.', '');
+        $_ORCINUS->searchable->searched->results->from = min(count($_SDATA['results']), ($_REQUEST['page'] - 1) * $_ODATA['s_results_pagination'] + 1);
+        $_ORCINUS->searchable->searched->results->to = min(count($_SDATA['results']), $_REQUEST['page'] * $_ODATA['s_results_pagination']);
+        $_ORCINUS->searchable->searched->results->of = count($_SDATA['results']);
+        $_ORCINUS->searchable->searched->results->in = number_format(microtime(true) - $_SDATA['time'], 2, '.', '');
 
-        $_SDATA['json'] = array_slice($_TEMPLATE->searchable->searched->results->result_list, 0, 5);
+        $_SDATA['json'] = array_slice($_ORCINUS->searchable->searched->results->result_list, 0, 5);
 
       } // No results
 
@@ -741,7 +740,7 @@ if ($_ODATA['sp_interval'] &&
       $errno = curl_errno($_cURL);
       if ($errno && $errno != 28) {
         $error = curl_error($_cURL);
-        if ($error) $_TEMPLATE->addError($error); // Hide this?
+        if ($error) $_ORCINUS->addError($error); // Hide this?
       }
 
       curl_close($_cURL);
