@@ -609,6 +609,7 @@ if ($_RDATA['s_searchable_pages']) {
             $result['url'] = preg_replace($repStr, '', $result['url']);
 
           // Highlight the terms in the title, url and matchtext
+          $_RESULT->title_raw = $result['title'];
           $_RESULT->title = htmlspecialchars($result['title']);
           $_RESULT->url = htmlspecialchars($result['url']);
           $_RESULT->matchtext = htmlspecialchars($result['matchtext']);
@@ -668,6 +669,8 @@ if ($_RDATA['s_searchable_pages']) {
         $_ORCINUS->searchable->searched->results->in = number_format(microtime(true) - $_SDATA['time'], 2, '.', '');
 
         $_SDATA['json'] = array_slice($_ORCINUS->searchable->searched->results->result_list, 0, 5);
+        foreach ($_SDATA['json'] as $key => $value)
+          $_SDATA['json'][$key]->title = $value->title_raw;
 
       } // No results
 
