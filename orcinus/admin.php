@@ -1568,7 +1568,8 @@ document.write(mustache.render(
         'SELECT *, INET_NTOA(`ip`) AS `ipaddr`
            FROM `'.$_DDATA['tbprefix'].'query` AS `t`
              INNER JOIN (
-               SELECT `query`, COUNT(`query`) AS `hits`, TRIM(\'"\' FROM `query`) AS `alpha`,
+               SELECT `query`, COUNT(`query`) AS `hits`,
+                      TRIM(\'\\\'\' FROM TRIM(\'"\' FROM `query`)) AS `alpha`,
                       MAX(`stamp`) AS `last_hit`, AVG(`results`) AS `avg_results`
                  FROM `'.$_DDATA['tbprefix'].'query`
                    GROUP BY `query`
