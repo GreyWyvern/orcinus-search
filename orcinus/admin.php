@@ -1811,9 +1811,8 @@ document.write(mustache.render(
                           </span>
                         </label>
                         <p id="os_sp_interval_time_text" class="form-text">
-                          To allow crawls at any time, set these both to the same time. Keep in mind
-                          that if no one visits your search page between these two times, no crawl will
-                          be triggered!
+                          Automatic crawls are triggered by people visiting your search page. To allow
+                          crawls at any time, set these both to the same time.
                         </p>
                         <label class="d-flex lh-lg w-100">
                           <strong class="pe-2">Timezone:</strong>
@@ -2819,7 +2818,7 @@ document.write(mustache.render(
               <h2>Query Log</h2>
             </header><?php
 
-            if (is_array($_RDATA['query_log_rows'])) { ?> 
+            if (is_array($_RDATA['query_log_rows']) && count($_RDATA['query_log_rows'])) { ?> 
               <div class="col-xl-10 col-xxl-8">
                 <div class="rounded-3 border border-1 border-secondary-subtle shadow border-bottom-0 mb-3 overflow-hidden">
                   <table class="table table-striped w-100 mb-0">
