@@ -609,15 +609,14 @@ if ($_RDATA['s_searchable_pages']) {
             $result['url'] = preg_replace($repStr, '', $result['url']);
 
           // Highlight the terms in the title, url and matchtext
-          $_RESULT->title_raw = $result['title'];
-          $_RESULT->title = htmlspecialchars($result['title']);
-          $_RESULT->url = htmlspecialchars($result['url']);
-          $_RESULT->matchtext = htmlspecialchars($result['matchtext']);
-          $_RESULT->description = htmlspecialchars($result['description']);
-          $_RESULT->title_highlight = $_RESULT->title;
-          $_RESULT->url_highlight = $_RESULT->url;
-          $_RESULT->matchtext_highlight = $_RESULT->matchtext;
-          $_RESULT->description_highlight = $_RESULT->description;
+          $_RESULT->title = $result['title'];
+          $_RESULT->url = $result['url'];
+          $_RESULT->matchtext = $result['matchtext'];
+          $_RESULT->description = $result['description'];
+          $_RESULT->title_highlight = htmlspecialchars($result['title']);
+          $_RESULT->url_highlight = htmlspecialchars($result['url']);
+          $_RESULT->matchtext_highlight = htmlspecialchars($result['matchtext']);
+          $_RESULT->description_highlight = htmlspecialchars($result['description']);
 
           foreach ($_SDATA['terms'] as list($type, $term, $pcre)) {
             switch ($type) {
@@ -669,8 +668,6 @@ if ($_RDATA['s_searchable_pages']) {
         $_ORCINUS->searchable->searched->results->in = number_format(microtime(true) - $_SDATA['time'], 2, '.', '');
 
         $_SDATA['json'] = array_slice($_ORCINUS->searchable->searched->results->result_list, 0, 5);
-        foreach ($_SDATA['json'] as $key => $value)
-          $_SDATA['json'][$key]->title = $value->title_raw;
 
       } // No results
 
