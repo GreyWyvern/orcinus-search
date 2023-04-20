@@ -658,15 +658,15 @@ foreach ($_RDATA['sp_entity'] as $key => $value)
 
 // ***** Load PDF parser
 if (!class_exists('\Smalot\PdfParser\Parser'))
-  if (file_exists(__DIR__.'/PdfParser/alt_autoload.php-dist'))
-    include __DIR__.'/PdfParser/alt_autoload.php-dist';
+  if (file_exists(__DIR__.'/pdfparser/alt_autoload.php-dist'))
+    include __DIR__.'/pdfparser/alt_autoload.php-dist';
 if (class_exists('\Smalot\PdfParser\Parser')) {
   $config = new \Smalot\PdfParser\Config();
   $config->setRetainImageContent(false);
   $config->setDecodeMemoryLimit(16777216);
   $_PDF = new \Smalot\PdfParser\Parser([], $config);
 } else {
-  OS_crawlLog('Could not include \'PdfParser\'; PDFs will not be indexed', 1);
+  OS_crawlLog('Could not include \'PDFParser\'; PDFs will not be indexed', 1);
   $_PDF = false;
 }
 
@@ -1307,7 +1307,7 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
 
                 // Discard the PDF text if it contains Unicode control
                 // characters; some of these might be simple PDF ligatures
-                // but PdfParser doesn't support them; any content that
+                // but PDFParser doesn't support them; any content that
                 // contains these is usually mostly gobbledegook
                 if (strpos($data['content'], "\u{3}") === false &&
                     strpos($data['content'], "\u{2}") === false &&

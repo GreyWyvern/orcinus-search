@@ -5,9 +5,3 @@ orcinus/GeoIP2/geoip2.phar
 orcinus/GeoIP2/COPYRIGHT.txt
 orcinus/config.ini.php
 *.7z
-orcinus/libcurlemu/class_HTTPRetriever.php
-orcinus/libcurlemu/example.php
-orcinus/libcurlemu/libcurlemu.inc.php
-orcinus/libcurlemu/libcurlexternal.inc.php
-orcinus/libcurlemu/libcurlnative.inc.php
-orcinus/libcurlemu/README.txt

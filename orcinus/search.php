@@ -24,6 +24,38 @@ foreach ($_RDATA['s_weights'] as $key => $weight)
   $_RDATA['s_weights'][$key] = (float)$weight;
 
 
+// {{{{{ Initialize the Mustache templating engine
+class OS_Mustache {
+  public $errors;
+  public $version;
+  public $searchable;
+
+  function __construct() {
+    global $_ODATA;
+
+    $this->version = $_ODATA['version'];
+  }
+
+  function addError($text) {
+    if (!$this->errors) {
+      $this->errors = new stdClass();
+      $this->errors->error_list = array();
+    }
+    $this->errors->error_list[] = $text;
+  }
+
+  // We'll only autoload the Mustache engine if we need it
+  function render() {
+    global $_ODATA;
+
+    require_once __DIR__.'/mustache/src/Mustache/Autoloader.php';
+    Mustache_Autoloader::register();
+
+    $output = new Mustache_Engine(array('entity_flags' => ENT_QUOTES));
+    echo $output->render($_ODATA['s_result_template'], $this);
+  }
+}
+
 // {{{{{ Create the Mustache template
 $_TEMPLATE = new OS_Mustache();
 

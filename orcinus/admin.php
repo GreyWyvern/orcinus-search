@@ -50,13 +50,13 @@ function OS_countUp($time) {
 
 // ***** Load Maxmind GeoIP2
 if (!class_exists('GeoIp2\Database\Reader')) {
-  if (file_exists(__DIR__.'/GeoIP2/geoip2.phar')) {
-    include __DIR__.'/GeoIP2/geoip2.phar';
+  if (file_exists(__DIR__.'/geoip2/geoip2.phar')) {
+    include __DIR__.'/geoip2/geoip2.phar';
   }
 }
 if (class_exists('GeoIp2\Database\Reader')) {
-  if (file_exists(__DIR__.'/GeoIP2/GeoLite2-Country.mmdb'))
-    $_GEOIP2 = new GeoIp2\Database\Reader(__DIR__.'/GeoIP2/GeoLite2-Country.mmdb');
+  if (file_exists(__DIR__.'/geoip2/GeoLite2-Country.mmdb'))
+    $_GEOIP2 = new GeoIp2\Database\Reader(__DIR__.'/geoip2/GeoLite2-Country.mmdb');
 } else $_GEOIP2 = false;
 
 
