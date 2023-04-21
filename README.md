@@ -4,6 +4,8 @@
 
 > ℹ️ **NOTE**: This project is not yet officially released and thus probably contains bugs and other nasties. Please use at your own risk! If you do try it out, I would very much appreciate your feedback and issue reports.
 
+![banner](https://user-images.githubusercontent.com/137631/233513460-93269bbb-f218-4b00-a7bf-7fc4575d15d4.png)
+
 The **Orcinus Site Search** PHP script is an all-in-one website crawler and search engine that extracts searchable content from XML, HTML and PDF files at a single, or multiple websites. It replaces 3rd party, remote search solutions such as Google etc. 
 
 **Orcinus** will crawl your website content on a schedule, or at your command via the admin UI or even by CLI/crontab. Crawler log output conveniently informs you of missing pages, links that redirect, and other errors that you, as a webmaster can fix to keep your user experience tight. A full-featured, responsive administration GUI allows you to adjust crawl settings, view and edit all crawled pages, customize search results, and view a log of all searched queries. You also have complete control over the appearance of your search results with a [convenient templating system](https://mustache.github.io/).
