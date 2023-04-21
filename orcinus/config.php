@@ -744,7 +744,6 @@ $_RDATA['s_latin'] = array(
 );
 $_RDATA['s_filetypes'] = array(
    'PDF' => array('application/pdf'),
-   'JPG' => array('image/jpeg'),
   'HTML' => array('text/html', 'application/xhtml+xml'),
    'XML' => array('text/xml', 'application/xml'),
    'TXT' => array('text/plain')

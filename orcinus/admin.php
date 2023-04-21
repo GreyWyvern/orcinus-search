@@ -181,7 +181,7 @@ if (!$_SESSION['admin_username']) {
           }
           break;
 
-        // Download a text file log of the most recent crawl
+        // Download a text file of the most recent crawl or query log
         case 'download':
           if (empty($_POST->content)) $_POST->content = '';
           switch ($_POST->content) {
@@ -202,6 +202,7 @@ if (!$_SESSION['admin_username']) {
                   header('Content-type: text/plain; charset='.strtolower($_ODATA['s_charset']));
                   header('Content-disposition: attachment; filename="'.
                     'crawl-log'.$_POST->grep.'_'.date('Y-m-d', $_ODATA['sp_time_end']).'.txt"');
+
                   die(implode("\n", $lines));
 
                 } else {
@@ -214,6 +215,55 @@ if (!$_SESSION['admin_username']) {
                 $response = array(
                   'status' => 'Error',
                   'message' => 'Currently crawling; try again later'
+                );
+              }
+              break;
+
+            case 'query_log':
+              $querylog = $_DDATA['pdo']->query(
+                'SELECT `query`, `results`, `stamp`, INET_NTOA(`ip`) AS `ipaddr`
+                   FROM `'.$_DDATA['tbprefix'].'query` ORDER BY `stamp` DESC;'
+              );
+              $err = $querylog->errorInfo();
+              if ($err[0] == '00000') {
+
+                $querylog = $querylog->fetchAll();
+                if (count($querylog)) {
+
+                  header('Content-type: text/csv; charset='.strtolower($_ODATA['s_charset']));
+                  header('Content-disposition: attachment; filename="'.
+                    'query-log_'.date('Y-m-d').'.csv"');
+
+                  $output = fopen('php://output', 'w');
+
+                  $headings = array('Query', 'Results', 'Time Stamp', 'IP');
+                  if ($_GEOIP2) $headings[] = 'Country';
+
+                  fputcsv($output, $headings);
+                  foreach ($querylog as $line) {
+                    $line['stamp'] = date('c', $line['stamp']);
+
+                    if ($_GEOIP2) {
+                      try {
+                        $geo = $_GEOIP2->country($line['ipaddr']);
+                      } catch(Exception $e) { $geo = false; }
+                    } else $geo = false;
+                    if ($geo) $line['country'] = $geo->raw['country']['names']['en'];
+
+                    fputcsv($output, $line);
+                  }
+                  die();
+
+                } else {
+                  $response = array(
+                    'status' => 'Error',
+                    'message' => 'The query log is empty; nothing to download'
+                  );
+                }
+              } else {
+                $response = array(
+                  'status' => 'Error',
+                  'message' => 'Could not read the query log database'
                 );
               }
               break;
@@ -2804,9 +2854,13 @@ document.write(mustache.render(
          * Query Log *********************************************** */
         case 'queries': ?> 
           <section class="row justify-content-center">
-            <header class="col-12 mb-2">
+            <header class="col-5 mb-2">
               <h2>Query Log</h2>
-            </header><?php
+            </header>
+            <div class="col-7 mb-2 text-end text-nowrap">
+              <button type="button" class="btn btn-primary" id="os_query_log_download"<?php
+                if ($_ODATA['sp_crawling']) echo ' disabled="disabled"'; ?>>Download Query Log</button>
+            </div><?php
 
             if (is_array($_RDATA['query_log_rows']) && count($_RDATA['query_log_rows'])) { ?> 
               <div class="col-xl-10 col-xxl-8">
@@ -3004,7 +3058,7 @@ document.write(mustache.render(
                   <strong>Note:</strong> You may close this popup and/or leave the page while the crawler is running.
                 </p>
                 <button type="button" class="btn btn-primary" id="os_crawl_log_download"<?php
-                  if ($_ODATA['sp_crawling']) echo ' disabled="disabled"'; ?>>Download Log</button>
+                  if ($_ODATA['sp_crawling']) echo ' disabled="disabled"'; ?>>Download Crawl Log</button>
               </div>
             </div>
           </div>

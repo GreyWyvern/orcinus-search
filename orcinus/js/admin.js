@@ -1,6 +1,45 @@
 /* ***** Orcinus Site Search - Administration UI Javascript ******** */
 
 
+/**
+ * Request a file from the server and trigger a download prompt
+ *
+ */
+let os_download = function(defaultFilename, postValues) {
+  fetch(new Request('./admin.php'), {
+    method: 'POST',
+    headers: { 'Content-type': 'application/json' },
+    body: JSON.stringify(postValues)
+  })
+  .then((response) => {
+    if (response.status === 200) {
+      let ct = response.headers.get('content-type').trim();
+      if (ct.indexOf('application/json') === 0) {
+        response.json().then((data) => {
+          if (data.status == 'Error')
+            alert(data.message);
+        });
+      } else {
+        let cd = response.headers.get('content-disposition');
+        if (cd) {
+          let filename = cd.match(/filename="([^"]+)"/);
+          filename = (filename.length > 1) ? filename[1] : defaultFilename;
+          response.blob().then((blob) => {
+            let file = window.URL.createObjectURL(blob);
+            let a = document.createElement('a');
+                a.href = file;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+          });
+        } else alert('Something went wrong!');
+      }
+    }
+  });
+}
+
+
 // Enable Popper.js tooltips
 let toolTipElems = document.querySelectorAll('[data-bs-toggle="tooltip"]');
 let toolTipList = [...toolTipElems].map(elem => new bootstrap.Tooltip(elem));
@@ -300,6 +339,16 @@ if (queriesModal) {
   }, false);
 }
 
+let os_query_log_download = document.getElementById('os_query_log_download');
+if (os_query_log_download) {
+  os_query_log_download.addEventListener('click', function() {
+    os_download('query-log.txt', {
+      action: 'download',
+      content: 'query_log'
+    });
+  }, false);
+}
+
 
 /* ***** Crawler Modal ********************************************* */
 let os_get_crawl_progress = function() {
@@ -512,38 +561,10 @@ os_crawl_cancel.addEventListener('click', function() {
 }, false);
 
 os_crawl_log_download.addEventListener('click', function() {
-  fetch(new Request('./admin.php'), {
-    method: 'POST',
-    headers: { 'Content-type': 'application/json' },
-    body: JSON.stringify({
-      action: 'download',
-      content: 'crawl_log',
-      grep: document.querySelector('input[name="os_crawl_grep"]:checked').value
-    })
-  })
-  .then((response) => {
-    if (response.status === 200) {
-      let ct = response.headers.get('content-type').trim();
-      if (ct == 'application/json') {
-        response.json().then((data) => {
-          if (data.status == 'Error')
-            alert(data.message);
-        });
-      } else {
-        let cd = response.headers.get('content-disposition');
-        let filename = cd.match(/filename="([^"]+)"/);
-        filename = (filename.length > 1) ? filename[1] : 'log.txt';
-        response.blob().then((blob) => {
-          let file = window.URL.createObjectURL(blob);
-          let a = document.createElement('a');
-              a.href = file;
-              a.download = filename;
-              document.body.appendChild(a);
-              a.click();
-              a.remove();
-        });
-      }
-    }
+  os_download('crawl-log.txt', {
+    action: 'download',
+    content: 'crawl_log',
+    grep: document.querySelector('input[name="os_crawl_grep"]:checked').value
   });
 }, false);
 
