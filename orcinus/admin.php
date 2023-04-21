@@ -252,6 +252,7 @@ if (!$_SESSION['admin_username']) {
 
                     fputcsv($output, $line);
                   }
+                  fclose($output);
                   die();
 
                 } else {
