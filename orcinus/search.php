@@ -63,6 +63,7 @@ $_ORCINUS = new OS_Mustache();
 if ($_RDATA['s_searchable_pages']) {
   $_ORCINUS->searchable = new stdClass();
   $_ORCINUS->searchable->form_action = $_SERVER['REQUEST_URI'];
+  $_ORCINUS->searchable->limit_query = $_ODATA['s_limit_query'];
   $_ORCINUS->searchable->limit_term_length = $_ODATA['s_limit_term_length'];
 
   if (empty($_REQUEST['c']) || empty($_RDATA['s_category_list'][$_REQUEST['c']]))
@@ -90,9 +91,9 @@ if ($_RDATA['s_searchable_pages']) {
     // Convert to UTF-8 from specified encoding
     $_REQUEST['q'] = mb_convert_encoding($_REQUEST['q'], 'UTF-8', $_ODATA['s_charset']);
 
-    if (strlen($_REQUEST['q']) > 127) {
-      $_REQUEST['q'] = substr($_REQUEST['q'], 0, 127);
-      $_ORCINUS->addError('Search query truncated to maximum 127 characters');
+    if (strlen($_REQUEST['q']) > $_ODATA['s_limit_query']) {
+      $_REQUEST['q'] = substr($_REQUEST['q'], 0, $_ODATA['s_limit_query']);
+      $_ORCINUS->addError('Search query truncated to maximum '.$_ODATA['s_limit_query'].' characters');
     }
 
     $_ORCINUS->searchable->request_q = $_REQUEST['q'];

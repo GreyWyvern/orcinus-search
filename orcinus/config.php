@@ -84,6 +84,7 @@ if (!in_array($_DDATA['tbprefix'].'config', $_DDATA['tables'])) {
       `sp_email_success` BOOLEAN NOT NULL,
       `sp_email_failure` BOOLEAN NOT NULL,
       `sp_log` MEDIUMTEXT NOT NULL,
+      `s_limit_query` TINYINT UNSIGNED NOT NULL,
       `s_limit_terms` TINYINT UNSIGNED NOT NULL,
       `s_limit_term_length` TINYINT UNSIGNED NOT NULL,
       `s_limit_results` TINYINT UNSIGNED NOT NULL,
@@ -162,6 +163,7 @@ if (!count($testConf->fetchAll())) {
       `sp_email_success`=0,
       `sp_email_failure`=1,
       `sp_log`=\'\',
+      `s_limit_query`=127,
       `s_limit_terms`=7,
       `s_limit_term_length`=3,
       `s_limit_results`=30,
@@ -529,7 +531,7 @@ if (!$_ODATA['s_result_template']) {
 
     <form action="{{form_action}}" method="get" role="search">
       <label>
-        <input type="search" name="q" value="{{request_q}}"
+        <input type="search" name="q" value="{{request_q}}" maxlength="{{limit_query}}"
           class="os_typeahead" placeholder="Search..." aria-label="Search">
       </label>
       {{#categories}}

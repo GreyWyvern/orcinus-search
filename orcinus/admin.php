@@ -638,6 +638,11 @@ if (!$_SESSION['admin_username']) {
 
         // ***** Search >> Search Settings
         case 'os_s_search_config':
+          if (isset($_POST['os_s_limit_query'])) {
+            $_POST['os_s_limit_query'] = max(1, min(255, (int)$_POST['os_s_limit_query']));
+            OS_setValue('s_limit_query', (int)$_POST['os_s_limit_query']);
+          }
+
           if (isset($_POST['os_s_limit_terms'])) {
             $_POST['os_s_limit_terms'] = max(1, min(255, (int)$_POST['os_s_limit_terms']));
             OS_setValue('s_limit_terms', (int)$_POST['os_s_limit_terms']);
@@ -901,7 +906,9 @@ Object.keys(os_rdata.s_weights).forEach(key => {
 });
 
 let os_odata = {
+  version: '<?php echo $_ODATA['version']; ?>',
   jw_compression: <?php echo $_ODATA['jw_compression']; ?>,
+  s_limit_query: <?php echo $_ODATA['s_limit_query']; ?>,
   s_limit_terms: <?php echo $_ODATA['s_limit_terms']; ?>,
   s_limit_term_length: <?php echo $_ODATA['s_limit_term_length']; ?>,
   s_limit_matchtext: <?php echo $_ODATA['s_limit_matchtext']; ?>,
@@ -978,7 +985,7 @@ function os_return_all() {
 
 // {{{{{ Create the Mustache template
 let os_TEMPLATE = {
-  version: '<?php echo $_ODATA['version']; ?>',
+  version: os_odata.version,
   searchable: false,
   addError: function(text) {
     if (!this.errors) {
@@ -993,7 +1000,8 @@ let os_TEMPLATE = {
 if (os_crawldata.length) {
   os_TEMPLATE.searchable = {};
   os_TEMPLATE.searchable.form_action = window.location.pathname;
-  os_TEMPLATE.searchable.limit_term_length = <?php echo $_ODATA['s_limit_term_length']; ?>;
+  os_TEMPLATE.searchable.limit_query = os_odata.s_limit_query;
+  os_TEMPLATE.searchable.limit_term_length = os_odata.s_limit_term_length;
 
   os_request.c = os_params.get('c');
   if (!os_request.c || !os_rdata.s_category_list[os_request.c])
@@ -1023,9 +1031,9 @@ if (os_crawldata.length) {
     if (os_odata.jw_compression < 100)
       os_request.q = os_request.q.replace(/"/g, '');
 
-    if (os_request.q.length > 127) {
-      os_request.q = os_request.q.substring(0, 127);
-      os_TEMPLATE.addError('Search query truncated to maximum 127 characters');
+    if (os_request.q.length > os_odata.s_limit_query) {
+      os_request.q = os_request.q.substring(0, os_odata.s_limit_query);
+      os_TEMPLATE.addError('Search query truncated to maximum ' + os_odata.s_limit_query + ' characters');
     }
 
     os_TEMPLATE.searchable.request_q = os_request.q;
@@ -2658,6 +2666,13 @@ document.write(mustache.render(
                     <ul class="list-group mb-2">
                       <li class="list-group-item">
                         <h4>Query Limits</h4>
+                        <label class="d-flex lh-lg w-100 mb-2">
+                          <strong class="pe-2">Maximum Allowed Query Length:</strong>
+                          <span class="flex-grow-1 text-end text-nowrap">
+                            <input type="number" name="os_s_limit_query" value="<?php echo $_ODATA['s_limit_query']; ?>" min="0" max="255" step="1" class="form-control d-inline-block"
+                              data-bs-toggle="tooltip" data-bs-placement="bottom" title="Search queries will be limited to this length before any processing. Max: 255">
+                          </span>
+                        </label>
                         <label class="d-flex lh-lg w-100 mb-2">
                           <strong class="pe-2">Maximum Number of Terms:</strong>
                           <span class="flex-grow-1 text-end text-nowrap">
