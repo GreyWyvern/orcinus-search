@@ -2667,7 +2667,7 @@ document.write(mustache.render(
                       <li class="list-group-item">
                         <h4>Query Limits</h4>
                         <label class="d-flex lh-lg w-100 mb-2">
-                          <strong class="pe-2">Maximum Allowed Query Length:</strong>
+                          <strong class="pe-2">Maximum Query Length:</strong>
                           <span class="flex-grow-1 text-end text-nowrap">
                             <input type="number" name="os_s_limit_query" value="<?php echo $_ODATA['s_limit_query']; ?>" min="0" max="255" step="1" class="form-control d-inline-block"
                               data-bs-toggle="tooltip" data-bs-placement="bottom" title="Search queries will be limited to this length before any processing. Max: 255">
