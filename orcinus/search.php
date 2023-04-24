@@ -139,8 +139,8 @@ if ($_RDATA['s_searchable_pages']) {
             $_SDATA['terms'][] = array('exclude', substr($t, 1), false);
 
           // Restrict to a specific filetype (not yet implemented)
-          // Really, we'd only allow HTML, XML and PDF here, maybe JPG?
-          } else if (strpos('filetype:', $t) === 0) {
+          // Really, we'd only allow HTML, XML and PDF here
+          } else if (strpos(strtolower($t), 'filetype:') === 0) {
             $t = trim(substr($t, 9));
             if ($t && isset($_RDATA['s_filetypes'][strtoupper($t)]))
               $_SDATA['terms'][] = array('filetype', $t, false);
@@ -239,63 +239,70 @@ if ($_RDATA['s_searchable_pages']) {
           SELECT `url`, `category`, `content`, `content_mime`, `title`,
                  `description`, `keywords`, `weighted`, `priority`
             FROM `'.$_DDATA['tbprefix'].'crawldata`
-              WHERE `flag_unlisted`=0 AND `priority`>0 AND';
+              WHERE `flag_unlisted`=0 AND `priority`>0';
 
         // Restrict by category
         if ($_REQUEST['c'] != '<none>')
-          $searchSQL .= ' `category`=\''.addslashes($_REQUEST['c']).'\' AND ';
+          $searchSQL .= ' AND `category`=\''.addslashes($_REQUEST['c']).'\'';
 
         // Show or do not show Orphans
         if (!$_ODATA['s_show_orphans'])
-          $searchSQL .= ' `status`!=\'Orphan\' AND ';
+          $searchSQL .= ' AND `status`!=\'Orphan\'';
 
         $ands = array();
         $ors = array();
         $negs = array();
+        $filetypes = array();
         foreach ($_SDATA['terms'] as list($type, $term, $pcre)) {
 
           // Regexp only for SQL use
-          $term = preg_quote(strtolower($term), '\'');
-          $term = strtr($term, $_RDATA['s_latin_pcre']);
+          $pterm = preg_quote(strtolower($term), '\'');
+          $pterm = strtr($pterm, $_RDATA['s_latin_pcre']);
 
           switch ($type) {
-            case 'filetype': // Nothing for filetype yet
+            case 'filetype':
+              if (isset($_RDATA['s_filetypes'][strtoupper($term)]))
+                foreach ($_RDATA['s_filetypes'][strtoupper($term)] as $mime)
+                  $filetypes[] = '`content_mime`=\''.$mime.'\'';
               break;
 
             case 'exclude':
-              $negs[] = '`content` NOT REGEXP \''.$term.'\'';
-              $negs[] = '`url` NOT REGEXP \''.$term.'\'';
-              $negs[] = '`title` NOT REGEXP \''.$term.'\'';
-              $negs[] = '`description` NOT REGEXP \''.$term.'\'';
-              $negs[] = '`keywords` NOT REGEXP \''.$term.'\'';
-              $negs[] = '`weighted` NOT REGEXP \''.$term.'\'';
+              $negs[] = '`content` NOT REGEXP \''.$pterm.'\'';
+              $negs[] = '`url` NOT REGEXP \''.$pterm.'\'';
+              $negs[] = '`title` NOT REGEXP \''.$pterm.'\'';
+              $negs[] = '`description` NOT REGEXP \''.$pterm.'\'';
+              $negs[] = '`keywords` NOT REGEXP \''.$pterm.'\'';
+              $negs[] = '`weighted` NOT REGEXP \''.$pterm.'\'';
               break;
 
             case 'phrase':
               $ands[] = '('.implode(' OR ', array(
-                '`content` REGEXP \''.$term.'\'',
-                '`url` REGEXP \''.$term.'\'',
-                '`title` REGEXP \''.$term.'\'',
-                '`description` REGEXP \''.$term.'\'',
-                '`keywords` REGEXP \''.$term.'\'',
-                '`weighted` REGEXP \''.$term.'\''
+                '`content` REGEXP \''.$pterm.'\'',
+                '`url` REGEXP \''.$pterm.'\'',
+                '`title` REGEXP \''.$pterm.'\'',
+                '`description` REGEXP \''.$pterm.'\'',
+                '`keywords` REGEXP \''.$pterm.'\'',
+                '`weighted` REGEXP \''.$pterm.'\''
               )).')';
               break;
 
             case 'term':
-              $ors[] = '`content` REGEXP \''.$term.'\'';
-              $ors[] = '`url` REGEXP \''.$term.'\'';
-              $ors[] = '`title` REGEXP \''.$term.'\'';
-              $ors[] = '`description` REGEXP \''.$term.'\'';
-              $ors[] = '`keywords` REGEXP \''.$term.'\'';
-              $ors[] = '`weighted` REGEXP \''.$term.'\'';
+              $ors[] = '`content` REGEXP \''.$pterm.'\'';
+              $ors[] = '`url` REGEXP \''.$pterm.'\'';
+              $ors[] = '`title` REGEXP \''.$pterm.'\'';
+              $ors[] = '`description` REGEXP \''.$pterm.'\'';
+              $ors[] = '`keywords` REGEXP \''.$pterm.'\'';
+              $ors[] = '`weighted` REGEXP \''.$pterm.'\'';
 
           }
         }
 
+        if (count($filetypes))
+          $searchSQL .= ' AND ('.implode(' OR ', $filetypes).') ';
+
         if (count($ands)) {
-          $searchSQL .= ' '.implode(' AND ', $ands).' ';
-        } else $searchSQL .= ' ('.implode(' OR ', $ors).') ';
+          $searchSQL .= ' AND '.implode(' AND ', $ands).' ';
+        } else $searchSQL .= ' AND ('.implode(' OR ', $ors).') ';
 
         if (count($negs))
           $searchSQL .= ' AND '.implode(' AND ', $negs);

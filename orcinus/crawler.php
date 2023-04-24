@@ -1290,9 +1290,12 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
                 $pdf = $_PDF->parseContent($data['body']);
 
                 $meta = $pdf->getDetails();
-                if (!empty($meta['Title'])) $data['title'] = $meta['Title'];
-                if (!empty($meta['Subject'])) $data['description'] = $meta['Subject'];
-                if (!empty($meta['Keywords'])) $data['keywords'] = $meta['Keywords'];
+                if (!empty($meta['Title']) && trim($meta['Title']))
+                  $data['title'] = $meta['Title'];
+                if (!empty($meta['Subject']) && trim($meta['Subject']))
+                  $data['description'] = $meta['Subject'];
+                if (!empty($meta['Keywords']) && trim($meta['Keywords']))
+                  $data['keywords'] = $meta['Keywords'];
                 $data['content'] = $pdf->getText();
 
                 // remove escaped whitespace

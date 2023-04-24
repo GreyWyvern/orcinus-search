@@ -1064,7 +1064,7 @@ if (os_crawldata.length) {
 
           // Restrict to a specific filetype (not yet implemented)
           // Really, we'd only allow HTML, XML and PDF here, maybe JPG?
-          } else if (t.indexOf('filetype:') === 0) {
+          } else if (t.toLowerCase().indexOf('filetype:') === 0) {
             t = t.substring(9).trim();
             if (t && os_rdata.s_filetypes[t.toUpperCase()])
               os_sdata.terms.push(['filetype', t, false]);
@@ -1088,10 +1088,14 @@ if (os_crawldata.length) {
       }
 
       // Prepare PCRE match text for each phrase and term
+      let filetypes = [];
       for (let x = 0; x < os_sdata.terms.length; x++) {
         switch (os_sdata.terms[x][0]) {
           case 'filetype':
             os_sdata.formatted.push(os_sdata.terms[x][0] + ':' + os_sdata.terms[x][1]);
+            if (os_rdata.s_filetypes[os_sdata.terms[x][1].toUpperCase()])
+              for (let z = 0; z < os_rdata.s_filetypes[os_sdata.terms[x][1].toUpperCase()].length; z++)
+                filetypes.push(os_rdata.s_filetypes[os_sdata.terms[x][1].toUpperCase()][z]);
             break;
 
           case 'exclude':
@@ -1122,6 +1126,15 @@ if (os_crawldata.length) {
 
       // ***** There is never any cache, so do an actual search
       for (let y = os_crawldata.length - 1; y >= 0; y--) {
+        if (filetypes.length) {
+          for (let x = 0, allowMime = false; x < filetypes.length; x++)
+            if (os_crawldata[y].content_mime == filetypes[x]) allowMime = true;
+          if (!allowMime) {
+            os_crawldata.splice(y, 1);
+            continue;
+          }
+        }
+
         for (let x = 0; x < os_sdata.terms.length; x++) {
           addRelevance = 0;
 

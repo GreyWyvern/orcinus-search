@@ -101,7 +101,7 @@ if (!in_array($_DDATA['tbprefix'].'config', $_DDATA['tables'])) {
       `jw_hostname` TINYTEXT NOT NULL,
       `jw_compression` TINYINT UNSIGNED NOT NULL,
       PRIMARY KEY (`version`)
-    ) ENGINE = MyISAM, COLLATE = utf8mb4_unicode_ci;'
+    ) ENGINE = MyISAM, CHARACTER SET = utf8mb4, COLLATE = utf8mb4_unicode_ci;'
   );
   $err = $create->errorInfo();
   if ($err[0] != '00000')
@@ -211,7 +211,7 @@ if (!in_array($_DDATA['tbprefix'].'crawldata', $_DDATA['tables'])) {
       `last_modified` INT NOT NULL,
       `priority` DECIMAL(2,1) NOT NULL,
       UNIQUE `content_checksum` (`content_checksum`)
-    ) ENGINE = MyISAM, COLLATE = utf8mb4_unicode_ci;'
+    ) ENGINE = MyISAM, CHARACTER SET = utf8mb4, COLLATE = utf8mb4_unicode_ci;'
   );
   $err = $create->errorInfo();
   if ($err[0] != '00000')
@@ -227,7 +227,7 @@ if (!in_array($_DDATA['tbprefix'].'query', $_DDATA['tables'])) {
       `stamp` INT UNSIGNED NOT NULL,
       `ip` INT UNSIGNED NOT NULL,
       `cache` MEDIUMBLOB NOT NULL
-    ) ENGINE = MyISAM, COLLATE = utf8mb4_unicode_ci;'
+    ) ENGINE = MyISAM, CHARACTER SET = utf8mb4, COLLATE = utf8mb4_unicode_ci;'
   );
   $err = $create->errorInfo();
   if ($err[0] != '00000')
