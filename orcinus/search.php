@@ -23,6 +23,23 @@ $_SDATA = array(
 foreach ($_RDATA['s_weights'] as $key => $weight)
   $_RDATA['s_weights'][$key] = (float)$weight;
 
+// Prepare regexp translation array for accented / ligature characters
+$_RDATA['s_latin_pcre'] = array();
+$_RDATA['s_latin_pcre_multi'] = array();
+foreach ($_RDATA['s_latin'] as $char => $latin) {
+  if (strlen($char) > 1) {
+    $pcre = '('.$char.'|'.implode('|', $latin).')';
+  } else $pcre = '['.$char.implode('', $latin).']';
+  $_RDATA['s_latin_pcre'][$char] = $pcre;
+  foreach ($latin as $lchar)
+    $_RDATA['s_latin_pcre'][$lchar] = $pcre;
+  if (strlen($char) > 1) {
+    $_RDATA['s_latin_pcre_multi'][$char] = $pcre;
+    foreach ($latin as $lchar)
+      $_RDATA['s_latin_pcre_multi'][$lchar] = $pcre;
+  }
+}
+
 
 // {{{{{ Initialize the Mustache templating engine
 class OS_Mustache {
@@ -164,13 +181,9 @@ if ($_RDATA['s_searchable_pages']) {
             if ($type == 'term')
               $_SDATA['formatted'][] = $term;
 
+            // Regexp for later use pattern matching results
             $_SDATA['terms'][$key][2] = preg_quote(strtolower($term), '/');
-            foreach ($_RDATA['s_latin'] as $char => $latin) {
-              $_SDATA['terms'][$key][2] = str_replace($latin, $char, $_SDATA['terms'][$key][2]);
-              if (strlen($char) > 1) {
-                $_SDATA['terms'][$key][2] = str_replace($char, '('.$char.'|'.implode('|', $latin).')', $_SDATA['terms'][$key][2]);
-              } else $_SDATA['terms'][$key][2] = str_replace($char, '['.$char.implode('', $latin).']', $_SDATA['terms'][$key][2]);
-            }
+            $_SDATA['terms'][$key][2] = strtr($_SDATA['terms'][$key][2], $_RDATA['s_latin_pcre']);
             $_SDATA['terms'][$key][2] = '/('.$_SDATA['terms'][$key][2].')/iu';
 
         }
@@ -240,37 +253,44 @@ if ($_RDATA['s_searchable_pages']) {
         $ors = array();
         $negs = array();
         foreach ($_SDATA['terms'] as list($type, $term, $pcre)) {
+
+          // Regexp only for SQL use
+          $term = preg_quote(strtolower($term), '\'');
+
+          // Regexp alternation for multi-character ligatures
+          $term = strtr($term, $_RDATA['s_latin_pcre_multi']);
+
           switch ($type) {
             case 'filetype': // Nothing for filetype yet
               break;
 
             case 'exclude':
-              $negs[] = '`content` NOT LIKE \'%'.addslashes($term).'%\'';
-              $negs[] = '`url` NOT LIKE \'%'.addslashes($term).'%\'';
-              $negs[] = '`title` NOT LIKE \'%'.addslashes($term).'%\'';
-              $negs[] = '`description` NOT LIKE \'%'.addslashes($term).'%\'';
-              $negs[] = '`keywords` NOT LIKE \'%'.addslashes($term).'%\'';
-              $negs[] = '`weighted` NOT LIKE \'%'.addslashes($term).'%\'';
+              $negs[] = '`content` NOT REGEXP \''.$term.'\'';
+              $negs[] = '`url` NOT REGEXP \''.$term.'\'';
+              $negs[] = '`title` NOT REGEXP \''.$term.'\'';
+              $negs[] = '`description` NOT REGEXP \''.$term.'\'';
+              $negs[] = '`keywords` NOT REGEXP \''.$term.'\'';
+              $negs[] = '`weighted` NOT REGEXP \''.$term.'\'';
               break;
 
             case 'phrase':
               $ands[] = '('.implode(' OR ', array(
-                '`content` LIKE \'%'.addslashes($term).'%\'',
-                '`url` LIKE \'%'.addslashes($term).'%\'',
-                '`title` LIKE \'%'.addslashes($term).'%\'',
-                '`description` LIKE \'%'.addslashes($term).'%\'',
-                '`keywords` LIKE \'%'.addslashes($term).'%\'',
-                '`weighted` LIKE \'%'.addslashes($term).'%\''
+                '`content` REGEXP \''.$term.'\'',
+                '`url` REGEXP \''.$term.'\'',
+                '`title` REGEXP \''.$term.'\'',
+                '`description` REGEXP \''.$term.'\'',
+                '`keywords` REGEXP \''.$term.'\'',
+                '`weighted` REGEXP \''.$term.'\''
               )).')';
               break;
 
             case 'term':
-              $ors[] = '`content` LIKE \'%'.addslashes($term).'%\'';
-              $ors[] = '`url` LIKE \'%'.addslashes($term).'%\'';
-              $ors[] = '`title` LIKE \'%'.addslashes($term).'%\'';
-              $ors[] = '`description` LIKE \'%'.addslashes($term).'%\'';
-              $ors[] = '`keywords` LIKE \'%'.addslashes($term).'%\'';
-              $ors[] = '`weighted` LIKE \'%'.addslashes($term).'%\'';
+              $ors[] = '`content` REGEXP \''.$term.'\'';
+              $ors[] = '`url` REGEXP \''.$term.'\'';
+              $ors[] = '`title` REGEXP \''.$term.'\'';
+              $ors[] = '`description` REGEXP \''.$term.'\'';
+              $ors[] = '`keywords` REGEXP \''.$term.'\'';
+              $ors[] = '`weighted` REGEXP \''.$term.'\'';
 
           }
         }
