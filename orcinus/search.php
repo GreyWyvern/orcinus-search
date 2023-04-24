@@ -509,10 +509,9 @@ if ($_RDATA['s_searchable_pages']) {
 
 
       // Limit $_REQUEST['page'] to within boundaries
-      $_REQUEST['page'] = (isset($_REQUEST['page'])) ? max(1, (int)$_REQUEST['page']) : 1;
-      $_SDATA['pages'] = ceil(count($_SDATA['results']) / $_ODATA['s_results_pagination']);
+      $_REQUEST['page'] = (!empty($_REQUEST['page'])) ? max(1, (int)$_REQUEST['page']) : 1;
+      $_SDATA['pages'] = max(1, ceil(count($_SDATA['results']) / $_ODATA['s_results_pagination']));
       $_REQUEST['page'] = min($_SDATA['pages'], $_REQUEST['page']);
-
 
       // Database log (and potentially cache) this page only if:
       // - This is not a JSON output request
