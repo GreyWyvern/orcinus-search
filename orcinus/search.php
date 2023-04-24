@@ -256,9 +256,7 @@ if ($_RDATA['s_searchable_pages']) {
 
           // Regexp only for SQL use
           $term = preg_quote(strtolower($term), '\'');
-
-          // Regexp alternation for multi-character ligatures
-          $term = strtr($term, $_RDATA['s_latin_pcre_multi']);
+          $term = strtr($term, $_RDATA['s_latin_pcre']);
 
           switch ($type) {
             case 'filetype': // Nothing for filetype yet
