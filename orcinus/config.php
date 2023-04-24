@@ -101,7 +101,7 @@ if (!in_array($_DDATA['tbprefix'].'config', $_DDATA['tables'])) {
       `jw_hostname` TINYTEXT NOT NULL,
       `jw_compression` TINYINT UNSIGNED NOT NULL,
       PRIMARY KEY (`version`)
-    ) ENGINE = MyISAM, COLLATE = utf8_general_ci;'
+    ) ENGINE = MyISAM, COLLATE = utf8_unicode_ci;'
   );
   $err = $create->errorInfo();
   if ($err[0] != '00000')
@@ -211,7 +211,7 @@ if (!in_array($_DDATA['tbprefix'].'crawldata', $_DDATA['tables'])) {
       `last_modified` INT NOT NULL,
       `priority` DECIMAL(2,1) NOT NULL,
       UNIQUE `content_checksum` (`content_checksum`)
-    ) ENGINE = MyISAM, COLLATE = utf8_general_ci;'
+    ) ENGINE = MyISAM, COLLATE = utf8_unicode_ci;'
   );
   $err = $create->errorInfo();
   if ($err[0] != '00000')
@@ -227,7 +227,7 @@ if (!in_array($_DDATA['tbprefix'].'query', $_DDATA['tables'])) {
       `stamp` INT UNSIGNED NOT NULL,
       `ip` INT UNSIGNED NOT NULL,
       `cache` MEDIUMBLOB NOT NULL
-    ) ENGINE = MyISAM, COLLATE = utf8_general_ci;'
+    ) ENGINE = MyISAM, COLLATE = utf8_unicode_ci;'
   );
   $err = $create->errorInfo();
   if ($err[0] != '00000')
@@ -721,8 +721,8 @@ $_RDATA['sp_smart'] = array(
   '‖' => '|'
 );
 $_RDATA['s_latin'] = array(
-   'a' => array('á', 'Á', 'à', 'À', 'â', 'Â', 'ä', 'Ä', 'ã', 'Ã', 'å', 'Å', 'ą', 'Ą', 'ă', 'Ă'),
   'ae' => array('æ', 'Æ'),
+   'a' => array('á', 'Á', 'à', 'À', 'â', 'Â', 'ä', 'Ä', 'ã', 'Ã', 'å', 'Å', 'ą', 'Ą', 'ă', 'Ă'),
    'c' => array('ç', 'Ç', 'ć', 'Ć', 'č', 'Č'),
    'd' => array('ð', 'Ð', 'ď', 'Ď', 'đ', 'Đ'),
    'e' => array('é', 'É', 'è', 'È', 'ê', 'Ê', 'ë', 'Ë', 'ę', 'Ę', 'ě', 'Ě'),
@@ -730,13 +730,13 @@ $_RDATA['s_latin'] = array(
    'i' => array('í', 'Í', 'ì', 'Ì', 'î', 'Î', 'ï', 'Ï', 'ı', 'İ'),
    'l' => array('ł', 'Ł', 'ľ', 'Ľ', 'ĺ', 'Ĺ'),
    'n' => array('ñ', 'Ñ', 'ń', 'Ń', 'ň', 'Ň'),
-   'o' => array('ó', 'Ó', 'ò', 'Ò', 'ô', 'Ô', 'ö', 'Ö', 'õ', 'Õ', 'ø', 'Ø', 'ő', 'Ő'),
   'oe' => array('œ', 'Œ'),
+   'o' => array('ó', 'Ó', 'ò', 'Ò', 'ô', 'Ô', 'ö', 'Ö', 'õ', 'Õ', 'ø', 'Ø', 'ő', 'Ő'),
    'r' => array('ŕ', 'Ŕ', 'ř', 'Ř'),
-   's' => array('ş', 'Ş', 'ś', 'Ś', 'š', 'Š'),
   'sz' => array('ß'),
-   't' => array('ť', 'Ť', 'ţ', 'Ţ'),
+   's' => array('ş', 'Ş', 'ś', 'Ś', 'š', 'Š'),
   'th' => array('þ', 'Þ'),
+   't' => array('ť', 'Ť', 'ţ', 'Ţ'),
    'u' => array('ú', 'Ú', 'ù', 'Ù', 'û', 'Û', 'ü', 'Ü', 'ů', 'Ů', 'ű', 'Ű'),
    'x' => array('×'),
    'y' => array('ý', 'Ý', 'ÿ', 'Ÿ'),
