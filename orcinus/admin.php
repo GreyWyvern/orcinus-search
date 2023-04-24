@@ -2636,7 +2636,7 @@ document.write(mustache.render(
                                     $memory_limit = OS_readSize((int)$match[1], true);
 
                                 }
-                              } else $memory_limit = 'Unknonw';
+                              } else $memory_limit = 'Unknown';
                             } else $memory_limit = 'No limit';
                             echo $memory_limit;
                           ?></var>
@@ -2645,10 +2645,10 @@ document.write(mustache.render(
                     </ul>
                     <div class="text-center">
                       <button type="submit" name="os_submit" value="os_jw_config" class="btn btn-primary">Save Changes</button>
-                      <button type="submit" name="os_submit" value="os_jw_write" class="btn btn-primary"<?php
+                      <button type="submit" name="os_submit" value="os_jw_write" class="btn btn-primary" title="Download Javascript File"<?php
                         if (!$_RDATA['s_crawldata_info']['Rows']) {
                           echo ' disabled="disabled"';
-                        } ?>>Download File</button>
+                        } ?>>Download</button>
                     </div>
                   </div>
                 </fieldset>
@@ -2874,8 +2874,8 @@ document.write(mustache.render(
               <h2>Query Log</h2>
             </header>
             <div class="col-7 mb-2 text-end text-nowrap">
-              <button type="button" class="btn btn-primary" id="os_query_log_download"<?php
-                if ($_ODATA['sp_crawling']) echo ' disabled="disabled"'; ?>>Download Query Log</button>
+              <button type="button" class="btn btn-primary" id="os_query_log_download" title="Download Query Log"<?php
+                if ($_ODATA['sp_crawling']) echo ' disabled="disabled"'; ?>>Download</button>
             </div><?php
 
             if (is_array($_RDATA['query_log_rows']) && count($_RDATA['query_log_rows'])) { ?> 
@@ -3073,8 +3073,8 @@ document.write(mustache.render(
                 <p class="mb-0">
                   <strong>Note:</strong> You may close this popup and/or leave the page while the crawler is running.
                 </p>
-                <button type="button" class="btn btn-primary" id="os_crawl_log_download"<?php
-                  if ($_ODATA['sp_crawling']) echo ' disabled="disabled"'; ?>>Download Crawl Log</button>
+                <button type="button" class="btn btn-primary" id="os_crawl_log_download" title="Download Crawl Log"<?php
+                  if ($_ODATA['sp_crawling']) echo ' disabled="disabled"'; ?>>Download</button>
               </div>
             </div>
           </div>
