@@ -1311,7 +1311,7 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
                 if (!$data['info']['charset']) $data['info']['charset'] = 'ISO-8859-1';
                 OS_cleanTextUTF8($data['content'], $data['info']['charset']);
 
-                if (trim($data['content'])) {
+                if ($data['content']) {
 
                   // Discard the PDF text if it contains Unicode control
                   // characters; some of these might be simple PDF ligatures
