@@ -685,8 +685,6 @@ if ($_cURL) {
   // Customize this cURL connection
   if ($_ODATA['sp_cookies'])
     curl_setopt($_cURL, CURLOPT_COOKIEFILE, '');
-  if ($_ODATA['sp_time_end_success'])
-    curl_setopt($_cURL, CURLOPT_TIMEVALUE, $_ODATA['sp_time_end_success']);
   curl_setopt($_cURL, CURLOPT_HEADERFUNCTION, function($_cURL, $line) {
     global $_RDATA;
 
@@ -742,13 +740,17 @@ foreach ($_RDATA['sp_starting'] as $starting) {
 
 // ***** List of previously crawled links from the database
 $_RDATA['sp_exist'] = array();
+$_RDATA['sp_lastmod'] = array();
 $crawldata = $_DDATA['pdo']->query(
-  'SELECT `url`, `content_checksum` FROM `'.$_DDATA['tbprefix'].'crawldata`'
+  'SELECT `url`, `content_checksum`, `last_modified`
+     FROM `'.$_DDATA['tbprefix'].'crawldata`'
 );
 $err = $crawldata->errorInfo();
 if ($err[0] == '00000') {
-  foreach ($crawldata as $value)
+  foreach ($crawldata as $value) {
     $_RDATA['sp_exist'][$value['content_checksum']] = $value['url'];
+    $_RDATA['sp_lastmod'][$value['url']] = $value['last_modified'];
+  }
 } else OS_crawlLog('Error getting list of previous URLs from crawldata table', 2);
 
 
@@ -880,7 +882,8 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
   OS_setValue('sp_progress', count($_RDATA['sp_links']).'/'.(count($_RDATA['sp_links']) + count($_RDATA['sp_queue'])));
 
   // Set the correct If-Modified-Since request header
-  if ($_ODATA['sp_ifmodifiedsince'] && (!count($_RDATA['sp_exist']) || in_array($url, $_RDATA['sp_exist']))) {
+  if ($_ODATA['sp_ifmodifiedsince'] && isset($_RDATA['sp_lastmod'][$url])) {
+    curl_setopt($_cURL, CURLOPT_TIMEVALUE, $_RDATA['sp_lastmod'][$url]);
     curl_setopt($_cURL, CURLOPT_TIMECONDITION, CURL_TIMECOND_IFMODSINCE);
   } else curl_setopt($_cURL, CURLOPT_TIMECONDITION, CURL_TIMECOND_NONE);
 
