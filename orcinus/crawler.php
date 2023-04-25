@@ -1311,23 +1311,32 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
                 if (!$data['info']['charset']) $data['info']['charset'] = 'ISO-8859-1';
                 OS_cleanTextUTF8($data['content'], $data['info']['charset']);
 
-                // Discard the PDF text if it contains Unicode control
-                // characters; some of these might be simple PDF ligatures
-                // but PDFParser doesn't support them; any content that
-                // contains these is usually mostly gobbledegook
-                if (strpos($data['content'], "\u{3}") === false &&
-                    strpos($data['content'], "\u{2}") === false &&
-                    strpos($data['content'], "\u{1}") === false) {
+                if (trim($data['content'])) {
 
-                  OS_cleanTextUTF8($data['title'], $data['info']['charset']);
-                  OS_cleanTextUTF8($data['keywords'], $data['info']['charset']);
-                  OS_cleanTextUTF8($data['description'], $data['info']['charset']);
+                  // Discard the PDF text if it contains Unicode control
+                  // characters; some of these might be simple PDF ligatures
+                  // but PDFParser doesn't support them; any content that
+                  // contains these is usually mostly gobbledegook
+                  if (strpos($data['content'], "\u{3}") === false &&
+                      strpos($data['content'], "\u{2}") === false &&
+                      strpos($data['content'], "\u{1}") === false) {
+
+                    OS_cleanTextUTF8($data['title'], $data['info']['charset']);
+                    OS_cleanTextUTF8($data['keywords'], $data['info']['charset']);
+                    OS_cleanTextUTF8($data['description'], $data['info']['charset']);
+
+                  } else {
+                    $data['errno'] = 703;
+                    $data['error'] = 'Failed to decode PDF text';
+                    $data['content'] = '';
+                    $data['info']['noindex'] = 'couldnt-decode-pdf';
+                  }
 
                 } else {
                   $data['errno'] = 702;
-                  $data['error'] = 'Failed to decode PDF text';
+                  $data['error'] = 'PDF is empty of extractable text';
                   $data['content'] = '';
-                  $data['info']['noindex'] = 'couldnt-decode-pdf';
+                  $data['info']['noindex'] = 'empty-pdf';
                 }
 
               } catch (Exception $e) {
@@ -1517,8 +1526,7 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
 
     // ***** Otherwise, log the reason why this page was not stored
     case 'duplicate':
-      OS_crawlLog('Content is a duplicate of already indexed page: '.$_RDATA['sp_sha1'][$data['info']['sha1']], 2);
-      OS_crawlLog('Consider editing faulty redirects, or setting a \'canonical\' <link> element to avoid this', 0);
+      OS_crawlLog('Content is a duplicate of already indexed page: '.$_RDATA['sp_sha1'][$data['info']['sha1']].' (Referrer was: '.$referer.')', 2);
       break;
 
     case 'timeout':
@@ -1534,6 +1542,7 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
     case 'robots-http':
     case 'unknown-mime':
     case 'self-reference':
+    case 'empty-pdf':
     case 'secured-pdf':
     case 'couldnt-decode-pdf':
       OS_crawlLog($data['error'], 1);
