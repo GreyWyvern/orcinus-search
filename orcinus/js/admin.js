@@ -589,6 +589,8 @@ crawlerModal.addEventListener('show.bs.modal', function(e) {
       this.classList.remove('crawler-log');
       label.firstChild.nodeValue = 'Run Crawler Manually';
 
+      os_crawl_start.allow_grep = false;
+
       os_crawl_progress.value = 0;
       os_crawl_progress.max = 1;
       os_crawl_progress.setAttribute('data-progress', '');
