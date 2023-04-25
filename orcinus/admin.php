@@ -1754,7 +1754,7 @@ document.write(mustache.render(
          * Crawler Management ************************************** */
         case 'crawler': ?> 
           <section class="row justify-content-center">
-            <header class="col-12 mb-2">
+            <header class="col-sm-10 col-md-8 col-lg-12 col-xl-10 col-xxl-8 mb-2">
               <h2>Crawler Management</h2>
             </header>
 
@@ -2165,7 +2165,7 @@ document.write(mustache.render(
          * Page Index ********************************************** */
         case 'index': ?> 
           <section class="row justify-content-center">
-            <header class="col-12 mb-2">
+            <header class="col-xl-10 col-xxl-8 mb-2">
               <h2>Page Index</h2>
             </header><?php
 
@@ -2392,7 +2392,7 @@ document.write(mustache.render(
          * Search Management *************************************** */
         case 'search': ?> 
           <section class="row justify-content-center">
-            <header class="col-12 mb-2">
+            <header class="col-sm-10 col-md-8 col-lg-12 col-xl-10 col-xxl-8 mb-2">
               <h2>Search Management</h2>
             </header>
 
@@ -2883,10 +2883,10 @@ document.write(mustache.render(
          * Query Log *********************************************** */
         case 'queries': ?> 
           <section class="row justify-content-center">
-            <header class="col-5 mb-2">
+            <header class="col-6 col-xl-5 col-xxl-4 mb-2">
               <h2>Query Log</h2>
             </header>
-            <div class="col-7 mb-2 text-end text-nowrap">
+            <div class="col-6 col-xl-5 col-xxl-4 mb-2 text-end text-nowrap">
               <button type="button" class="btn btn-primary" id="os_query_log_download" title="Download Query Log"<?php
                 if ($_ODATA['sp_crawling']) echo ' disabled="disabled"'; ?>>Download</button>
             </div><?php
