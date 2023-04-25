@@ -5,7 +5,7 @@ $_DDATA['hostname'] = 'localhost';
 $_DDATA['username'] = 'username';
 $_DDATA['password'] = 'password';
 $_DDATA['database'] = 'database';
-$_DDATA['tbprefix'] = 'os_';
+$_DDATA['tbprefix'] = 'os__';
 
 
 // ***** Administration
