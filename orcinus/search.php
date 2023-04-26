@@ -255,9 +255,7 @@ if ($_RDATA['s_searchable_pages']) {
         $filetypes = array();
         foreach ($_SDATA['terms'] as list($type, $term, $pcre)) {
 
-          // Regexp only for SQL use
-          $pterm = preg_quote(strtolower($term), '\'');
-          $pterm = strtr($pterm, $_RDATA['s_latin_pcre']);
+          $slashTerm = addslashes($term);
 
           switch ($type) {
             case 'filetype':
@@ -267,32 +265,32 @@ if ($_RDATA['s_searchable_pages']) {
               break;
 
             case 'exclude':
-              $negs[] = '`content` NOT REGEXP \''.$pterm.'\'';
-              $negs[] = '`url` NOT REGEXP \''.$pterm.'\'';
-              $negs[] = '`title` NOT REGEXP \''.$pterm.'\'';
-              $negs[] = '`description` NOT REGEXP \''.$pterm.'\'';
-              $negs[] = '`keywords` NOT REGEXP \''.$pterm.'\'';
-              $negs[] = '`weighted` NOT REGEXP \''.$pterm.'\'';
+              $negs[] = 'INSTR(`content`, \''.$slashTerm.'\')=0';
+              $negs[] = 'INSTR(`url`, \''.$slashTerm.'\')=0';
+              $negs[] = 'INSTR(`title`, \''.$slashTerm.'\')=0';
+              $negs[] = 'INSTR(`description`, \''.$slashTerm.'\')=0';
+              $negs[] = 'INSTR(`keywords`, \''.$slashTerm.'\')=0';
+              $negs[] = 'INSTR(`weighted`, \''.$slashTerm.'\')=0';
               break;
 
             case 'phrase':
               $ands[] = '('.implode(' OR ', array(
-                '`content` REGEXP \''.$pterm.'\'',
-                '`url` REGEXP \''.$pterm.'\'',
-                '`title` REGEXP \''.$pterm.'\'',
-                '`description` REGEXP \''.$pterm.'\'',
-                '`keywords` REGEXP \''.$pterm.'\'',
-                '`weighted` REGEXP \''.$pterm.'\''
+                'INSTR(`content`, \''.$slashTerm.'\')',
+                'INSTR(`url`, \''.$slashTerm.'\')',
+                'INSTR(`title`, \''.$slashTerm.'\')',
+                'INSTR(`description`, \''.$slashTerm.'\')',
+                'INSTR(`keywords`, \''.$slashTerm.'\')',
+                'INSTR(`weighted`, \''.$slashTerm.'\')'
               )).')';
               break;
 
             case 'term':
-              $ors[] = '`content` REGEXP \''.$pterm.'\'';
-              $ors[] = '`url` REGEXP \''.$pterm.'\'';
-              $ors[] = '`title` REGEXP \''.$pterm.'\'';
-              $ors[] = '`description` REGEXP \''.$pterm.'\'';
-              $ors[] = '`keywords` REGEXP \''.$pterm.'\'';
-              $ors[] = '`weighted` REGEXP \''.$pterm.'\'';
+              $ors[] = 'INSTR(`content`, \''.$slashTerm.'\')';
+              $ors[] = 'INSTR(`url`, \''.$slashTerm.'\')';
+              $ors[] = 'INSTR(`title`, \''.$slashTerm.'\')';
+              $ors[] = 'INSTR(`description`, \''.$slashTerm.'\')';
+              $ors[] = 'INSTR(`keywords`, \''.$slashTerm.'\')';
+              $ors[] = 'INSTR(`weighted`, \''.$slashTerm.'\')';
 
           }
         }

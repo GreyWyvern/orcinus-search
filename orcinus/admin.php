@@ -9,7 +9,7 @@ require __DIR__.'/config.php';
 
 
 /**
- * Display a time since' HTML/Javascript counter
+ * Display a 'time since' HTML/Javascript counter
  *
  */
 function OS_countUp($time) {
@@ -49,11 +49,9 @@ function OS_countUp($time) {
 
 
 // ***** Load Maxmind GeoIP2
-if (!class_exists('GeoIp2\Database\Reader')) {
-  if (file_exists(__DIR__.'/geoip2/geoip2.phar')) {
+if (!class_exists('GeoIp2\Database\Reader'))
+  if (file_exists(__DIR__.'/geoip2/geoip2.phar'))
     include __DIR__.'/geoip2/geoip2.phar';
-  }
-}
 if (class_exists('GeoIp2\Database\Reader')) {
   if (file_exists(__DIR__.'/geoip2/GeoLite2-Country.mmdb'))
     $_GEOIP2 = new GeoIp2\Database\Reader(__DIR__.'/geoip2/GeoLite2-Country.mmdb');
@@ -120,13 +118,15 @@ $_RDATA['index_status_list'] = array(
 if (empty($_SESSION['admin_page']) || empty($_RDATA['admin_pages'][$_SESSION['admin_page']]))
   $_SESSION['admin_page'] = 'crawler';
 
-if (empty($_SESSION['index_page'])) $_SESSION['index_page'] = 1;
+if (!isset($_SESSION['index_page'])) $_SESSION['index_page'] = 1;
 if (empty($_SESSION['index_filter_category'])) $_SESSION['index_filter_category'] = '<none>';
 if (empty($_SESSION['index_filter_status'])) $_SESSION['index_filter_status'] = '<none>';
 if (empty($_SESSION['index_filter_text'])) $_SESSION['index_filter_text'] = '';
 if (empty($_SESSION['admin_username'])) $_SESSION['admin_username'] = '';
 
 if (!$_SESSION['admin_username']) {
+
+  // If we are logging in
   if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (!empty($_POST['os_submit']) && $_POST['os_submit'] == 'os_admin_login') {
       if (empty($_POST['os_admin_username'])) $_POST['os_admin_username'] = '';
@@ -203,6 +203,10 @@ if (!$_SESSION['admin_username']) {
                   header('Content-disposition: attachment; filename="'.
                     'crawl-log'.$_POST->grep.'_'.date('Y-m-d', $_ODATA['sp_time_end']).'.txt"');
 
+                  // UTF-8 byte order mark
+                  if (strtolower($_ODATA['s_charset']) == 'utf-8')
+                    echo "\xEF\xBB\xBF";
+
                   die(implode("\n", $lines));
 
                 } else {
@@ -236,6 +240,10 @@ if (!$_SESSION['admin_username']) {
 
                   $output = fopen('php://output', 'w');
 
+                  // UTF-8 byte order mark
+                  if (strtolower($_ODATA['s_charset']) == 'utf-8')
+                    fwrite($output, "\xEF\xBB\xBF");
+
                   $headings = array('Query', 'Results', 'Time Stamp', 'IP');
                   if ($_GEOIP2) $headings[] = 'Country';
 
@@ -247,8 +255,8 @@ if (!$_SESSION['admin_username']) {
                       try {
                         $geo = $_GEOIP2->country($line['ipaddr']);
                       } catch(Exception $e) { $geo = false; }
-                    } else $geo = false;
-                    if ($geo) $line['country'] = $geo->raw['country']['names']['en'];
+                      $line['country'] = ($geo) ? $geo->raw['country']['names']['en'] : '';
+                    }
 
                     fputcsv($output, $line);
                   }
@@ -1491,7 +1499,7 @@ document.write(mustache.render(
       $_SESSION['admin_page'] = $_GET['page'];
 
   // Select a new page within the Page Index list
-  } else if (!empty($_GET['ipage'])) {
+  } else if (isset($_GET['ipage'])) {
     $_GET['ipage'] = (int)$_GET['ipage'];
     $_SESSION['index_page'] = $_GET['ipage'];
 
@@ -1586,7 +1594,15 @@ document.write(mustache.render(
               $_RDATA['page_index_found_rows'] = $foundRows[0][0];
 
               $_RDATA['index_pages'] = ceil($_RDATA['page_index_found_rows'] / $_ODATA['admin_index_pagination']);
-              $_SESSION['index_page'] = max(1, min($_RDATA['index_pages'], (int)$_SESSION['index_page']));
+
+              // If the requested page is outside page limit
+              if ($_SESSION['index_page'] != 1 && ($_SESSION['index_page'] > $_RDATA['index_pages'] || $_SESSION['index_page'] < 1)) {
+                $_SESSION['index_page'] = max(1, min($_RDATA['index_pages'], (int)$_SESSION['index_page']));
+
+                // Redirect to a page within the limits
+                header('Location: '.$_SERVER['REQUEST_URI'].'?ipage='.$_SESSION['index_page']);
+                exit();
+              }
 
             } else $_SESSION['error'][] = 'Database did not return a search table row count.';
           } else $_SESSION['error'][] = 'Database error reading search table row count: '.$err[2];
@@ -2787,10 +2803,14 @@ document.write(mustache.render(
                         <label class="d-flex lh-lg w-100 mb-2">
                           <strong class="pe-2">Output Encoding:</strong>
                           <span class="flex-grow-1 text-end">
-                            <input type="text" name="os_s_charset" value="<?php echo $_ODATA['s_charset']; ?>" pattern="[\w\d-]*" class="form-control d-inline-block w-auto mw-10em"
-                              data-bs-toggle="tooltip" data-bs-placement="bottom" title="This value should match the encoding of your search results page, and ideally match the character encoding of most of your crawled pages.">
+                            <input type="text" name="os_s_charset" value="<?php echo $_ODATA['s_charset']; ?>" pattern="[\w\d-]*" class="form-control d-inline-block w-auto mw-10em" aria-labelledby="os_s_charset_text">
                           </span>
                         </label>
+                        <p id="os_s_charset_text" class="form-text">
+                          The <em>Output Encoding</em> value should match the encoding of your search results page, and
+                          ideally match the character encoding of most of your crawled pages. UTF-8 is strongly
+                          recommended.
+                        </p>
                         <label class="d-flex lh-lg w-100 mb-2">
                           <strong class="pe-2">Maximum Returned Results:</strong>
                           <span class="flex-grow-1 text-end text-nowrap">
@@ -2809,7 +2829,7 @@ document.write(mustache.render(
                           <strong class="pe-2">Maximum Matched Text (characters):</strong>
                           <span class="flex-grow-1 text-end text-nowrap">
                             <input type="number" name="os_s_limit_matchtext" value="<?php echo $_ODATA['s_limit_matchtext']; ?>" min="0" max="65535" step="1" class="form-control d-inline-block"
-                              data-bs-toggle="tooltip" data-bs-placement="top" title="Maximum amount of matched 'description' text to display beneath the title / URL of each search result.">
+                              data-bs-toggle="tooltip" data-bs-placement="top" title="Maximum amount of matched 'description' text to display beneath the heading of each search result.">
                           </span>
                         </label>
                         <div class="row">
@@ -3099,9 +3119,10 @@ document.write(mustache.render(
      * Not logged in; Show login page ****************************** */
     } else { ?> 
       <section class="row justify-content-center">
-        <header class="col-12 mb-2">
+        <header class="col-10 col-sm-8 col-md-6 col-lg-5 col-xl-4 mb-2">
           <h2>Welcome</h2>
         </header>
+        <div class="w-100"></div>
 
         <div class="col-10 col-sm-8 col-md-6 col-lg-5 col-xl-4">
           <form action="<?php echo $_SERVER['REQUEST_URI']; ?>" method="post"

@@ -1335,7 +1335,6 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
                 } else {
                   $data['errno'] = 702;
                   $data['error'] = 'PDF is empty of extractable text';
-                  $data['content'] = '';
                   $data['info']['noindex'] = 'empty-pdf';
                 }
 
