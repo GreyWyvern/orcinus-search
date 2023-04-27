@@ -2293,7 +2293,7 @@ document.write(mustache.render(
                             </th>
                           </tr>
                           <tr>
-                            <th></th>
+                            <th class="pe-0"></th>
                             <th class="fs-5" scope="col">URL</th>
                             <td class="text-center">
                               <span class="d-none d-sm-inline">Showing pages </span><?php
@@ -2316,7 +2316,7 @@ document.write(mustache.render(
                           </tr>
                           <tr><?php
                             ob_start(); ?> 
-                            <td class="align-middle">
+                            <td class="align-middle pe-0">
                               <input type="checkbox" name="os_index_check_all" title="Select / unselect all" class="form-check-input">
                             </td>
                             <td colspan="2" class="text-nowrap">
@@ -2352,7 +2352,7 @@ document.write(mustache.render(
 
                           foreach ($_RDATA['page_index_rows'] as $key => $row) { ?> 
                             <tr class="lh-sm">
-                              <td class="align-middle">
+                              <td class="align-middle pe-0">
                                 <input type="checkbox" data-index="<?php echo $key; ?>" name="os_index_pages[]" value="<?php echo base64_encode($row['content_checksum']); ?>" class="form-check-input mt-1">
                               </td>
                               <td colspan="2" class="text-nowrap">
@@ -2360,14 +2360,14 @@ document.write(mustache.render(
                                   <div class="w-100 d-table table-fixed">
                                     <div class="w-100 d-table-cell overflow-hidden text-ellipsis">
                                       <a href="<?php echo htmlspecialchars($row['url']); ?>" title="<?php
-                                        echo htmlspecialchars($row['url']); ?>" target="_blank"<?php
-                                        if ($row['flag_updated']) echo ' class="fw-bold"'; ?>><?php
+                                        echo htmlspecialchars($row['url']); ?>" target="_blank" class="align-middle<?php
+                                        if ($row['flag_updated']) echo ' fw-bold'; ?>"><?php
                                         if (count($_RDATA['s_crawldata_domains']) == 1) {
                                           echo htmlspecialchars(preg_replace($repStr, '', $row['url']));
                                         } else echo htmlspecialchars($row['url']);
                                       ?></a><?php
                                       if ($row['flag_updated']) { ?> 
-                                        <img src="img/new.svg" alt="Updated" class="align-middle svg-icon mb-1"
+                                        <img src="img/new.svg" alt="Updated" class="svg-icon"
                                           data-bs-toggle="tooltip" data-bs-placement="top" title="Page is new or content was updated during the most recent crawl."><?php
                                       } ?> 
                                     </div>
