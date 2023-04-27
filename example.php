@@ -1,5 +1,6 @@
 <?php
 
+// Include the 'search.php' file before any HTML content
 require 'orcinus/search.php';
 
 ?><!DOCTYPE html>
@@ -9,6 +10,7 @@ require 'orcinus/search.php';
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Orcinus Site Search - Online example</title>
 
+  <!-- Include the default stylesheet, or create your own -->
   <link rel="stylesheet" href="orcinus/css/search.css">
 </head>
 <body>
