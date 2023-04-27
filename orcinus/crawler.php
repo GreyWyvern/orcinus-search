@@ -1432,7 +1432,7 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
           'title' => $data['title'],
           'description' => $data['description'],
           'keywords' => $data['keywords'],
-          'category' => 'Main',
+          'category' => $_ODATA['sp_category_default'],
           'weighted' => $data['weighted'],
           'links' => json_encode($data['links'], JSON_INVALID_UTF8_IGNORE),
           'content' => $data['content'],

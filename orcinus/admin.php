@@ -425,6 +425,14 @@ if (!$_SESSION['admin_username']) {
             OS_setValue('sp_ignore_ext', substr($_POST['os_sp_ignore_ext'], 0, 4095));
           }
 
+          if (isset($_POST['os_sp_category_default'])) {
+            $_POST['os_sp_category_default'] = preg_replace(array('/\s/', '/ {2,}/'), ' ', trim($_POST['os_sp_category_default']));
+            $_POST['os_sp_category_default'] = preg_replace('/[^\w \d-]/', '', $_POST['os_sp_category_default']);
+            if ($_POST['os_sp_category_default']) {
+              OS_setValue('sp_category_default', substr($_POST['os_sp_category_default'], 0, 30));
+            } else $_SESSION['error'][] = 'Category names may only contain letters, numbers, spaces or dashes.';
+          } else $_SESSION['error'][] = 'Please supply a category name.';
+
           if (isset($_POST['os_sp_ignore_css'])) {
             $_POST['os_sp_ignore_css'] = preg_replace(
               array('/[^\w\d\. #_:-]/', '/ {2,}/'),
@@ -2144,6 +2152,22 @@ document.write(mustache.render(
                             data-bs-toggle="tooltip" data-bs-placement="bottom" title="Links ending with any of these file extensions will be discarded before crawling. Add extensions separated by spaces."><?php
                             echo htmlspecialchars($_ODATA['sp_ignore_ext']);
                           ?></textarea>
+                        </label>
+                      </li>
+                      <li class="list-group-item">
+                        <h4 aria-labelledby="os_sp_category_text">Categories</h4>
+                        <p id="os_sp_category_text" class="form-text">
+                          Usually you'll want all your indexed pages in just one category. In some cases
+                          however, you may want to offer users an additional way to restrict results by
+                          putting groups of pages into multiple categories. You can set page categories
+                          from the <em>Page Index</em>.
+                        </p>
+                        <label class="d-flex lh-lg w-100 mb-2">
+                          <strong class="pe-2">Default Category:</strong>
+                          <span class="flex-grow-1 text-end">
+                            <input type="text" name="os_sp_category_default" value="<?php echo $_ODATA['sp_category_default']; ?>" maxlength="30" class="form-control d-inline-block w-auto mw-10em"
+                              data-bs-toggle="tooltip" data-bs-placement="bottom" title="Default Category value to apply to newly found pages.">
+                          </span>
                         </label>
                       </li>
                       <li class="list-group-item">
