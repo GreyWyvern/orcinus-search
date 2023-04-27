@@ -768,7 +768,7 @@ $create = $_DDATA['pdo']->query(
 
 // Prepare SQL statements
 $selectData = $_DDATA['pdo']->prepare(
-  'SELECT `url`, `links`, `content_checksum`, `last_modified`,
+  'SELECT `url`, `category`, `links`, `content_checksum`, `last_modified`,
           `flag_updated`, `flag_unlisted`, `priority`
   FROM `'.$_DDATA['tbprefix'].'crawldata` WHERE `url`=:url;'
 );
@@ -1417,6 +1417,7 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
           $_RDATA['sp_status']['New']++;
 
           $row = array(
+            'category' => $_ODATA['sp_category_default'],
             'flag_unlisted' => 0,
             'priority' => 0.5
           );
@@ -1432,7 +1433,7 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
           'title' => $data['title'],
           'description' => $data['description'],
           'keywords' => $data['keywords'],
-          'category' => $_ODATA['sp_category_default'],
+          'category' => $row['category'],
           'weighted' => $data['weighted'],
           'links' => json_encode($data['links'], JSON_INVALID_UTF8_IGNORE),
           'content' => $data['content'],
