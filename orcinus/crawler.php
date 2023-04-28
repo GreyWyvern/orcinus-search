@@ -485,16 +485,19 @@ switch ($_SERVER['REQUEST_METHOD']) {
 
         case 'progress':
           $lines = array();
-          if ($_ODATA['sp_crawling']) {
-            if (strpos($_ODATA['sp_log'], "\n") === false && file_exists($_ODATA['sp_log']))
-              $lines = file($_ODATA['sp_log'], FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-          } else $lines = explode("\n", $_ODATA['sp_log']);
 
-          if (empty($_POST->grep)) $_POST->grep = '';
-          switch ($_POST->grep) {
-            case 'all': break;
-            case 'errors': $lines = preg_grep('/^[\[\*]/', $lines); break;
-            default: $lines = preg_grep('/^[\[\*\w\d]/', $lines);
+          if (!empty($_POST->log)) {
+            if ($_ODATA['sp_crawling']) {
+              if (strpos($_ODATA['sp_log'], "\n") === false && file_exists($_ODATA['sp_log']))
+                $lines = file($_ODATA['sp_log'], FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            } else $lines = explode("\n", $_ODATA['sp_log']);
+
+            if (empty($_POST->grep)) $_POST->grep = '';
+            switch ($_POST->grep) {
+              case 'all': break;
+              case 'errors': $lines = preg_grep('/^[\[\*]/', $lines); break;
+              default: $lines = preg_grep('/^[\[\*\w\d]/', $lines);
+            }
           }
 
           if ($_ODATA['sp_crawling']) $lines = array_slice($lines, -15);

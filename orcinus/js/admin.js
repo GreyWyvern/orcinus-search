@@ -351,12 +351,15 @@ if (os_query_log_download) {
 
 
 /* ***** Crawler Modal ********************************************* */
-let os_get_crawl_progress = function() {
+let os_get_crawl_progress = function(getLog) {
+  if (!getLog) getLog = !os_crawl_start.complete;
+
   fetch(new Request('./crawler.php'), {
     method: 'POST',
     headers: { 'Content-type': 'application/json' },
     body: JSON.stringify({
       action: 'progress',
+      log: getLog,
       grep: document.querySelector('input[name="os_crawl_grep"]:checked').value
     })
   })
@@ -367,6 +370,29 @@ let os_get_crawl_progress = function() {
     } catch(e) { 
       console.log('Invalid JSON received: ' + data);
       return;
+    }
+
+    // If crawl is complete, we are checking to see if a new one has
+    // started; if one has, trigger progress checks every second
+    if (os_crawl_start.complete && data.status == 'Crawling') {
+      os_crawl_start.disabled = 'disabled';
+
+      os_crawl_progress.value = 0
+      os_crawl_progress.max = 1;
+      os_crawl_progress.setAttribute('data-progress', '');
+      os_crawl_progress.innerHTML = '0%';
+
+      os_crawl_start.allow_grep = false;
+      os_crawl_start.complete = false;
+
+      os_crawl_cancel.disabled = '';
+      os_crawl_log_download.disabled = 'disabled';
+      os_crawl_start.innerHTML = 'Crawling...';
+      os_crawl_navbar.innerHTML = 'Crawling...';
+
+      // Start an interval progress check
+      clearInterval(os_crawl_interval);
+      os_crawl_interval = setInterval(os_get_crawl_progress, 1000);
     }
 
     if (!data.tail) return;
@@ -400,20 +426,18 @@ let os_get_crawl_progress = function() {
       os_crawl_log_download.disabled = '';
       os_crawl_start.complete = true;
 
-      if (os_crawl_interval) {
-        os_crawl_start.innerHTML = 'Crawl Complete';
-        os_crawl_navbar.innerHTML = 'Crawler';
-        os_crawl_interval = false;
+      os_crawl_start.innerHTML = 'Crawl Complete';
+      os_crawl_navbar.innerHTML = 'Crawler';
+      os_crawl_interval = false;
 
-        // Check if the crawler modal window is open
-        if (crawlerModal && crawlerModal.classList.contains('show')) {
+      // Check if the crawler modal window is open
+      if (crawlerModal && crawlerModal.classList.contains('show')) {
 
-          // Don't refresh the page until the user closes the modal
-          crawlerModal.addEventListener('hide.bs.modal', function() {
-            window.location.reload();
-          }, false);
-        } else window.location.reload();
-      }
+        // Don't refresh the page until the user closes the modal
+        crawlerModal.addEventListener('hide.bs.modal', function() {
+          window.location.reload();
+        }, false);
+      } else window.location.reload();
     }
   });
 };
@@ -430,7 +454,7 @@ let os_crawl_log_download = document.getElementById('os_crawl_log_download');
 os_crawl_cancel.force = false;
 os_crawl_cancel.reason = '';
 os_crawl_start.allow_grep = false;
-os_crawl_start.complete = false;
+os_crawl_start.complete = true;
 os_crawl_start.addEventListener('click', function(e) {
   e.preventDefault();
 
@@ -499,16 +523,14 @@ os_crawl_start.addEventListener('click', function(e) {
            'The crawl will be cancelled and reset.'
           );
 
-          throw Error(response.statusText);
+          console.error('Error: ', error);
+          os_crawl_cancel.force = true;
+          os_crawl_cancel.click();
         }
-      })
-      .catch(error => {
-        console.error('Error: ', error);
-        os_crawl_cancel.force = true;
-        os_crawl_cancel.click();
       });
 
       // Start an interval progress check
+      clearInterval(os_crawl_interval);
       os_crawl_interval = setInterval(os_get_crawl_progress, 1000);
 
     } else if (data.status = 'Error') {
@@ -526,12 +548,17 @@ os_crawl_start.addEventListener('click', function(e) {
   return false;
 }, false);
 
+
 // If start button is disabled on pageload, then the crawler is already running
 if (os_crawl_start.disabled) {
 
   // Start an interval progress check
+  os_crawl_start.complete = false;
   os_crawl_interval = setInterval(os_get_crawl_progress, 1000);
-}
+
+// Else ping the server every five seconds to see if a crawl has started
+} else os_crawl_interval = setInterval(os_get_crawl_progress, 5000);
+
 
 os_crawl_cancel.addEventListener('click', function() {
   if (this.force || window.confirm('Are you sure you want to cancel the crawl currently in progress?')) {
@@ -550,7 +577,7 @@ os_crawl_cancel.addEventListener('click', function() {
         try {
           data = JSON.parse(data);
           if (data.status == 'Success')
-            os_get_crawl_progress();
+            os_get_crawl_progress(true);
         } catch(e) { 
           console.log('Invalid JSON received: ' + data);
         }
@@ -572,7 +599,7 @@ for (let x = 0; x < os_crawl_grep.length; x++) {
   os_crawl_grep[x].addEventListener('input', function() {
     if (os_crawl_start.allow_grep ||
         crawlerModal.classList.contains('crawler-log')) {
-      os_get_crawl_progress();
+      os_get_crawl_progress(true);
     }
   }, false);
 }
@@ -602,7 +629,7 @@ crawlerModal.addEventListener('show.bs.modal', function(e) {
       this.classList.add('crawler-log');
       label.firstChild.nodeValue = 'View Crawler Log';
 
-      os_get_crawl_progress();
+      os_get_crawl_progress(true);
 
   }
 }, false);
