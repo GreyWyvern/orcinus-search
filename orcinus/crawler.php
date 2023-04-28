@@ -506,7 +506,14 @@ switch ($_SERVER['REQUEST_METHOD']) {
             'status' => ($_ODATA['sp_crawling']) ? 'Crawling' : 'Complete',
             'progress' => $_ODATA['sp_progress'],
             'time_crawl' => time() - $_ODATA['sp_time_start'],
+            'time_end' => $_ODATA['sp_time_end'],
+            'time_end_success' => $_ODATA['sp_time_end_success'],
+            'time_last' => $_ODATA['sp_time_last'],
             'timeout_crawl' => $_ODATA['sp_timeout_crawl'],
+            'data_transferred' => $_ODATA['sp_data_transferred'],
+            'data_stored' => $_ODATA['sp_data_stored'],
+            'links_crawled' => $_ODATA['sp_links_crawled'],
+            'pages_stored' => $_ODATA['sp_pages_stored'],
             'tail' => trim(implode("\n", $lines))
           );
           break;

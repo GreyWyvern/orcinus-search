@@ -12,7 +12,7 @@ require __DIR__.'/config.php';
  * Display a 'time since' HTML/Javascript counter
  *
  */
-function OS_countUp($time) {
+function OS_countUp($time, $id = '') {
   $since = time() - $time;
   $periods = array(
     array('d', 'day', 'days'),
@@ -24,7 +24,8 @@ function OS_countUp($time) {
   $hours = floor($since / 3600); $since %= 3600;
   $minutes = floor($since / 60);
   $seconds = $since % 60; ?> 
-  <span class="countup_timer" data-start="<?php echo $time; ?>" title="<?php echo date('r', $time); ?>">
+  <span class="countup_timer" data-start="<?php echo $time; ?>" title="<?php echo date('r', $time); ?>"<?php
+    if (!empty($id)) echo ' id="'.htmlspecialchars($id).'"'; ?>>
     <span data-period="days"<?php
       if (!$days) echo ' class="d-none"'; ?>>
       <var><?php echo $days; ?></var>
@@ -1798,7 +1799,7 @@ document.write(mustache.render(
                           </span>
                         </label>
                         <div><?php
-                          OS_countUp(($_ODATA['sp_time_end']) ? $_ODATA['sp_time_end'] : time());
+                          OS_countUp(($_ODATA['sp_time_end']) ? $_ODATA['sp_time_end'] : time(), 'os_countup_time_end');
                         ?></div><?php
                         if ($_ODATA['sp_time_end'] != $_ODATA['sp_time_end_success']) { ?> 
                           <p class="data-text text-danger">
@@ -1810,7 +1811,7 @@ document.write(mustache.render(
                       <li class="list-group-item">
                         <label class="d-flex w-100">
                           <strong class="pe-2">Crawl Time</strong>
-                          <var class="flex-grow-1 text-end"><?php
+                          <var class="flex-grow-1 text-end" id="os_crawl_time_last"><?php
                             echo $_ODATA['sp_time_last'];
                           ?> <abbr title="seconds">s</abbr></var>
                         </label>
@@ -1818,7 +1819,7 @@ document.write(mustache.render(
                       <li class="list-group-item">
                         <label class="d-flex w-100">
                           <strong class="pe-2">Data Transferred</strong>
-                          <var class="flex-grow-1 text-end"><?php
+                          <var class="flex-grow-1 text-end" id="os_crawl_data_transferred"><?php
                             echo OS_readSize($_ODATA['sp_data_transferred'], true);
                           ?></var>
                         </label>
@@ -1826,7 +1827,7 @@ document.write(mustache.render(
                       <li class="list-group-item">
                         <label class="d-flex w-100">
                           <strong class="pe-2">Data Stored</strong>
-                          <var class="flex-grow-1 text-end"><?php
+                          <var class="flex-grow-1 text-end" id="os_crawl_data_stored"><?php
                             if ($_ODATA['sp_data_transferred']) { ?> 
                               <small data-bs-toggle="tooltip" data-bs-placement="bottom" title="Efficiency percentage of data stored vs. data downloaded"><?php
                                 echo '('.round(($_ODATA['sp_data_stored'] / $_ODATA['sp_data_transferred']) * 100, 1).'%)';
@@ -1839,7 +1840,7 @@ document.write(mustache.render(
                       <li class="list-group-item">
                         <label class="d-flex w-100">
                           <strong class="pe-2">Links Crawled</strong>
-                          <var class="flex-grow-1 text-end"><?php
+                          <var class="flex-grow-1 text-end" id="os_crawl_links_crawled"><?php
                             echo $_ODATA['sp_links_crawled'];
                           ?></var>
                         </label>
@@ -1847,7 +1848,7 @@ document.write(mustache.render(
                       <li class="list-group-item">
                         <label class="d-flex w-100">
                           <strong class="pe-2">Pages Stored</strong>
-                          <var class="flex-grow-1 text-end"><?php
+                          <var class="flex-grow-1 text-end" id="os_crawl_pages_stored"><?php
                             if ($_ODATA['sp_links_crawled']) { ?> 
                               <small data-bs-toggle="tooltip" data-bs-placement="bottom" title="Efficiency percentage of pages stored vs. links crawled"><?php
                                 echo '('.round(($_ODATA['sp_pages_stored'] / $_ODATA['sp_links_crawled']) * 100, 1).'%)';

@@ -243,10 +243,10 @@ if (!in_array($_DDATA['tbprefix'].'query', $_DDATA['tables'])) {
  */
 function OS_readSize($bytes, $abbr = false) {
   $bytes = (int)$bytes;
-  if ($bytes >= 1020054733) return round(($bytes / 1073741824), 1).' '.(($abbr) ? '<abbr title="gibibytes">GiB</abbr>' : 'GiB');
-  if ($bytes >= 996148) return round(($bytes / 1048576), 1).' '.(($abbr) ? '<abbr title="mebibytes">MiB</abbr>' : 'MiB');
-  if ($bytes >= 973) return round(($bytes / 1024), 1).' '.(($abbr) ? '<abbr title="kibibytes">kiB</abbr>' : 'kiB');
-  if ($bytes >= 0) return $bytes.' '.(($abbr) ? '<abbr title="bytes">B</abbr>' : 'B');
+  if ($bytes >= 1020054733) return round(($bytes / 1073741824), 1).(($abbr) ? ' <abbr title="gibibytes">GiB</abbr>' : ' GiB');
+  if ($bytes >= 996148) return round(($bytes / 1048576), 1).(($abbr) ? ' <abbr title="mebibytes">MiB</abbr>' : ' MiB');
+  if ($bytes >= 973) return round(($bytes / 1024), 1).(($abbr) ? ' <abbr title="kibibytes">kiB</abbr>' : ' kiB');
+  if ($bytes >= 0) return $bytes.(($abbr) ? ' <abbr title="bytes">B</abbr>' : ' B');
   return '';
 }
 
