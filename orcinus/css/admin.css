@@ -65,6 +65,7 @@ img.svg-icon-sm {
 }
 img.svg-icon-flag {
   width:1.5em;
+  box-shadow:0 0.1em 0.2em rgba(0,0,0,0.3);
 }
 
 #os_queries_thead > tr > th > img {
