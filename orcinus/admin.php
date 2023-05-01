@@ -2270,17 +2270,15 @@ document.write(mustache.render(
                           <tr class="bg-black text-white">
                             <th colspan="6">
                               <div class="row">
-                                <div class="col-md-6 mb-2 mb-md-0">
-                                  <h3 class="d-inline-block mb-0 pe-2 align-middle">Filters:</h3>
-                                  <span class="d-inline-block align-middle">
-                                    <label class="input-group">
-                                      <input type="text" name="os_index_filter_text" value="<?php
-                                        echo htmlspecialchars($_SESSION['index_filter_text']);
-                                      ?>" placeholder="URL text match" class="form-control mw-10em z-1"><button
-                                        type="button" name="os_index_filter_text_clear" title="Clear"
-                                        class="btn btn-light ps-1 pe-1 z-2">&#x2A2F;</button>
-                                    </label>
-                                  </span>
+                                <div class="col-md-6 d-flex mb-2 mb-md-0">
+                                  <h3 class="mb-0 pe-2">Filters:</h3>
+                                  <label class="input-group pe-1">
+                                    <input type="text" name="os_index_filter_text" value="<?php
+                                      echo htmlspecialchars($_SESSION['index_filter_text']);
+                                    ?>" placeholder="URL text match" class="form-control z-1"><button
+                                      type="button" name="os_index_filter_text_clear" title="Clear"
+                                      class="btn btn-light ps-1 pe-1 z-2">&#x2A2F;</button>
+                                  </label>
                                   <button type="submit" name="os_submit" value="os_index_filter_text" class="btn btn-primary">Go</button>
                                 </div>
                                 <div class="col-md-6 text-center text-md-end"><?php
