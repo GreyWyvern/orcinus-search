@@ -2267,52 +2267,44 @@ document.write(mustache.render(
                     <div class="rounded-3 border border-1 border-secondary-subtle shadow border-bottom-0 mb-3 overflow-hidden">
                       <table class="table table-striped w-100 mb-0" id="os_index_table">
                         <thead>
-                          <tr>
-                            <th colspan="6" class="p-0">
-                              <div class="row justify-content-center bg-black text-white lh-lg g-0">
-                                <div class="col-sm-3 col-md-2 text-start">
-                                  <h3 class="p-2 mb-0">Filters:</h3>
-                                </div>
-                                <div class="col-sm-9 col-md-5 col-lg-6">
-                                  <div class="h-100 d-flex flex-column justify-content-center pt-1 pb-1">
-                                    <label class="ps-2 pe-2 text-center text-nowrap">
-                                      <div class="input-group d-inline-block w-auto">
-                                        <input type="text" name="os_index_filter_text" value="<?php
-                                          echo htmlspecialchars($_SESSION['index_filter_text']);
-                                        ?>" placeholder="URL text match" class="form-control d-inline-block w-auto mw-10em z-1"><button
-                                          type="button" name="os_index_filter_text_clear" title="Clear"
-                                          class="btn btn-light align-top ps-1 pe-1 z-2">&#x2A2F;</button>
-                                      </div>
-                                      <button type="submit" name="os_submit" value="os_index_filter_text" class="btn btn-primary align-top">Go</button>
+                          <tr class="bg-black text-white">
+                            <th colspan="6">
+                              <div class="row">
+                                <div class="col-md-6 mb-2 mb-md-0">
+                                  <h3 class="d-inline-block mb-0 pe-2 align-middle">Filters:</h3>
+                                  <span class="d-inline-block align-middle">
+                                    <label class="input-group">
+                                      <input type="text" name="os_index_filter_text" value="<?php
+                                        echo htmlspecialchars($_SESSION['index_filter_text']);
+                                      ?>" placeholder="URL text match" class="form-control mw-10em z-1"><button
+                                        type="button" name="os_index_filter_text_clear" title="Clear"
+                                        class="btn btn-light ps-1 pe-1 z-2">&#x2A2F;</button>
                                     </label>
-                                  </div>
+                                  </span>
+                                  <button type="submit" name="os_submit" value="os_index_filter_text" class="btn btn-primary">Go</button>
                                 </div>
-                                <div class="col-md-5 col-lg-4 d-sm-flex justify-content-center justify-content-md-end text-center"><?php
+                                <div class="col-md-6 text-center text-md-end"><?php
                                   if (count($_RDATA['s_category_list']) > 2) { ?> 
-                                    <div class="d-inline-block d-sm-flex flex-column justify-content-center pt-1 pb-1">
-                                      <label class="ps-2 pe-2 text-center">
-                                        <select name="os_index_filter_by_category" title="Filter by Category" class="form-select d-inline-block align-middle"><?php
-                                          foreach ($_RDATA['s_category_list'] as $category => $count) { ?> 
-                                            <option value="<?php echo htmlspecialchars($category); ?>"<?php
-                                              if ($_SESSION['index_filter_category'] == $category) echo ' selected="selected"'; ?>><?php
-                                              if ($category == '<none>') $category = 'All Categories';
-                                              echo htmlspecialchars($category); ?></option><?php
-                                          } ?> 
-                                        </select>
-                                      </label>
-                                    </div><?php
-                                  } ?> 
-                                  <div class="d-inline-block d-sm-flex flex-column justify-content-center pt-1 pb-1">
-                                    <label class="ps-2 pe-2 text-center">
-                                      <select name="os_index_filter_by_status" title="Filter by Status" class="form-select d-inline-block align-middle"><?php
-                                        foreach ($_RDATA['index_status_list'] as $status) { ?> 
-                                          <option value="<?php echo htmlspecialchars($status); ?>"<?php
-                                            if ($_SESSION['index_filter_status'] == $status) echo ' selected="selected"';
-                                            ?>><?php echo htmlspecialchars(($status == '<none>') ? 'Any status' : $status); ?></option><?php
+                                    <label>
+                                      <select name="os_index_filter_by_category" title="Filter by Category" class="form-select"><?php
+                                        foreach ($_RDATA['s_category_list'] as $category => $count) { ?> 
+                                          <option value="<?php echo htmlspecialchars($category); ?>"<?php
+                                            if ($_SESSION['index_filter_category'] == $category) echo ' selected="selected"'; ?>><?php
+                                            if ($category == '<none>') $category = 'All Categories';
+                                            echo htmlspecialchars($category); ?></option><?php
                                         } ?> 
                                       </select>
-                                    </label>
-                                  </div>
+                                    </label><?php
+                                  } ?> 
+                                  <label>
+                                    <select name="os_index_filter_by_status" title="Filter by Status" class="form-select"><?php
+                                      foreach ($_RDATA['index_status_list'] as $status) { ?> 
+                                        <option value="<?php echo htmlspecialchars($status); ?>"<?php
+                                          if ($_SESSION['index_filter_status'] == $status) echo ' selected="selected"';
+                                          ?>><?php echo htmlspecialchars(($status == '<none>') ? 'Any status' : $status); ?></option><?php
+                                      } ?> 
+                                    </select>
+                                  </label>
                                 </div>
                               </div>
                             </th>
