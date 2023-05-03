@@ -253,10 +253,12 @@ if (!$_SESSION['admin_username']) {
                     $line['stamp'] = date('c', $line['stamp']);
 
                     if ($_GEOIP2) {
+                      $line['country'] = '';
                       try {
                         $geo = $_GEOIP2->country($line['ipaddr']);
                       } catch(Exception $e) { $geo = false; }
-                      $line['country'] = ($geo) ? $geo->raw['country']['names']['en'] : '';
+                      if (!empty($geo->raw['country']['names']['en']))
+                        $line['country'] = $geo->raw['country']['names']['en'];
                     }
 
                     fputcsv($output, $line);
