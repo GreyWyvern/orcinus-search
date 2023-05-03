@@ -2271,7 +2271,7 @@ document.write(mustache.render(
                             <th colspan="6">
                               <div class="row">
                                 <div class="col-md-6 d-flex mb-2 mb-md-0">
-                                  <h3 class="mb-0 pe-2">Filters:</h3>
+                                  <h3 class="d-flex flex-column justify-content-center mb-0 pe-2">Filters:</h3>
                                   <label class="input-group pe-1">
                                     <input type="text" name="os_index_filter_text" value="<?php
                                       echo htmlspecialchars($_SESSION['index_filter_text']);
@@ -3009,14 +3009,18 @@ document.write(mustache.render(
                           } ?> 
                           <td class="text-end d-none d-md-table-cell" data-value="<?php echo $query['ipaddr']; ?>">
                             <a href="https://bgp.he.net/ip/<?php echo $query['ipaddr']; ?>" target="_blank"><?php echo $query['ipaddr']; ?></a><?php
-                            if (!empty($query['geo'])) {
-                              if (file_exists(__DIR__.'/img/flags/'.strtolower($query['geo']->raw['country']['iso_code']).'.png')) { ?> 
-                                <img src="<?php echo
-                                  'img/flags/'.strtolower($query['geo']->raw['country']['iso_code']).'.png';
-                                  ?>" alt="<?php echo htmlspecialchars($query['geo']->raw['country']['names']['en']); ?>"
-                                  title="<?php echo htmlspecialchars($query['geo']->raw['country']['names']['en']); ?>"
-                                  class="align-middle svg-icon-flag mb-1"><?php
-                              }
+                            if (!empty($query['geo']->raw['country']['iso_code'])) {
+                              if (file_exists(__DIR__.'/img/flags/'.strtolower($query['geo']->raw['country']['iso_code']).'.png')) {
+                                $flag = 'img/flags/'.strtolower($query['geo']->raw['country']['iso_code']).'.png';
+                                $title = $query['geo']->raw['country']['names']['en'];
+                                $classname = 'svg-icon-flag';
+                              } else { // Missing flag
+                                $flag = 'img/help.svg';
+                                $title = $query['geo']->raw['country']['names']['en'];
+                                $classname = 'svg-icon';
+                              } ?> 
+                              <img src="<?php echo $flag; ?>" class="align-middle <?php echo $classname; ?> mb-1"
+                                alt="<?php echo htmlspecialchars($title); ?>" title="<?php echo htmlspecialchars($title); ?>"><?php
                             }
                           ?></td>
                         </tr><?php
