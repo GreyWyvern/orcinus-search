@@ -3044,7 +3044,7 @@ document.write(mustache.render(
                           <li class="list-group-item">
                             <label class="d-flex flex-column">
                               <strong class="pe-2">Query Text</strong>
-                              <var id="os_queries_modal_query"></var>
+                              <var class="overflow-auto" id="os_queries_modal_query"></var>
                             </label>
                           </li>
                           <li class="list-group-item">
