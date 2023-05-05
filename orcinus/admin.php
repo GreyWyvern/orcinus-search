@@ -81,21 +81,6 @@ if ($err[0] == '00000') {
   }
 } else $_SESSION['error'][] = 'Could not read search database status.';
 
-// Search Database Charsets
-$charsets = $_DDATA['pdo']->query(
-  'SELECT `content_charset`, COUNT(*) as `num`
-    FROM `'.$_DDATA['tbprefix'].'crawldata`
-      GROUP BY `content_charset` ORDER BY `num` DESC;'
-);
-$err = $charsets->errorInfo();
-if ($err[0] == '00000') {
-  $charsets = $charsets->fetchAll();
-  foreach ($charsets as $row) {
-    if (!$row['content_charset']) $row['content_charset'] = '<none>';
-    $_RDATA['s_crawldata_info']['Charsets'][$row['content_charset']] = $row['num'];
-  }
-} else $_SESSION['error'][] = 'Could not read charset counts from search database.';
-
 
 // ***** Other runtime data
 $_RDATA['admin_pagination_options'] = array(25, 50, 100, 250, 500, 1000);
@@ -894,6 +879,12 @@ function os_preg_quote(str, delimiter) {
 
 // ***** Variable Migration
 let os_rdata = {
+  sp_smart: <?php
+    echo json_encode(
+      $_RDATA['sp_smart'],
+      JSON_INVALID_UTF8_IGNORE
+    );
+  ?>,
   s_latin: <?php
     echo json_encode(
       $_RDATA['s_latin'],
@@ -1108,26 +1099,28 @@ if (os_crawldata.length) {
 
       // Prepare PCRE match text for each phrase and term
       let filetypes = [];
-      for (let x = 0; x < os_sdata.terms.length; x++) {
+      for (let x = 0, term; x < os_sdata.terms.length; x++) {
+
+        // Normalize punctuation
+        Object.keys(os_rdata.sp_smart).forEach(key => {
+          os_sdata.terms[x][1] = os_sdata.terms[x][1].replace(key, os_rdata.sp_smart[key]);
+        });
+
         switch (os_sdata.terms[x][0]) {
           case 'filetype':
-            os_sdata.formatted.push(os_sdata.terms[x][0] + ':' + os_sdata.terms[x][1]);
-            if (os_rdata.s_filetypes[os_sdata.terms[x][1].toUpperCase()])
-              for (let z = 0; z < os_rdata.s_filetypes[os_sdata.terms[x][1].toUpperCase()].length; z++)
-                filetypes.push(os_rdata.s_filetypes[os_sdata.terms[x][1].toUpperCase()][z]);
+            if (os_rdata.s_filetypes[term.toUpperCase()])
+              for (let z = 0; z < os_rdata.s_filetypes[term.toUpperCase()].length; z++)
+                filetypes.push(os_rdata.s_filetypes[term.toUpperCase()][z]);
             break;
 
           case 'exclude':
-            os_sdata.formatted.push('-' + os_sdata.terms[x][1]);
             break;
 
           case 'phrase':
-            os_sdata.formatted.push('"' + os_sdata.terms[x][1] + '"');
 
           case 'term':
-            if (os_sdata.terms[x][0] == 'term')
-              os_sdata.formatted.push(os_sdata.terms[x][1]);
 
+            // Regexp for later use pattern matching results
             os_sdata.terms[x][2] = os_preg_quote(os_sdata.terms[x][1].toLowerCase(), '/');
             Object.keys(os_rdata.s_latin).forEach(key => {
               for (let y = 0; y < os_rdata.s_latin[key].length; y++)
@@ -1622,6 +1615,36 @@ document.write(mustache.render(
       break;
 
     case 'search':
+      // Search Database Charsets
+      $charsets = $_DDATA['pdo']->query(
+        'SELECT `content_charset`, COUNT(*) as `num`
+          FROM `'.$_DDATA['tbprefix'].'crawldata`
+            GROUP BY `content_charset` ORDER BY `num` DESC;'
+      );
+      $err = $charsets->errorInfo();
+      if ($err[0] == '00000') {
+        $charsets = $charsets->fetchAll();
+        foreach ($charsets as $row) {
+          if (!$row['content_charset']) $row['content_charset'] = '<none>';
+          $_RDATA['s_crawldata_info']['Charsets'][$row['content_charset']] = $row['num'];
+        }
+      } else $_SESSION['error'][] = 'Could not read charset counts from search database.';
+
+      // Search Database MIME-types
+      $mimetypes = $_DDATA['pdo']->query(
+        'SELECT `content_mime`, COUNT(*) as `num`
+          FROM `'.$_DDATA['tbprefix'].'crawldata`
+            GROUP BY `content_mime` ORDER BY `num` DESC;'
+      );
+      $err = $mimetypes->errorInfo();
+      if ($err[0] == '00000') {
+        $mimetypes = $mimetypes->fetchAll();
+        foreach ($mimetypes as $row) {
+          if (!$row['content_mime']) $row['content_mime'] = '<none>';
+          $_RDATA['s_crawldata_info']['MIME-types'][$row['content_mime']] = $row['num'];
+        }
+      } else $_SESSION['error'][] = 'Could not read charset counts from search database.';
+
       // Average hits per hour: First find the oldest `stamp` in the
       // database, then base all averages on the difference between that
       // time and now; also get average number of results
@@ -1662,7 +1685,7 @@ document.write(mustache.render(
       break;
 
     case 'queries':
-      $_RDATA['query_log_rows'] = false;
+      $_RDATA['query_log_rows'] = array();
       $queries = $_DDATA['pdo']->query(
         'SELECT *, INET_NTOA(`ip`) AS `ipaddr`
            FROM `'.$_DDATA['tbprefix'].'query` AS `t`
@@ -2512,8 +2535,23 @@ document.write(mustache.render(
                         </li>
                         <li class="list-group-item">
                           <label class="d-flex w-100">
-                            <strong class="pe-2">Page Encodings</strong>
-                            <ol class="list-group list-group-flush flex-grow-1" id="os_crawl_info_charsets"><?php
+                            <strong class="pe-2">MIME-types</strong>
+                            <ol class="list-group list-group-flush flex-grow-1"><?php
+                              foreach ($_RDATA['s_crawldata_info']['MIME-types'] as $mimetype => $value) { ?> 
+                                <li class="list-group-item text-end p-0 border-0">
+                                  <strong><?php echo htmlspecialchars($mimetype); ?>:</strong>
+                                  <var title="<?php echo $value; ?> pages"><?php
+                                    echo round(($value / $_RDATA['s_crawldata_info']['Rows']) * 100, 1);
+                                  ?>%</var>
+                                </li><?php
+                              } ?> 
+                            </ol>
+                          </label>
+                        </li>
+                        <li class="list-group-item">
+                          <label class="d-flex w-100">
+                            <strong class="pe-2">Encodings</strong>
+                            <ol class="list-group list-group-flush flex-grow-1"><?php
                               foreach ($_RDATA['s_crawldata_info']['Charsets'] as $encoding => $value) { ?> 
                                 <li class="list-group-item text-end p-0 border-0">
                                   <strong><?php echo htmlspecialchars($encoding); ?>:</strong>
@@ -2925,10 +2963,10 @@ document.write(mustache.render(
             </header>
             <div class="col-6 col-xl-5 col-xxl-4 mb-2 text-end text-nowrap">
               <button type="button" class="btn btn-primary" id="os_query_log_download" title="Download Query Log"<?php
-                if ($_ODATA['sp_crawling']) echo ' disabled="disabled"'; ?>>Download</button>
+                if (!count($_RDATA['query_log_rows'])) echo ' disabled="disabled"'; ?>>Download</button>
             </div><?php
 
-            if (is_array($_RDATA['query_log_rows']) && count($_RDATA['query_log_rows'])) { ?> 
+            if (count($_RDATA['query_log_rows'])) { ?> 
               <div class="col-xl-10 col-xxl-8">
                 <div class="rounded-3 border border-1 border-secondary-subtle shadow border-bottom-0 mb-3 overflow-hidden">
                   <table class="table table-striped w-100 mb-0">

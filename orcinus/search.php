@@ -165,6 +165,11 @@ if ($_RDATA['s_searchable_pages']) {
 
       // Prepare PCRE match text for each phrase and term
       foreach ($_SDATA['terms'] as $key => list($type, $term, $pcre)) {
+
+        // Normalize punctuation
+        $term = strtr($term, $_RDATA['sp_smart']);
+        $_SDATA['terms'][$key][1] = $term;
+
         switch ($type) {
           case 'filetype':
             $_SDATA['formatted'][] = $type.':'.$term;
@@ -182,7 +187,7 @@ if ($_RDATA['s_searchable_pages']) {
               $_SDATA['formatted'][] = $term;
 
             // Regexp for later use pattern matching results
-            $_SDATA['terms'][$key][2] = preg_quote(strtolower($term), '/');
+            $_SDATA['terms'][$key][2] = preg_quote(strtolower($_SDATA['terms'][$key][1]), '/');
             $_SDATA['terms'][$key][2] = strtr($_SDATA['terms'][$key][2], $_RDATA['s_latin_pcre']);
             $_SDATA['terms'][$key][2] = '/('.$_SDATA['terms'][$key][2].')/iu';
 

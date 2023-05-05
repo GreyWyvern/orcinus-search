@@ -307,8 +307,6 @@ function OS_getValue($columnName) {
 
 /**
  * Initialize a generic cURL connection
- *  - If creating a cURL connection fails, try using libcurlemu as a
- *    backup option
  *
  */
 function OS_getConnection() {
@@ -336,9 +334,17 @@ function OS_getConnection() {
 
 
 // ***** Pull the configuration data from the database
-$_ODATA = $_DDATA['pdo']->query(
+$odata = $_DDATA['pdo']->query(
   'SELECT * FROM `'.$_DDATA['tbprefix'].'config`;'
-)->fetchAll()[0];
+);
+$err = $odata->errorInfo();
+if ($err[0] == '00000') {
+  $odata = $odata->fetchAll();
+  if (count($odata)) {
+    $_ODATA = $odata[0];
+  } else throw new Exception('No data in configuration table');
+} else throw new Exception('Could not read from configuration table: '.$err[2]);
+
 
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
@@ -585,7 +591,7 @@ $deleteold->execute(array('cutoff' => time() - $_ODATA['s_limit_query_log'] * 86
 $err = $deleteold->errorInfo();
 if ($err[0] != '00000')
   if (isset($_SESSION['error']))
-    $_SESSION['error'][] = 'Database error purging old records from the query log.';
+    $_SESSION['error'][] = 'Database error purging old records from the query log: '.$err[2];
 
 
 // Reduce search result cache size to within limits
@@ -636,13 +642,14 @@ if ($err[0] == '00000') {
       }
 
     } else if (isset($_SESSION['error']))
-      $_SESSION['error'][] = 'Could not read from search result cache.';
+      $_SESSION['error'][] = 'Could not read from search result cache: '.$err[2];
 
   }
   $_RDATA['s_cache_size'] = $cachesize[0]['size'];
 
 } else if (isset($_SESSION['error']))
-  $_SESSION['error'][] = 'Could not read search result cache size.';
+  $_SESSION['error'][] = 'Could not read search result cache size: '.$err[2];
+
 
 // Get a list of all categories in the search database
 $_RDATA['s_category_list'] = array('<none>' => 0);
@@ -662,6 +669,7 @@ if ($err[0] == '00000') {
 } else if (isset($_SESSION['error']))
   $_SESSION['error'][] = 'Could not read categories from the search database.';
 
+
 // Count base URLs / domains from the crawldata: if there is only one
 // in the search database then we don't have to show it in a number of
 // places
@@ -677,9 +685,10 @@ if ($err[0] == '00000') {
   foreach ($domains as $domain)
     $_RDATA['s_crawldata_domains'][$domain['url_base']] = $domain['count'];
 } else if (isset($_SESSION['error']))
-  $_SESSION['error'][] = 'Could not read domain count data from search database.';
+  $_SESSION['error'][] = 'Could not read domain count data from search database: '.$err[2];
 if (count($_RDATA['s_crawldata_domains']) == 1)
   OS_setValue('jw_hostname', key($_RDATA['s_crawldata_domains']));
+
 
 // Count searchable pages
 $_RDATA['s_searchable_pages'] = 0;
@@ -694,7 +703,7 @@ if ($err[0] == '00000') {
   $searchable = $searchable->fetchAll();
   $_RDATA['s_searchable_pages'] = $searchable[0]['count'];
 } else if (isset($_SESSION['error']))
-  $_SESSION['error'][] = 'Could not read status data from search database.';
+  $_SESSION['error'][] = 'Could not read status data from search database: '.$err[2];
 
 
 // Match Weighting Values
@@ -711,17 +720,36 @@ $_RDATA['s_weights'] = array(
 );
 
 $_RDATA['sp_smart'] = array(
-  '’' => '\'',
-  '‘' => '\'',
-  '“' => '"',
-  '”' => '"',
-  '‟' => '"',
-  '„' => '"',
-  '…' => '...',
-  '·' => '•',
-  '›' => '>',
-  '‖' => '|'
+  "\u{00AB}" => '"',   "\u{00AD}" => '-',  "\u{00B4}" => '\'',  "\u{00B7}" => '•',
+  "\u{00BB}" => '"',   "\u{00F7}" => '/',  "\u{01C0}" => '|',   "\u{01C3}" => '!',
+  "\u{02B9}" => '\'',  "\u{02BA}" => '"',  "\u{02BC}" => '\'',  "\u{02C4}" => '^',
+  "\u{02C6}" => '^',   "\u{02C8}" => '\'', "\u{02CB}" => '`',   "\u{02CD}" => '_',
+  "\u{02DC}" => '~',   "\u{0300}" => '`',  "\u{0301}" => '\'',  "\u{0302}" => '^',
+  "\u{0303}" => '~',   "\u{030B}" => '"',  "\u{030E}" => '"',   "\u{0331}" => '_',
+  "\u{0332}" => '_',   "\u{0338}" => '/',  "\u{0589}" => ':',   "\u{05C0}" => '|',
+  "\u{05C3}" => ':',   "\u{066A}" => '%',  "\u{066D}" => '*',   "\u{200B}" => ' ',
+  "\u{2010}" => '-',   "\u{2011}" => '-',  "\u{2012}" => '-',   "\u{2013}" => '-',
+  "\u{2014}" => '-',   "\u{2015}" => '-',  "\u{2016}" => '|',   "\u{2017}" => '_',
+  "\u{2018}" => '\'',  "\u{2019}" => '\'', "\u{201A}" => ',',   "\u{201B}" => '\'',
+  "\u{201C}" => '"',   "\u{201D}" => '"',  "\u{201E}" => '"',   "\u{201F}" => '"',
+  "\u{2024}" => '•',   "\u{2025}" => '••', "\u{2026}" => '...', "\u{2027}" => '•',
+  "\u{2032}" => '\'',  "\u{2033}" => '"',  "\u{2034}" => '\'',  "\u{2035}" => '`',
+  "\u{2036}" => '"',   "\u{2037}" => '\'', "\u{2038}" => '^',   "\u{2039}" => '<',
+  "\u{203A}" => '>',   "\u{203D}" => '?',  "\u{2042}" => '*',   "\u{2043}" => '•',
+  "\u{2044}" => '/',   "\u{2045}" => '[',  "\u{2046}" => ']',   "\u{2047}" => '??',
+  "\u{2048}" => '?!',  "\u{2049}" => '!?', "\u{204E}" => '*',   "\u{204F}" => ';',
+  "\u{2051}" => '**',  "\u{2052}" => '%',  "\u{2053}" => '~',   "\u{2055}" => '*',
+  "\u{2060}" => ' ',   "\u{20E5}" => '\\', "\u{2212}" => '-',   "\u{2215}" => '/',
+  "\u{2216}" => '\\',  "\u{2217}" => '*',  "\u{2223}" => '|',   "\u{2236}" => ':',
+  "\u{223C}" => '~',   "\u{2264}" => '<',  "\u{2265}" => '>',   "\u{2266}" => '<',
+  "\u{2267}" => '>',   "\u{2303}" => '^',  "\u{2329}" => '<',   "\u{232A}" => '>',
+  "\u{266F}" => '#',   "\u{2731}" => '*',  "\u{2758}" => '|',   "\u{2762}" => '!',
+  "\u{27E6}" => '[',   "\u{27E8}" => '<',  "\u{27E9}" => '>',   "\u{2983}" => '{',
+  "\u{2984}" => '}',   "\u{3003}" => '"',  "\u{3008}" => '<',   "\u{3009}" => '>',
+  "\u{301B}" => ']',   "\u{301C}" => '~',  "\u{301D}" => '"',   "\u{301E}" => '"',
+  "\u{FEFF}" => ' '
 );
+
 $_RDATA['s_latin'] = array(
   'center' => array('centre'),
   'color' => array('colour'),
