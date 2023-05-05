@@ -40,7 +40,7 @@ function OS_cleanTextUTF8(&$_, $charset, $entity = false) {
   if ($entity)
     $_ = html_entity_decode($_, $entity | ENT_SUBSTITUTE, 'UTF-8');
 
-  $_ = strtr($_, $_RDATA['sp_smart']);
+  $_ = strtr($_, $_RDATA['sp_punct']);
   $_ = strtr($_, $_RDATA['sp_utf_replace']);
   $_ = preg_replace(array('/\s/', '/ {2,}/'), ' ', trim($_));
 }

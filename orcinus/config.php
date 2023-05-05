@@ -719,7 +719,7 @@ $_RDATA['s_weights'] = array(
   'important' => $weights[7]
 );
 
-$_RDATA['sp_smart'] = array(
+$_RDATA['sp_punct'] = array(
   "\u{00AB}" => '"',   "\u{00AD}" => '-',  "\u{00B4}" => '\'',  "\u{00B7}" => '•',
   "\u{00BB}" => '"',   "\u{00F7}" => '/',  "\u{01C0}" => '|',   "\u{01C3}" => '!',
   "\u{02B9}" => '\'',  "\u{02BA}" => '"',  "\u{02BC}" => '\'',  "\u{02C4}" => '^',

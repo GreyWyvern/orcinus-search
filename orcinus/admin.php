@@ -881,7 +881,7 @@ function os_preg_quote(str, delimiter) {
 let os_rdata = {
   sp_smart: <?php
     echo json_encode(
-      $_RDATA['sp_smart'],
+      $_RDATA['sp_punct'],
       JSON_INVALID_UTF8_IGNORE
     );
   ?>,

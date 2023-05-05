@@ -167,7 +167,7 @@ if ($_RDATA['s_searchable_pages']) {
       foreach ($_SDATA['terms'] as $key => list($type, $term, $pcre)) {
 
         // Normalize punctuation
-        $term = strtr($term, $_RDATA['sp_smart']);
+        $term = strtr($term, $_RDATA['sp_punct']);
         $_SDATA['terms'][$key][1] = $term;
 
         switch ($type) {
