@@ -187,7 +187,7 @@ if ($_RDATA['s_searchable_pages']) {
               $_SDATA['formatted'][] = $term;
 
             // Regexp for later use pattern matching results
-            $_SDATA['terms'][$key][2] = preg_quote(strtolower($_SDATA['terms'][$key][1]), '/');
+            $_SDATA['terms'][$key][2] = preg_quote(strtolower($term), '/');
             $_SDATA['terms'][$key][2] = strtr($_SDATA['terms'][$key][2], $_RDATA['s_latin_pcre']);
             $_SDATA['terms'][$key][2] = '/('.$_SDATA['terms'][$key][2].')/iu';
 
