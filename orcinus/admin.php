@@ -1696,7 +1696,8 @@ document.write(mustache.render(
                  FROM `'.$_DDATA['tbprefix'].'query`
                    GROUP BY `query`
              ) AS `s` ON `s`.`query`=`t`.`query` AND `s`.`last_hit`=`t`.`stamp`
-             ORDER BY `s`.`alpha` ASC;'
+               GROUP BY `t`.`query`
+                 ORDER BY `s`.`alpha` ASC;'
       );
       $err = $queries->errorInfo();
       if ($err[0] == '00000') {
