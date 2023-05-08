@@ -8,7 +8,7 @@ require __DIR__.'/config.ini.php';
 
 // Check PHP version compatibility
 if (PHP_VERSION_ID < 70200)
-  throw new Exception('Orcinus Site Search requires a PHP version ">= 7.2.0". You are running '.PHP_VERSION.'.');
+  throw new Exception('Orcinus Site Search requires PHP version ">= 7.2.0". You are running '.PHP_VERSION.'.');
 
 
 // ***** Connect to the database
@@ -36,10 +36,10 @@ $_DDATA['version'] = $version[0]['sql_version'];
 if (preg_match('/^(\d+)\.(\d+)\.(\d+)-?(.*)$/', $_DDATA['version'], $ver)) {
   // if (strpos($ver[4], 'MariaDB') === 0) {
   //   if ((int)$ver[1] < 10 || (int)$ver[3] < 5)
-  //     throw new Exception('Orcinus Site Search requires a MariaDB version ">= 10.0.5". You are running '.$_DDATA['version'].'.');
+  //     throw new Exception('Orcinus Site Search requires MariaDB version ">= 10.0.5". You are running '.$_DDATA['version'].'.');
   // } else {
   //   if ((int)$ver[1] < 8 || (int)$ver[3] < 17)
-  //     throw new Exception('Orcinus Site Search requires a MySQL version ">= 8.0.17". You are running '.$_DDATA['version'].'.');
+  //     throw new Exception('Orcinus Site Search requires MySQL version ">= 8.0.17". You are running '.$_DDATA['version'].'.');
   // }
 }
 
