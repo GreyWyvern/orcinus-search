@@ -707,6 +707,7 @@ if ($err[0] == '00000') {
 
 
 $_RDATA['sp_domains'] = json_decode($_ODATA['sp_domains'], true);
+if (!is_array($_RDATA['sp_domains'])) $_RDATA['sp_domains'] = array();
 if (count($_RDATA['sp_domains']) == 1 && $_ODATA['jw_hostname'] != key($_RDATA['sp_domains']))
   OS_setValue('jw_hostname', key($_RDATA['sp_domains']));
 
