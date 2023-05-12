@@ -603,8 +603,8 @@ if ($_RDATA['s_searchable_pages']) {
         $_ORCINUS->searchable->searched->results->result_list = array();
 
         // Prepare PCRE for removing base domains
-        if (count($_RDATA['s_crawldata_domains']) == 1)
-          $repStr = '/^'.preg_quote(key($_RDATA['s_crawldata_domains']), '/').'/';
+        if (count($_RDATA['sp_domains']) == 1)
+          $repStr = '/^'.preg_quote(key($_RDATA['sp_domains']), '/').'/';
 
         // Do a last once-over of the results
         foreach ($resultsPage as $key => $result) {
@@ -633,7 +633,7 @@ if ($_RDATA['s_searchable_pages']) {
           $_RESULT->relevance = number_format($result['relevance'], 2, '.', '');
 
           // Remove base domain from URL if they are all the same
-          if (count($_RDATA['s_crawldata_domains']) == 1)
+          if (count($_RDATA['sp_domains']) == 1)
             $result['url'] = preg_replace($repStr, '', $result['url']);
 
           // Highlight the terms in the title, url and matchtext

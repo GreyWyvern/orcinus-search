@@ -146,6 +146,16 @@ for (let x = 0; x < countUpTimers.length; x++) {
 
 
 /* ***** Page >> Page Index **************************************** */
+let os_page_index_download = document.getElementById('os_page_index_download');
+if (os_page_index_download) {
+  os_page_index_download.addEventListener('click', function() {
+    os_download('page-index.txt', {
+      action: 'download',
+      content: 'page_index'
+    });
+  }, false);
+}
+
 let select_pagination = document.querySelectorAll('select[name="os_index_select_pagination"]');
 for (let x = 0; x < select_pagination.length; x++) {
   select_pagination[x].addEventListener('change', function() {

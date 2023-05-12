@@ -146,7 +146,7 @@ if (!$_SESSION['admin_username']) {
       if (empty($_POST->action)) $_POST->action = '';
       switch ($_POST->action) {
 
-        // Set the key for initiating the crawler
+        // ***** Set the key for initiating the crawler
         case 'setkey':
           if (!$_ODATA['sp_crawling']) {
             $md5 = md5(hrtime(true));
@@ -167,10 +167,12 @@ if (!$_SESSION['admin_username']) {
           }
           break;
 
-        // Download a text file of the most recent crawl or query log
+        // ***** Download a text or csv file
         case 'download':
           if (empty($_POST->content)) $_POST->content = '';
           switch ($_POST->content) {
+
+            // Download a text file of the latest crawl log
             case 'crawl_log':
               if (!$_ODATA['sp_crawling']) {
                 if ($_ODATA['sp_time_end']) {
@@ -209,16 +211,72 @@ if (!$_SESSION['admin_username']) {
               }
               break;
 
+            // Download a csv of the unfiltered page index
+            case 'page_index':
+              $pageIndex = $_DDATA['pdo']->query(
+                'SELECT `url`, `category`, `content_mime`, `content_charset`,
+                  `status`, `flag_unlisted`, `last_modified`, `priority`
+                    FROM `'.$_DDATA['tbprefix'].'crawldata` ORDER BY `url_sort`;');
+              $err = $pageIndex->errorInfo();
+              if ($err[0] == '00000') {
+
+                $pageIndex = $pageIndex->fetchAll();
+                if (count($pageIndex)) {
+
+                  header('Content-type: text/csv; charset='.strtolower($_ODATA['s_charset']));
+                  header('Content-disposition: attachment; filename="'.
+                    'page-index_'.date('Y-m-d').'.csv"');
+
+                  $output = fopen('php://output', 'w');
+
+                  // UTF-8 byte order mark
+                  if (strtolower($_ODATA['s_charset']) == 'utf-8')
+                    fwrite($output, "\xEF\xBB\xBF");
+
+                  $headings = array(
+                    'URL', 'Category', 'MIME Type', 'Character Encoding',
+                    'Status', 'Last Modified', 'Priority'
+                  );
+                  fputcsv($output, $headings);
+
+                  foreach ($pageIndex as $line) {
+                    if ($line['flag_unlisted'])
+                      $line['status'] .= ' (Unlisted)';
+                    unset($line['flag_unlisted']);
+
+                    $line['last_modified'] = date('c', $line['last_modified']);
+
+                    fputcsv($output, $line);
+                  }
+
+                  fclose($output);
+                  die();
+
+                } else {
+                  $response = array(
+                    'status' => 'Error',
+                    'message' => 'The page index is empty; nothing to download'
+                  );
+                }
+              } else {
+                $response = array(
+                  'status' => 'Error',
+                  'message' => 'Could not read the page index database'
+                );
+              }
+              break;
+
+            // Download a csv of the complete query log
             case 'query_log':
-              $querylog = $_DDATA['pdo']->query(
+              $queryLog = $_DDATA['pdo']->query(
                 'SELECT `query`, `results`, `stamp`, INET_NTOA(`ip`) AS `ipaddr`
                    FROM `'.$_DDATA['tbprefix'].'query` ORDER BY `stamp` DESC;'
               );
-              $err = $querylog->errorInfo();
+              $err = $queryLog->errorInfo();
               if ($err[0] == '00000') {
 
-                $querylog = $querylog->fetchAll();
-                if (count($querylog)) {
+                $queryLog = $queryLog->fetchAll();
+                if (count($queryLog)) {
 
                   header('Content-type: text/csv; charset='.strtolower($_ODATA['s_charset']));
                   header('Content-disposition: attachment; filename="'.
@@ -232,9 +290,9 @@ if (!$_SESSION['admin_username']) {
 
                   $headings = array('Query', 'Results', 'Time Stamp', 'IP');
                   if ($_GEOIP2) $headings[] = 'Country';
-
                   fputcsv($output, $headings);
-                  foreach ($querylog as $line) {
+
+                  foreach ($queryLog as $line) {
                     $line['stamp'] = date('c', $line['stamp']);
 
                     if ($_GEOIP2) {
@@ -274,7 +332,7 @@ if (!$_SESSION['admin_username']) {
           break;
 
 
-        // Not used?
+        // ***** Not used?
         case 'fetch':
           if (empty($_POST->value)) $_POST->value = '';
           if (!empty($_ODATA[$_POST->value])) {
@@ -553,6 +611,26 @@ if (!$_SESSION['admin_username']) {
                       break;
                     }
                   }
+
+                  // Refresh the sp_domains data since we deleted some rows
+                  $_RDATA['sp_domains'] = array();
+                  $urls = $_DDATA['pdo']->query(
+                    'SELECT `url` FROM `'.$_DDATA['tbprefix'].'crawldata`;'
+                  );
+                  $err = $urls->errorInfo();
+                  if ($err[0] == '00000') {
+                    $urls = $urls->fetchAll();
+                    foreach ($urls as $url) {
+                      $url = parse_url($url['url']);
+                      if (is_array($url)) {
+                        $domain = $url['scheme'].'://'.$url['host'];
+                        if (!isset($_RDATA['sp_domains'][$domain])) {
+                          $_RDATA['sp_domains'][$domain] = 1;
+                        } else $_RDATA['sp_domains'][$domain]++;
+                      }
+                    }
+                    OS_setValue('sp_domains', json_encode($_RDATA['sp_domains']));
+                  } else $_SESSION['error'][] = 'Could not read domain count data from search database: '.$err[2];
                   break;
 
                 case 'category':
@@ -803,7 +881,7 @@ if (!$_SESSION['admin_username']) {
                     `content_mime`, `weighted`, `content`, `priority`
               FROM `'.$_DDATA['tbprefix'].'crawldata`
                 WHERE `flag_unlisted`<>1 AND '.$query_status.' AND
-                      `url_base` LIKE \'%'.addslashes($_ODATA['jw_hostname']).'\';'
+                      `url` LIKE \'%://'.addslashes($_ODATA['jw_hostname']).'/%\';'
           );
           $err = $select->errorInfo();
           if ($err[0] == '00000') {
@@ -1544,8 +1622,8 @@ document.write(mustache.render(
         // ***** Select rows to populate the Page Index table
         $indexRows = $_DDATA['pdo']->prepare(
           'SELECT SQL_CALC_FOUND_ROWS
-              `url`, `url_base`, `title`, `category`, `content_checksum`, `status`,
-              `status_noindex`, `flag_unlisted`, `flag_updated`, `priority`
+              `url`, `title`, `category`, `content_checksum`,
+              `status`, `flag_unlisted`, `flag_updated`, `priority`
             FROM `'.$_DDATA['tbprefix'].'crawldata`
               WHERE (:text1=\'\' OR `url` LIKE :text2) AND
                     (:category1=\'\' OR `category`=:category2) AND
@@ -2232,9 +2310,13 @@ document.write(mustache.render(
          * Page Index ********************************************** */
         case 'index': ?> 
           <section class="row justify-content-center">
-            <header class="col-xl-10 col-xxl-8 mb-2">
+            <header class="col-6 col-xl-5 col-xxl-4 mb-2">
               <h2>Page Index</h2>
-            </header><?php
+            </header>
+            <div class="col-6 col-xl-5 col-xxl-4 mb-2 text-end text-nowrap">
+              <button type="button" class="btn btn-primary" id="os_page_index_download" title="Download Page Index"<?php
+                if (!$_RDATA['s_crawldata_info']['Rows']) echo ' disabled="disabled"'; ?>>Download</button>
+            </div><?php
 
             // If there are *any* rows in the database
             if ($_RDATA['s_crawldata_info']['Rows']) {
@@ -2388,8 +2470,8 @@ document.write(mustache.render(
                           <tr><?php echo $_RDATA['index_action_row']; ?></tr>
                         </tfoot>
                         <tbody class="table-group-divider"><?php
-                          if (count($_RDATA['s_crawldata_domains']) == 1)
-                            $repStr = '/^'.preg_quote(key($_RDATA['s_crawldata_domains']), '/').'/';
+                          if (count($_RDATA['sp_domains']) == 1)
+                            $repStr = '/^'.preg_quote(key($_RDATA['sp_domains']), '/').'/';
 
                           foreach ($_RDATA['page_index_rows'] as $key => $row) { ?> 
                             <tr class="lh-sm">
@@ -2403,7 +2485,7 @@ document.write(mustache.render(
                                       <a href="<?php echo htmlspecialchars($row['url']); ?>" title="<?php
                                         echo htmlspecialchars($row['url']); ?>" target="_blank" class="align-middle<?php
                                         if ($row['flag_updated']) echo ' fw-bold'; ?>"><?php
-                                        if (count($_RDATA['s_crawldata_domains']) == 1) {
+                                        if (count($_RDATA['sp_domains']) == 1) {
                                           echo htmlspecialchars(preg_replace($repStr, '', $row['url']));
                                         } else echo htmlspecialchars($row['url']);
                                       ?></a><?php
@@ -2655,13 +2737,13 @@ document.write(mustache.render(
                   </legend>
                   <div class="p-2 border border-1 border-secondary-subtle rounded-bottom-3">
                     <ul class="list-group mb-2"><?php
-                      if (count($_RDATA['s_crawldata_domains']) > 1) { ?> 
+                      if (count($_RDATA['sp_domains']) > 1) { ?> 
                         <li class="list-group-item">
                           <label class="d-flex lh-lg w-100">
                             <strong class="pe-2">Domain:</strong>
                             <span class="text-end flex-grow-1 text-nowrap">
                               <select name="os_jw_hostname" class="form-select d-inline-block"><?php
-                                foreach ($_RDATA['s_crawldata_domains'] as $domain => $count) { ?> 
+                                foreach ($_RDATA['sp_domains'] as $domain => $count) { ?> 
                                   <option value="<?php echo $domain; ?>"<?php
                                     if ($_ODATA['jw_hostname'] == $domain) echo ' selected="selected"'; ?>><?php
                                     echo $domain, ' (', $count, ')';

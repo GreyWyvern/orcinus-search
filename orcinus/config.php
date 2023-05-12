@@ -93,6 +93,7 @@ if (!in_array($_DDATA['tbprefix'].'config', $_DDATA['tables'])) {
       `sp_data_stored` INT UNSIGNED NOT NULL,
       `sp_links_crawled` SMALLINT UNSIGNED NOT NULL,
       `sp_pages_stored` SMALLINT UNSIGNED NOT NULL,
+      `sp_domains` TEXT NOT NULL,
       `sp_autodelete` BOOLEAN NOT NULL,
       `sp_ifmodifiedsince` BOOLEAN NOT NULL,
       `sp_cookies` BOOLEAN NOT NULL,
@@ -173,6 +174,7 @@ if (!count($testConf->fetchAll())) {
       `sp_data_stored`=0,
       `sp_links_crawled`=0,
       `sp_pages_stored`=0,
+      `sp_domains`=\'\',
       `sp_autodelete`=0,
       `sp_ifmodifiedsince`=1,
       `sp_cookies`=1,
@@ -214,7 +216,6 @@ if (!in_array($_DDATA['tbprefix'].'crawldata', $_DDATA['tables'])) {
   $create = $_DDATA['pdo']->query(
     'CREATE TABLE `'.$_DDATA['tbprefix'].'crawldata` (
       `url` TEXT NOT NULL,
-      `url_base` TINYTEXT NOT NULL,
       `url_sort` SMALLINT UNSIGNED NOT NULL,
       `title` TEXT NOT NULL,
       `description` TEXT NOT NULL,
@@ -227,7 +228,6 @@ if (!in_array($_DDATA['tbprefix'].'crawldata', $_DDATA['tables'])) {
       `content_charset` TINYTEXT NOT NULL,
       `content_checksum` BINARY(20) NOT NULL,
       `status` TINYTEXT NOT NULL,
-      `status_noindex` TINYTEXT NOT NULL,
       `flag_unlisted` BOOLEAN NOT NULL,
       `flag_updated` BOOLEAN NOT NULL,
       `last_modified` INT NOT NULL,
@@ -690,26 +690,6 @@ if ($err[0] == '00000') {
   $_SESSION['error'][] = 'Could not read categories from the search database.';
 
 
-// Count base URLs / domains from the crawldata: if there is only one
-// in the search database then we don't have to show it in a number of
-// places
-$_RDATA['s_crawldata_domains'] = array();
-$domains = $_DDATA['pdo']->query(
-  'SELECT `url_base`, COUNT(`url_base`) as `count`
-    FROM `'.$_DDATA['tbprefix'].'crawldata`
-      GROUP BY `url_base` ORDER BY `count` DESC;'
-);
-$err = $domains->errorInfo();
-if ($err[0] == '00000') {
-  $domains = $domains->fetchAll();
-  foreach ($domains as $domain)
-    $_RDATA['s_crawldata_domains'][$domain['url_base']] = $domain['count'];
-} else if (isset($_SESSION['error']))
-  $_SESSION['error'][] = 'Could not read domain count data from search database: '.$err[2];
-if (count($_RDATA['s_crawldata_domains']) == 1)
-  OS_setValue('jw_hostname', key($_RDATA['s_crawldata_domains']));
-
-
 // Count searchable pages
 $_RDATA['s_searchable_pages'] = 0;
 $query_status = ($_ODATA['s_show_orphans']) ? '(`status`=\'OK\' || `status`=\'Orphan\')' : '`status`=\'OK\'';
@@ -724,6 +704,11 @@ if ($err[0] == '00000') {
   $_RDATA['s_searchable_pages'] = $searchable[0]['count'];
 } else if (isset($_SESSION['error']))
   $_SESSION['error'][] = 'Could not read status data from search database: '.$err[2];
+
+
+$_RDATA['sp_domains'] = json_decode($_ODATA['sp_domains'], true);
+if (count($_RDATA['sp_domains']) == 1 && $_ODATA['jw_hostname'] != key($_RDATA['sp_domains']))
+  OS_setValue('jw_hostname', key($_RDATA['sp_domains']));
 
 
 // Match Weighting Values

@@ -332,6 +332,7 @@ function OS_crawlCleanUp() {
 
       OS_setValue('sp_links_crawled', count($_RDATA['sp_links']));
       OS_setValue('sp_pages_stored', count($_RDATA['sp_store']));
+      OS_setValue('sp_domains', json_encode($_RDATA['sp_domains']));
       OS_setValue('sp_time_end_success', $_ODATA['sp_time_end']);
 
       OS_crawlLog('***** Crawl completed in '.$_ODATA['sp_time_last'].'s *****', 1);
@@ -644,6 +645,7 @@ $_RDATA['sp_robots_header'] = 0;
 $_RDATA['sp_complete'] = false;
 $_RDATA['sp_links'] = array();
 $_RDATA['sp_store'] = array();
+$_RDATA['sp_domains'] = array();
 $_RDATA['sp_sitemap'] = array();
 $_RDATA['sp_robots'] = array();
 $_RDATA['sp_status'] = array('Orphan' => 0, 'Blocked' => 0, 'Not Found' => 0, 'Updated' => 0, 'New' => 0);
@@ -789,7 +791,6 @@ $updateURL = $_DDATA['pdo']->prepare(
 $insertTemp = $_DDATA['pdo']->prepare(
   'INSERT INTO `'.$_DDATA['tbprefix'].'crawltemp` SET
     `url`=:url,
-    `url_base`=:url_base,
     `url_sort`=0,
     `title`=:title,
     `description`=:description,
@@ -802,7 +803,6 @@ $insertTemp = $_DDATA['pdo']->prepare(
     `content_charset`=:content_charset,
     `content_checksum`=:content_checksum,
     `status`=:status,
-    `status_noindex`=:status_noindex,
     `flag_unlisted`=:flag_unlisted,
     `flag_updated`=:flag_updated,
     `last_modified`=:last_modified,
@@ -1439,7 +1439,6 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
         $port = (!empty($data['url']['port'])) ? ':'.$data['url']['port'] : '';
         $insertTemp->execute(array(
           'url' => $url,
-          'url_base' => $data['url']['scheme'].'://'.$data['url']['host'].$port,
           'title' => $data['title'],
           'description' => $data['description'],
           'keywords' => $data['keywords'],
@@ -1451,7 +1450,6 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
           'content_charset' => $data['info']['charset'],
           'content_checksum' => $data['info']['sha1'],
           'status' => $data['info']['status'],
-          'status_noindex' => $data['info']['noindex'],
           'flag_unlisted' => $row['flag_unlisted'],
           'flag_updated' => 1,
           'last_modified' => $data['info']['filetime'],
@@ -1511,6 +1509,13 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
           if ($err[0] != '00000') OS_crawlLog($err[2], 0);
         }
       }
+
+
+      $domain = $data['url']['scheme'].'://'.$data['url']['host'];
+      if (!isset($_RDATA['sp_domains'][$domain])) {
+        $_RDATA['sp_domains'][$domain] = 1;
+      } else $_RDATA['sp_domains'][$domain]++;
+        
 
       // Store data for use in the sitemap
       if ($_ODATA['sp_sitemap_file'] &&
