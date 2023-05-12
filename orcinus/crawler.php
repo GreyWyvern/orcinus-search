@@ -41,7 +41,7 @@ function OS_cleanTextUTF8(&$_, $charset, $entity = false) {
     $_ = html_entity_decode($_, $entity | ENT_SUBSTITUTE, 'UTF-8');
 
   $_ = strtr($_, $_RDATA['sp_punct']);
-  $_ = strtr($_, $_RDATA['sp_utf_replace']);
+  $_ = strtr($_, $_RDATA['sp_whitespace']);
   $_ = preg_replace(array('/\s/', '/ {2,}/'), ' ', trim($_));
 }
 
@@ -655,17 +655,16 @@ $_RDATA['sp_data_transferred'] = 0;
 $_RDATA['sp_time_curl'] = 0;
 $_RDATA['sp_sleep'] = 0;
 $_RDATA['sp_sha1'] = array();
-$_RDATA['sp_entity'] = array(
-  "\n" => array(10, 11, 12, 13, 133, 8232, 8233),
-  ' ' => array(9, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8204, 8239, 8287, 12288),
-  '' => array(173, 8205, 8288, 65279),
-  '-' => array(1418, 1470, 5120, 6150, 8208, 8209, 8210, 8211, 8212, 8213, 11799, 11802, 11834, 11835, 11840, 12316, 12336, 12448, 65073, 65074, 65112, 65123, 65293, 69293)
+$_RDATA['sp_whitespace'] = array(
+  "\u{0009}" => ' ',  "\u{000A}" => "\n", "\u{000B}" => "\n", "\u{000C}" => "\n",
+  "\u{000D}" => "\n", "\u{0085}" => "\n", "\u{00A0}" => ' ',  "\u{1680}" => ' ',
+  "\u{2000}" => ' ',  "\u{2001}" => ' ',  "\u{2002}" => ' ',  "\u{2003}" => ' ',
+  "\u{2004}" => ' ',  "\u{2005}" => ' ',  "\u{2006}" => ' ',  "\u{2007}" => ' ',
+  "\u{2008}" => ' ',  "\u{2009}" => ' ',  "\u{200A}" => ' ',  "\u{200B}" => ' ',
+  "\u{200C}" => ' ',  "\u{200D}" => '',   "\u{2028}" => "\n", "\u{2029}" => "\n",
+  "\u{202F}" => ' ',  "\u{205F}" => ' ',  "\u{2060}" => '',   "\u{3000}" => ' ',
+  "\u{FEFF}" => ' '
 );
-$_RDATA['sp_utf_replace'] = array();
-foreach ($_RDATA['sp_entity'] as $key => $value)
-  foreach ($value as $code)
-    $_RDATA['sp_utf_replace'][mb_chr($code)] = $key;
-
 
 
 // ***** Load PDF parser

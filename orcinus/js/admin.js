@@ -484,7 +484,12 @@ let os_get_crawl_progress = function(getLog) {
             text += '</small> ';
           }
           os_crawl_pages_stored.innerHTML = text + data.pages_stored;
-        }
+
+        // If we are not on the Crawler Management page, let the user
+        // know there is new data, and ask to reload the page
+        } else if (window.confirm('A crawl has finished. Reload the page to view new data?'))
+          window.location.reload();
+
       }
     }
 
