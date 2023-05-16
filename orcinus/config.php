@@ -91,7 +91,6 @@ if (!in_array($_DDATA['tbprefix'].'config', $_DDATA['tables'])) {
       `sp_time_last` SMALLINT UNSIGNED NOT NULL,
       `sp_data_transferred` INT UNSIGNED NOT NULL,
       `sp_data_stored` INT UNSIGNED NOT NULL,
-      `sp_links_crawled` SMALLINT UNSIGNED NOT NULL,
       `sp_pages_stored` SMALLINT UNSIGNED NOT NULL,
       `sp_domains` TEXT NOT NULL,
       `sp_autodelete` BOOLEAN NOT NULL,
@@ -172,7 +171,6 @@ if (!count($testConf->fetchAll())) {
       `sp_time_last`=0,
       `sp_data_transferred`=0,
       `sp_data_stored`=0,
-      `sp_links_crawled`=0,
       `sp_pages_stored`=0,
       `sp_domains`=\'\',
       `sp_autodelete`=0,
@@ -280,10 +278,14 @@ function OS_setValue($columnName, $value) {
 
   if (!isset($_ODATA[$columnName])) return 0;
 
+  $encValue = $value;
+  if (is_array($encValue) || is_object($encValue))
+    $encValue = json_encode($encValue);
+
   $update = $_DDATA['pdo']->prepare(
     'UPDATE `'.$_DDATA['tbprefix'].'config` SET `'.$columnName.'`=:value;'
   );
-  $update->execute(array('value' => $value));
+  $update->execute(array('value' => $encValue));
 
   $err = $update->errorInfo();
   if ($err[0] != '00000') {
@@ -313,8 +315,10 @@ function OS_getValue($columnName) {
     $err = $select->errorInfo();
     if ($err[0] == '00000') {
       $select = $select->fetchAll();
-      if (count($select))
-        $_ODATA[$columnName] = $select[0][$columnName];
+      if (count($select)) {
+        $json = json_decode($select[0][$columnName], true);
+        $_ODATA[$columnName] = (!is_null($json)) ? $json : $select[0][$columnName];
+      }
 
     } else if (isset($_SESSION['error']))
       $_SESSION['error'][] = 'Could not get live value of \''.$columnName.'\' from config database.';
@@ -361,7 +365,11 @@ $err = $odata->errorInfo();
 if ($err[0] == '00000') {
   $odata = $odata->fetchAll();
   if (count($odata)) {
-    $_ODATA = $odata[0];
+    $_ODATA = array();
+    foreach ($odata[0] as $key => $value) {
+      $json = json_decode($value, true);
+      $_ODATA[$key] = (!is_null($json)) ? $json : $value;
+    }
   } else throw new Exception('No data in configuration table');
 } else throw new Exception('Could not read from configuration table: '.$err[2]);
 
@@ -706,10 +714,9 @@ if ($err[0] == '00000') {
   $_SESSION['error'][] = 'Could not read status data from search database: '.$err[2];
 
 
-$_RDATA['sp_domains'] = json_decode($_ODATA['sp_domains'], true);
-if (!is_array($_RDATA['sp_domains'])) $_RDATA['sp_domains'] = array();
-if (count($_RDATA['sp_domains']) == 1 && $_ODATA['jw_hostname'] != key($_RDATA['sp_domains']))
-  OS_setValue('jw_hostname', key($_RDATA['sp_domains']));
+if (!is_array($_ODATA['sp_domains'])) $_ODATA['sp_domains'] = array();
+if (count($_ODATA['sp_domains']) == 1 && $_ODATA['jw_hostname'] != key($_ODATA['sp_domains']))
+  OS_setValue('jw_hostname', key($_ODATA['sp_domains']));
 
 
 // Match Weighting Values

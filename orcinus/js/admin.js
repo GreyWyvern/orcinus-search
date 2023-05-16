@@ -136,12 +136,14 @@ for (let x = 0; x < countUpTimers.length; x++) {
     } else this.spans[2].classList.remove('d-none');
 
     let secPlural = (parseInt(this.spans[3].tVar.firstChild.nodeValue) == 1) ? 0 : 1;
-    this.spans[3].tVar.nextSibling.nodeValue = ' ' + countUpPeriods[3][secPlural] + ' ago';
+    this.spans[3].tVar.nextSibling.nodeValue = ' ' + countUpPeriods[3][secPlural];
   };
 
-  setInterval(function() {
-    countUpTimers[x].incrementTime();
-  }, 1000);
+  if (countUpTimers[x].classList.contains('active')) {
+    countUpTimers[x].interval = setInterval(function() {
+      countUpTimers[x].incrementTime();
+    }, 1000);
+  }
 }
 
 
@@ -420,76 +422,38 @@ let os_get_crawl_progress = function(getLog) {
         os_crawl_start.innerHTML = 'Crawling...';
         os_crawl_navbar.innerHTML = 'Crawling...';
 
+        let os_countup_time_end = document.getElementById('os_countup_time_end');
+        if (os_countup_time_end) {
+          clearInterval(os_countup_time_end.interval);
+          os_countup_time_end.parentNode.innerHTML = '<em>Currently crawling...</em>';
+        }
+
+        let os_countup_time_crawl = document.getElementById('os_countup_time_crawl');
+        if (os_countup_time_crawl) {
+          os_countup_time_crawl.classList.add('active');
+          os_countup_time_crawl.setAttribute('data-start', data.time_start);
+          os_countup_time_crawl.interval = setInterval(function() {
+            os_countup_time_crawl.incrementTime();
+          }, 1000);
+        }
+
         // Start an interval progress check
         clearInterval(os_crawl_interval);
         os_crawl_interval = setInterval(os_get_crawl_progress, 1000);
 
       // Else check if the given time_end is later than the time this
       // page was loaded; if so, a crawl has finished after this page
-      // was loaded; if we are on the Crawler Management page, update
-      // all the info there
+      // was loaded; if so, reload the page
       } else if (os_crawl_loaded < data.time_end) {
-        os_crawl_loaded = parseInt((new Date()).getTime() / 1000);
 
-        os_crawl_start.disabled = '';
-        os_crawl_start.innerHTML = 'Start Crawl';
+        // Check if the crawler modal window is open
+        if (crawlerModal && crawlerModal.classList.contains('show')) {
 
-        let os_countup_time_end = document.getElementById('os_countup_time_end');
-        if (os_countup_time_end) {
-          os_countup_time_end.setAttribute('data-start', data.time_end);
-
-          // Try to locate the warning <p> element
-          let pDanger = os_countup_time_end.parentNode.parentNode.querySelector('p.data-text.text-danger');
-
-          // If the time_end does not match the time_end_success, then
-          // the last crawl did not succeed; show the error message
-          if (data.time_end != data.time_end_success) {
-            if (!pDanger) {
-              let pDanger = document.createElement('p');
-                  pDanger.classList.add('data-text', 'text-danger');
-                let strong = document.createElement('strong');
-                    strong.appendChild(document.createTextNode('Warning:'));
-                  pDanger.appendChild(strong);
-                  pDanger.appendChild(document.createTextNode(' The previous crawl did not complete successfully. Please check the crawl log for more details.'));
-              os_countup_time_end.parentNode.parentNode.appendChild(pDanger);
-            }
-
-          // Else if it matches, it was successful, remove any warning
-          } else if (pDanger) pDanger.parentNode.removeChild(pDanger);
-
-          // Update the Crawl information items
-          let os_crawl_time_last = document.getElementById('os_crawl_time_last');
-          os_crawl_time_last.innerHTML = data.time_last + ' <abbr title="seconds">s</abbr>';
-
-          let os_crawl_data_transferred = document.getElementById('os_crawl_data_transferred');
-          os_crawl_data_transferred.innerHTML = os_readSize(data.data_transferred, true);
-
-          let os_crawl_data_stored = document.getElementById('os_crawl_data_stored');
-          let text = '';
-          if (data.data_transferred) {
-            text += '<small data-bs-toggle="tooltip" data-bs-placement="bottom" title="Efficiency percentage of data stored vs. data downloaded">';
-            text += '(' + (Math.round(data.data_stored * 1000 / data.data_transferred) / 10) + '%)';
-            text += '</small> ';
-          }
-          os_crawl_data_stored.innerHTML = text + os_readSize(data.data_stored, true);
-
-          let os_crawl_links_crawled = document.getElementById('os_crawl_links_crawled');
-          os_crawl_links_crawled.innerHTML = data.links_crawled;
-
-          let os_crawl_pages_stored = document.getElementById('os_crawl_pages_stored');
-          text = '';
-          if (data.links_crawled) {
-            text += '<small data-bs-toggle="tooltip" data-bs-placement="bottom" title="Efficiency percentage of pages stored vs. links crawled">';
-            text += '(' + (Math.round(data.pages_stored * 1000 / data.links_crawled) / 10) + '%)';
-            text += '</small> ';
-          }
-          os_crawl_pages_stored.innerHTML = text + data.pages_stored;
-
-        // If we are not on the Crawler Management page, let the user
-        // know there is new data, and ask to reload the page
-        } else if (window.confirm('A crawl has finished. Reload the page to view new data?'))
-          window.location.reload();
-
+          // Don't refresh the page until the user closes the modal
+          crawlerModal.addEventListener('hide.bs.modal', function() {
+            window.location.reload();
+          }, false);
+        } else window.location.reload();
       }
     }
 
@@ -509,12 +473,23 @@ let os_get_crawl_progress = function(getLog) {
     os_crawl_log.value = data.tail;
 
     if (os_crawl_interval) {
-      data.progress = data.progress.split('/');
       os_crawl_progress.value = data.progress[0];
       os_crawl_progress.max = data.progress[1];
       os_crawl_progress.setAttribute('data-progress', data.progress[0] + ' / ' + data.progress[1]);
       os_crawl_progress.innerHTML = Math.ceil(data.progress[0] / data.progress[1]) + '%';
       os_crawl_log.scrollTop = os_crawl_log.scrollHeight;
+
+      if (os_crawl_data_transferred)
+        os_crawl_data_transferred.innerHTML = os_readSize(data.data_transferred, true);
+
+      if (os_crawl_data_stored)
+        os_crawl_data_stored.innerHTML = 0;
+
+      if (os_crawl_links_crawled)
+        os_crawl_links_crawled.innerHTML = data.progress[0] + ' / ' + data.progress[1];
+
+      if (os_crawl_pages_stored)
+        os_crawl_pages_stored.innerHTML = 0;
     }
 
     if (!os_crawl_start.complete && data.status == 'Complete') {
@@ -541,6 +516,11 @@ let os_crawl_grep = document.querySelectorAll('input[name="os_crawl_grep"]');
 let os_crawl_progress = document.getElementById('os_crawl_progress');
 let os_crawl_log = document.getElementById('os_crawl_log');
 let os_crawl_log_download = document.getElementById('os_crawl_log_download');
+
+let os_crawl_data_transferred = document.getElementById('os_crawl_data_transferred');
+let os_crawl_data_stored = document.getElementById('os_crawl_data_stored');
+let os_crawl_links_crawled = document.getElementById('os_crawl_links_crawled');
+let os_crawl_pages_stored = document.getElementById('os_crawl_pages_stored');
 
 os_crawl_cancel.force = false;
 os_crawl_cancel.reason = '';
@@ -586,6 +566,21 @@ os_crawl_start.addEventListener('click', function(e) {
       os_crawl_log_download.disabled = 'disabled';
       os_crawl_start.innerHTML = 'Crawling...';
       os_crawl_navbar.innerHTML = 'Crawling...';
+
+      let os_countup_time_end = document.getElementById('os_countup_time_end');
+      if (os_countup_time_end) {
+        clearInterval(os_countup_time_end.interval);
+        os_countup_time_end.parentNode.innerHTML = '<em>Currently crawling...</em>';
+      }
+
+      let os_countup_time_crawl = document.getElementById('os_countup_time_crawl');
+      if (os_countup_time_crawl) {
+        os_countup_time_crawl.classList.add('active');
+        os_countup_time_crawl.setAttribute('data-start', parseInt((new Date()).getTime() / 1000));
+        os_countup_time_crawl.interval = setInterval(function() {
+          os_countup_time_crawl.incrementTime();
+        }, 1000);
+      }
 
       fetch(new Request('./crawler.php'), {
         method: 'POST',

@@ -254,10 +254,6 @@ function OS_crawlCleanUp() {
   // var_dump($cookies);
   curl_close($_cURL);
 
-  OS_setValue('sp_time_end', time());
-  OS_setValue('sp_time_last', $_ODATA['sp_time_end'] - $_ODATA['sp_time_start']);
-  OS_setValue('sp_data_transferred', $_RDATA['sp_data_transferred']);
-
   // If crawl completed successfully
   if ($_RDATA['sp_complete']) {
     OS_crawlLog('Cleaning up database tables...', 1);
@@ -299,6 +295,9 @@ function OS_crawlCleanUp() {
   // If crawl completed successfully AND we truncated the old table
   if ($_RDATA['sp_complete']) {
 
+    OS_setValue('sp_time_end', time());
+    OS_setValue('sp_time_last', $_ODATA['sp_time_end'] - $_ODATA['sp_time_start']);
+
     // Select all rows from the temp table into the existing search table
     $insert = $_DDATA['pdo']->query(
       'INSERT INTO `'.$_DDATA['tbprefix'].'crawldata`
@@ -330,9 +329,8 @@ function OS_crawlCleanUp() {
         'OPTIMIZE TABLE `'.$_DDATA['tbprefix'].'query`;'
       );
 
-      OS_setValue('sp_links_crawled', count($_RDATA['sp_links']));
       OS_setValue('sp_pages_stored', count($_RDATA['sp_store']));
-      OS_setValue('sp_domains', json_encode($_RDATA['sp_domains']));
+      OS_setValue('sp_domains', $_RDATA['sp_domains']);
       OS_setValue('sp_time_end_success', $_ODATA['sp_time_end']);
 
       OS_crawlLog('***** Crawl completed in '.$_ODATA['sp_time_last'].'s *****', 1);
@@ -341,7 +339,7 @@ function OS_crawlCleanUp() {
       if ($_RDATA['sp_sleep'])
         OS_crawlLog('Time spent sleeping: '.(round($_RDATA['sp_sleep'] / 10) / 100).'s', 1);
       OS_crawlLog('Time taken by cURL: '.(round($_RDATA['sp_time_curl'] * 100) / 100).'s', 1);
-      OS_crawlLog($_ODATA['sp_links_crawled'].' page'.(($_ODATA['sp_links_crawled'] == 1) ? '' : 's').' crawled', 1);
+      OS_crawlLog($_ODATA['sp_progress'][0].' page'.(($_ODATA['sp_progress'][0] == 1) ? '' : 's').' crawled', 1);
       OS_crawlLog($_ODATA['sp_pages_stored'].' page'.(($_ODATA['sp_pages_stored'] == 1) ? '' : 's').' stored', 1);
 
       if ($_RDATA['sp_status']['New'])
@@ -398,7 +396,10 @@ function OS_crawlCleanUp() {
 
   // Else the crawl failed
   } else {
+    OS_setValue('sp_time_last', $_ODATA['sp_time_end'] - $_ODATA['sp_time_start']);
+
     OS_crawlLog('***** Crawl failed; runtime '.$_ODATA['sp_time_last'].'s *****', 1);
+    OS_crawlLog('Total data transferred: '.OS_readSize($_RDATA['sp_data_transferred']), 1);
     OS_crawlLog('Search table was NOT updated', 1);
 
     if ($_ODATA['sp_sitemap_file'])
@@ -469,7 +470,7 @@ switch ($_SERVER['REQUEST_METHOD']) {
             if ($_ODATA['sp_crawling']) {
               $response = array(
                 'status' => 'Error',
-                'message' => 'Crawler is already running; current progress: '.$_ODATA['sp_progress']
+                'message' => 'Crawler is already running; current progress: '.$_ODATA['sp_progress'][0].'/'.$_ODATA['sp_progress'][1]
               );
             }
 
@@ -506,15 +507,11 @@ switch ($_SERVER['REQUEST_METHOD']) {
           $response = array(
             'status' => ($_ODATA['sp_crawling']) ? 'Crawling' : 'Complete',
             'progress' => $_ODATA['sp_progress'],
-            'time_crawl' => time() - $_ODATA['sp_time_start'],
-            'time_end' => $_ODATA['sp_time_end'],
-            'time_end_success' => $_ODATA['sp_time_end_success'],
-            'time_last' => $_ODATA['sp_time_last'],
-            'timeout_crawl' => $_ODATA['sp_timeout_crawl'],
             'data_transferred' => $_ODATA['sp_data_transferred'],
-            'data_stored' => $_ODATA['sp_data_stored'],
-            'links_crawled' => $_ODATA['sp_links_crawled'],
-            'pages_stored' => $_ODATA['sp_pages_stored'],
+            'time_crawl' => time() - $_ODATA['sp_time_start'],
+            'time_start' => $_ODATA['sp_time_start'],
+            'time_end' => $_ODATA['sp_time_end'],
+            'timeout_crawl' => $_ODATA['sp_timeout_crawl'],
             'tail' => trim(implode("\n", $lines))
           );
           break;
@@ -536,10 +533,7 @@ switch ($_SERVER['REQUEST_METHOD']) {
                 $log = file_get_contents($_ODATA['sp_log']);
                 OS_setValue('sp_log', $log."\n".'[ERROR] '.$_POST->reason);
               } else OS_setValue('sp_log', '[ERROR] '.$_POST->reason);
-              OS_setValue('sp_time_end', time());
-              OS_setValue('sp_time_last', time() - $_ODATA['sp_time_start']);
-              OS_setValue('sp_data_transferred', 0);
-              OS_setValue('sp_data_stored', 0);
+              OS_setValue('sp_time_last', $_ODATA['sp_time_end'] - $_ODATA['sp_time_start']);
 
               // Send failure email to the admin(s)
               if ($_MAIL && count($_MAIL->getAllRecipientAddresses()) && $_ODATA['sp_email_failure']) {
@@ -621,10 +615,11 @@ if (function_exists('apache_setenv'))
 OS_setValue('sp_crawling', 1);
 OS_setValue('sp_cancel', 0);
 OS_setValue('sp_time_start', time());
-OS_setValue('sp_links_crawled', 0);
+
+OS_setValue('sp_progress', array(0, 0));
 OS_setValue('sp_pages_stored', 0);
-OS_setValue('sp_data_stored', 0);
 OS_setValue('sp_data_transferred', 0);
+OS_setValue('sp_data_stored', 0);
 OS_setValue('sp_time_last', 0);
 
 
@@ -651,7 +646,6 @@ $_RDATA['sp_robots'] = array();
 $_RDATA['sp_status'] = array('Orphan' => 0, 'Blocked' => 0, 'Not Found' => 0, 'Updated' => 0, 'New' => 0);
 $_RDATA['sp_filter'] = array();
 $_RDATA['sp_prev_dls'] = 0;
-$_RDATA['sp_data_transferred'] = 0;
 $_RDATA['sp_time_curl'] = 0;
 $_RDATA['sp_sleep'] = 0;
 $_RDATA['sp_sha1'] = array();
@@ -888,7 +882,11 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
     OS_crawlLog('Memory used: '.OS_readSize(memory_get_usage(true)), 1);
 
   OS_crawlLog('Crawling: '.$url.' (Depth: '.$depth.')', 1);
-  OS_setValue('sp_progress', count($_RDATA['sp_links']).'/'.(count($_RDATA['sp_links']) + count($_RDATA['sp_queue'])));
+  OS_setValue('sp_progress', array(
+    count($_RDATA['sp_links']),
+    count($_RDATA['sp_links']) + count($_RDATA['sp_queue'])
+  ));
+  OS_setValue('sp_time_end', time());
 
   // Set the correct If-Modified-Since request header
   if ($_ODATA['sp_ifmodifiedsince'] && isset($_RDATA['sp_lastmod'][$url])) {
@@ -900,7 +898,7 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
   $data = OS_fetchURL($url, $referer);
 
   // Record cURL timing and data info for this fetch
-  $_RDATA['sp_data_transferred'] += $data['info']['size_download'];
+  OS_setValue('sp_data_transferred', $_ODATA['sp_data_transferred'] + $data['info']['size_download']);
   $_RDATA['sp_time_curl'] += $data['info']['total_time'];
 
 

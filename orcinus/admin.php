@@ -12,7 +12,7 @@ require __DIR__.'/config.php';
  * Display a 'time since' HTML/Javascript counter
  *
  */
-function OS_countUp($time, $id = '') {
+function OS_countUp($time, $active, $id = '') {
   $since = time() - $time;
   $periods = array(
     array('d', 'day', 'days'),
@@ -24,7 +24,8 @@ function OS_countUp($time, $id = '') {
   $hours = floor($since / 3600); $since %= 3600;
   $minutes = floor($since / 60);
   $seconds = $since % 60; ?> 
-  <span class="countup_timer" data-start="<?php echo $time; ?>" title="<?php echo date('r', $time); ?>"<?php
+  <span class="countup_timer<?php if ($active) echo ' active'; ?>" data-start="<?php
+    echo $time; ?>" title="<?php echo date('r', $time); ?>"<?php
     if (!empty($id)) echo ' id="'.htmlspecialchars($id).'"'; ?>>
     <span data-period="days"<?php
       if (!$days) echo ' class="d-none"'; ?>>
@@ -43,7 +44,7 @@ function OS_countUp($time, $id = '') {
     </span>
     <span data-period="seconds">
       <var><?php echo $seconds; ?></var>
-      <?php echo ($seconds == 1) ? $periods[3][1] : $periods[3][2]; ?> ago
+      <?php echo ($seconds == 1) ? $periods[3][1] : $periods[3][2]; ?>
     </span>
   </span><?php
 }
@@ -613,7 +614,7 @@ if (!$_SESSION['admin_username']) {
                   }
 
                   // Refresh the sp_domains data since we deleted some rows
-                  $_RDATA['sp_domains'] = array();
+                  $domainList = array();
                   $urls = $_DDATA['pdo']->query(
                     'SELECT `url` FROM `'.$_DDATA['tbprefix'].'crawldata`;'
                   );
@@ -624,12 +625,12 @@ if (!$_SESSION['admin_username']) {
                       $url = parse_url($url['url']);
                       if (is_array($url)) {
                         $domain = $url['scheme'].'://'.$url['host'];
-                        if (!isset($_RDATA['sp_domains'][$domain])) {
-                          $_RDATA['sp_domains'][$domain] = 1;
-                        } else $_RDATA['sp_domains'][$domain]++;
+                        if (!isset($domainList[$domain])) {
+                          $domainList[$domain] = 1;
+                        } else $domainList[$domain]++;
                       }
                     }
-                    OS_setValue('sp_domains', json_encode($_RDATA['sp_domains']));
+                    OS_setValue('sp_domains', $domainList);
                   } else $_SESSION['error'][] = 'Could not read domain count data from search database: '.$err[2];
                   break;
 
@@ -1903,9 +1904,14 @@ document.write(mustache.render(
                           </span>
                         </label>
                         <div><?php
-                          OS_countUp(($_ODATA['sp_time_end']) ? $_ODATA['sp_time_end'] : time(), 'os_countup_time_end');
+                          if (!$_ODATA['sp_crawling']) {
+                            OS_countUp(($_ODATA['sp_time_end']) ? $_ODATA['sp_time_end'] : time(), true, 'os_countup_time_end');
+                            ?> ago<?php
+                          } else { ?> 
+                            <em>Currently crawling...</em><?php
+                          }
                         ?></div><?php
-                        if ($_ODATA['sp_time_end'] != $_ODATA['sp_time_end_success']) { ?> 
+                        if (!$_ODATA['sp_crawling'] && $_ODATA['sp_time_end'] != $_ODATA['sp_time_end_success']) { ?> 
                           <p class="data-text text-danger">
                             <strong>Warning:</strong> The previous crawl did not complete successfully.
                             Please check the crawl log for more details.
@@ -1916,8 +1922,12 @@ document.write(mustache.render(
                         <label class="d-flex w-100">
                           <strong class="pe-2">Crawl Time</strong>
                           <var class="flex-grow-1 text-end" id="os_crawl_time_last"><?php
-                            echo $_ODATA['sp_time_last'];
-                          ?> <abbr title="seconds">s</abbr></var>
+                            if ($_ODATA['sp_crawling']) {
+                              OS_countUp($_ODATA['sp_time_start'], true, 'os_countup_time_crawl');
+                            } else {
+                              OS_countUp(time() - $_ODATA['sp_time_last'], false, 'os_countup_time_crawl');
+                            }
+                          ?></var>
                         </label>
                       </li>
                       <li class="list-group-item">
@@ -1932,12 +1942,14 @@ document.write(mustache.render(
                         <label class="d-flex w-100">
                           <strong class="pe-2">Data Stored</strong>
                           <var class="flex-grow-1 text-end" id="os_crawl_data_stored"><?php
-                            if ($_ODATA['sp_data_transferred']) { ?> 
-                              <small data-bs-toggle="tooltip" data-bs-placement="bottom" title="Efficiency percentage of data stored vs. data downloaded"><?php
-                                echo '('.round(($_ODATA['sp_data_stored'] / $_ODATA['sp_data_transferred']) * 100, 1).'%)';
-                              ?></small> <?php
-                            }
-                            echo OS_readSize($_ODATA['sp_data_stored'], true);
+                            if (!$_ODATA['sp_crawling']) {
+                              if ($_ODATA['sp_data_transferred']) { ?> 
+                                <small data-bs-toggle="tooltip" data-bs-placement="bottom" title="Efficiency percentage of data stored vs. data downloaded"><?php
+                                  echo '('.round(($_ODATA['sp_data_stored'] / $_ODATA['sp_data_transferred']) * 100, 1).'%)';
+                                ?></small> <?php
+                              }
+                              echo OS_readSize($_ODATA['sp_data_stored'], true);
+                            } else echo '0';
                           ?></var>
                         </label>
                       </li>
@@ -1945,7 +1957,9 @@ document.write(mustache.render(
                         <label class="d-flex w-100">
                           <strong class="pe-2">Links Crawled</strong>
                           <var class="flex-grow-1 text-end" id="os_crawl_links_crawled"><?php
-                            echo $_ODATA['sp_links_crawled'];
+                            if ($_ODATA['sp_crawling']) {
+                              echo $_ODATA['sp_progress'][0].' / '.$_ODATA['sp_progress'][1];
+                            } else echo $_ODATA['sp_progress'][0];
                           ?></var>
                         </label>
                       </li>
@@ -1953,12 +1967,14 @@ document.write(mustache.render(
                         <label class="d-flex w-100">
                           <strong class="pe-2">Pages Stored</strong>
                           <var class="flex-grow-1 text-end" id="os_crawl_pages_stored"><?php
-                            if ($_ODATA['sp_links_crawled']) { ?> 
-                              <small data-bs-toggle="tooltip" data-bs-placement="bottom" title="Efficiency percentage of pages stored vs. links crawled"><?php
-                                echo '('.round(($_ODATA['sp_pages_stored'] / $_ODATA['sp_links_crawled']) * 100, 1).'%)';
-                              ?></small> <?php
-                            }
-                            echo $_ODATA['sp_pages_stored'];
+                            if (!$_ODATA['sp_crawling']) {
+                              if ($_ODATA['sp_progress'][0]) { ?> 
+                                <small data-bs-toggle="tooltip" data-bs-placement="bottom" title="Efficiency percentage of pages stored vs. links crawled"><?php
+                                  echo '('.round(($_ODATA['sp_pages_stored'] / $_ODATA['sp_progress'][0]) * 100, 1).'%)';
+                                ?></small> <?php
+                              }
+                              echo $_ODATA['sp_pages_stored'];
+                            } else echo '0';
                           ?></var>
                         </label>
                       </li><?php
@@ -2470,8 +2486,8 @@ document.write(mustache.render(
                           <tr><?php echo $_RDATA['index_action_row']; ?></tr>
                         </tfoot>
                         <tbody class="table-group-divider"><?php
-                          if (count($_RDATA['sp_domains']) == 1)
-                            $repStr = '/^'.preg_quote(key($_RDATA['sp_domains']), '/').'/';
+                          if (count($_ODATA['sp_domains']) == 1)
+                            $repStr = '/^'.preg_quote(key($_ODATA['sp_domains']), '/').'/';
 
                           foreach ($_RDATA['page_index_rows'] as $key => $row) { ?> 
                             <tr class="lh-sm">
@@ -2485,7 +2501,7 @@ document.write(mustache.render(
                                       <a href="<?php echo htmlspecialchars($row['url']); ?>" title="<?php
                                         echo htmlspecialchars($row['url']); ?>" target="_blank" class="align-middle<?php
                                         if ($row['flag_updated']) echo ' fw-bold'; ?>"><?php
-                                        if (count($_RDATA['sp_domains']) == 1) {
+                                        if (count($_ODATA['sp_domains']) == 1) {
                                           echo htmlspecialchars(preg_replace($repStr, '', $row['url']));
                                         } else echo htmlspecialchars($row['url']);
                                       ?></a><?php
@@ -2737,13 +2753,13 @@ document.write(mustache.render(
                   </legend>
                   <div class="p-2 border border-1 border-secondary-subtle rounded-bottom-3">
                     <ul class="list-group mb-2"><?php
-                      if (count($_RDATA['sp_domains']) > 1) { ?> 
+                      if (count($_ODATA['sp_domains']) > 1) { ?> 
                         <li class="list-group-item">
                           <label class="d-flex lh-lg w-100">
                             <strong class="pe-2">Domain:</strong>
                             <span class="text-end flex-grow-1 text-nowrap">
                               <select name="os_jw_hostname" class="form-select d-inline-block"><?php
-                                foreach ($_RDATA['sp_domains'] as $domain => $count) { ?> 
+                                foreach ($_ODATA['sp_domains'] as $domain => $count) { ?> 
                                   <option value="<?php echo $domain; ?>"<?php
                                     if ($_ODATA['jw_hostname'] == $domain) echo ' selected="selected"'; ?>><?php
                                     echo $domain, ' (', $count, ')';
