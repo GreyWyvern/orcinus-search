@@ -192,7 +192,7 @@ if (!count($testConf->fetchAll())) {
       `s_results_pagination`=10,
       `s_limit_matchtext`=256,
       `s_limit_cache`=256,
-      `s_weights`=\'1.3%0.5%2.1%0.4%1.9%0.2%2.5%1.5\',
+      `s_weights`=\'{"title":"1.3","body":"0.5","keywords":"2.1","description":"0.4","css_value":"1.9","url":"0.2","multi":"2.5","important":"1.5"}\',
       `s_weight_css`=\'.important dt h1 h2 h3\',
       `s_show_orphans`=0,
       `s_show_filetype_html`=0,
@@ -718,19 +718,6 @@ if (!is_array($_ODATA['sp_domains'])) $_ODATA['sp_domains'] = array();
 if (count($_ODATA['sp_domains']) == 1 && $_ODATA['jw_hostname'] != key($_ODATA['sp_domains']))
   OS_setValue('jw_hostname', key($_ODATA['sp_domains']));
 
-
-// Match Weighting Values
-$weights = explode('%', $_ODATA['s_weights']);
-$_RDATA['s_weights'] = array(
-  'title' => $weights[0],
-  'body' => $weights[1],
-  'keywords' => $weights[2],
-  'description' => $weights[3],
-  'css_value' => $weights[4],
-  'url' => $weights[5],
-  'multi' => $weights[6],
-  'important' => $weights[7]
-);
 
 $_RDATA['sp_punct'] = array(
   "\u{00AB}" => '"',  "\u{00AD}" => '-',   "\u{00B4}" => '\'', "\u{00B7}" => '•',

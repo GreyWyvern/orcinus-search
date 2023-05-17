@@ -20,8 +20,9 @@ $_SDATA = array(
 );
 
 
-foreach ($_RDATA['s_weights'] as $key => $weight)
-  $_RDATA['s_weights'][$key] = (float)$weight;
+foreach ($_ODATA['s_weights'] as $key => $weight)
+  $_ODATA['s_weights'][$key] = (float)$weight;
+
 
 // Prepare regexp translation array for accented / ligature characters
 $_RDATA['s_latin_pcre'] = array();
@@ -376,19 +377,19 @@ if ($_RDATA['s_searchable_pages']) {
                   $e = $m + min(substr_count($row['lc_keywords'], $term), 3);
                   $f = $n + min(substr_count($row['lc_weighted'], $term), 3);
 
-                  $searchQuery[$key]['relevance'] += $a * $_RDATA['s_weights']['body'];
-                  $searchQuery[$key]['relevance'] += $b * $_RDATA['s_weights']['url'];
-                  $searchQuery[$key]['relevance'] += $c * $_RDATA['s_weights']['title'];
-                  $searchQuery[$key]['relevance'] += $d * $_RDATA['s_weights']['description'];
-                  $searchQuery[$key]['relevance'] += $e * $_RDATA['s_weights']['keywords'];
-                  $searchQuery[$key]['relevance'] += $f * $_RDATA['s_weights']['css_value'];
+                  $searchQuery[$key]['relevance'] += $a * $_ODATA['s_weights']['body'];
+                  $searchQuery[$key]['relevance'] += $b * $_ODATA['s_weights']['url'];
+                  $searchQuery[$key]['relevance'] += $c * $_ODATA['s_weights']['title'];
+                  $searchQuery[$key]['relevance'] += $d * $_ODATA['s_weights']['description'];
+                  $searchQuery[$key]['relevance'] += $e * $_ODATA['s_weights']['keywords'];
+                  $searchQuery[$key]['relevance'] += $f * $_ODATA['s_weights']['css_value'];
 
               }
             }
 
             // Calculate multipliers
-            $searchQuery[$key]['relevance'] *= $_RDATA['s_weights']['multi'] ** $searchQuery[$key]['multi'];
-            $searchQuery[$key]['relevance'] *= $_RDATA['s_weights']['important'] ** $searchQuery[$key]['phrase'];
+            $searchQuery[$key]['relevance'] *= $_ODATA['s_weights']['multi'] ** $searchQuery[$key]['multi'];
+            $searchQuery[$key]['relevance'] *= $_ODATA['s_weights']['important'] ** $searchQuery[$key]['phrase'];
 
             $searchQuery[$key]['relevance'] *= $row['priority'];
           }

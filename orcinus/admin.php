@@ -736,40 +736,40 @@ if (!$_SESSION['admin_username']) {
             OS_setValue('s_limit_term_length', (int)$_POST['os_s_limit_term_length']);
           }
 
-          if (!isset($_POST['os_s_weight_title'])) $_POST['os_s_weight_title'] = $_RDATA['s_weights']['title'];
+          if (!isset($_POST['os_s_weight_title'])) $_POST['os_s_weight_title'] = $_ODATA['s_weights']['title'];
           $_POST['os_s_weight_title'] = number_format(max(0, (float)$_POST['os_s_weight_title']), 1, '.', '');
 
-          if (!isset($_POST['os_s_weight_body'])) $_POST['os_s_weight_body'] = $_RDATA['s_weights']['body'];
+          if (!isset($_POST['os_s_weight_body'])) $_POST['os_s_weight_body'] = $_ODATA['s_weights']['body'];
           $_POST['os_s_weight_body'] = number_format(max(0, (float)$_POST['os_s_weight_body']), 1, '.', '');
 
-          if (!isset($_POST['os_s_weight_keywords'])) $_POST['os_s_weight_keywords'] = $_RDATA['s_weights']['keywords'];
+          if (!isset($_POST['os_s_weight_keywords'])) $_POST['os_s_weight_keywords'] = $_ODATA['s_weights']['keywords'];
           $_POST['os_s_weight_keywords'] = number_format(max(0, (float)$_POST['os_s_weight_keywords']), 1, '.', '');
 
-          if (!isset($_POST['os_s_weight_description'])) $_POST['os_s_weight_description'] = $_RDATA['s_weights']['description'];
+          if (!isset($_POST['os_s_weight_description'])) $_POST['os_s_weight_description'] = $_ODATA['s_weights']['description'];
           $_POST['os_s_weight_description'] = number_format(max(0, (float)$_POST['os_s_weight_description']), 1, '.', '');
 
-          if (!isset($_POST['os_s_weight_url'])) $_POST['os_s_weight_url'] = $_RDATA['s_weights']['url'];
+          if (!isset($_POST['os_s_weight_url'])) $_POST['os_s_weight_url'] = $_ODATA['s_weights']['url'];
           $_POST['os_s_weight_url'] = number_format(max(0, (float)$_POST['os_s_weight_url']), 1, '.', '');
 
-          if (!isset($_POST['os_s_weight_multi'])) $_POST['os_s_weight_multi'] = $_RDATA['s_weights']['multi'];
+          if (!isset($_POST['os_s_weight_multi'])) $_POST['os_s_weight_multi'] = $_ODATA['s_weights']['multi'];
           $_POST['os_s_weight_multi'] = number_format(max(0, (float)$_POST['os_s_weight_multi']), 1, '.', '');
 
-          if (!isset($_POST['os_s_weight_important'])) $_POST['os_s_weight_important'] = $_RDATA['s_weights']['important'];
+          if (!isset($_POST['os_s_weight_important'])) $_POST['os_s_weight_important'] = $_ODATA['s_weights']['important'];
           $_POST['os_s_weight_important'] = number_format(max(0, (float)$_POST['os_s_weight_important']), 1, '.', '');
 
-          if (!isset($_POST['os_s_weight_css_value'])) $_POST['os_s_weight_css_value'] = $_RDATA['s_weights']['css_value'];
+          if (!isset($_POST['os_s_weight_css_value'])) $_POST['os_s_weight_css_value'] = $_ODATA['s_weights']['css_value'];
           $_POST['os_s_weight_css_value'] = number_format(max(0, (float)$_POST['os_s_weight_css_value']), 1, '.', '');
 
-          OS_setValue('s_weights', implode('%', array(
-            $_POST['os_s_weight_title'],
-            $_POST['os_s_weight_body'],
-            $_POST['os_s_weight_keywords'],
-            $_POST['os_s_weight_description'],
-            $_POST['os_s_weight_css_value'],
-            $_POST['os_s_weight_url'],
-            $_POST['os_s_weight_multi'],
-            $_POST['os_s_weight_important']
-          )));
+          OS_setValue('s_weights', array(
+            'title' => $_POST['os_s_weight_title'],
+            'body' => $_POST['os_s_weight_body'],
+            'keywords' => $_POST['os_s_weight_keywords'],
+            'description' => $_POST['os_s_weight_description'],
+            'css_value' => $_POST['os_s_weight_css_value'],
+            'url' => $_POST['os_s_weight_url'],
+            'multi' => $_POST['os_s_weight_multi'],
+            'important' => $_POST['os_s_weight_important']
+          ));
 
           if (isset($_POST['os_s_weight_css'])) {
             $_POST['os_s_weight_css'] = preg_replace(
@@ -981,18 +981,8 @@ let os_rdata = {
       $_RDATA['s_category_list'],
       JSON_INVALID_UTF8_IGNORE
     );
-  ?>,
-  s_weights: <?php
-    echo json_encode(
-      $_RDATA['s_weights'],
-      JSON_INVALID_UTF8_IGNORE
-    );
-  ?> 
+  ?>
 };
-
-Object.keys(os_rdata.s_weights).forEach(key => {
-  os_rdata.s_weights[key] = parseFloat(os_rdata.s_weights[key]);
-});
 
 let os_odata = {
   version: '<?php echo $_ODATA['version']; ?>',
@@ -1009,8 +999,18 @@ let os_odata = {
       preg_replace('/\s{2,}/', ' ', $_ODATA['s_result_template']),
       JSON_INVALID_UTF8_IGNORE
     );
-  ?>
+  ?>,
+  s_weights: <?php
+    echo json_encode(
+      $_ODATA['s_weights'],
+      JSON_INVALID_UTF8_IGNORE
+    );
+  ?> 
 };
+
+Object.keys(os_odata.s_weights).forEach(key => {
+  os_odata.s_weights[key] = parseFloat(os_odata.s_weights[key]);
+});
 
 let os_sdata = {
   terms: [],
@@ -1247,19 +1247,19 @@ if (os_crawldata.length) {
               os_crawldata[y].phrase++;
 
             if (os_crawldata[y].title.match(os_sdata.terms[x][2]))
-              addRelevance += os_rdata.s_weights.title;
+              addRelevance += os_odata.s_weights.title;
 
             if (os_crawldata[y].description.match(os_sdata.terms[x][2]))
-              addRelevance += os_rdata.s_weights.description;
+              addRelevance += os_odata.s_weights.description;
 
             if (os_crawldata[y].keywords.match(os_sdata.terms[x][2]))
-              addRelevance += os_rdata.s_weights.keywords;
+              addRelevance += os_odata.s_weights.keywords;
 
             if (os_crawldata[y].weighted.match(os_sdata.terms[x][2]))
-              addRelevance += os_rdata.s_weights.css_value;
+              addRelevance += os_odata.s_weights.css_value;
 
             if (os_crawldata[y].content.match(os_sdata.terms[x][2]))
-              addRelevance += os_rdata.s_weights.body;
+              addRelevance += os_odata.s_weights.body;
 
             if (addRelevance) {
               os_crawldata[y].multi++;
@@ -1273,8 +1273,8 @@ if (os_crawldata.length) {
           os_crawldata[y].relevance += addRelevance;
 
           // Calculate multipliers
-          os_crawldata[y].relevance *= Math.pow(os_rdata.s_weights.multi, os_crawldata[y].multi);
-          os_crawldata[y].relevance *= Math.pow(os_rdata.s_weights.important, os_crawldata[y].phrase);
+          os_crawldata[y].relevance *= Math.pow(os_odata.s_weights.multi, os_crawldata[y].multi);
+          os_crawldata[y].relevance *= Math.pow(os_odata.s_weights.important, os_crawldata[y].phrase);
 
           os_crawldata[y].relevance *= os_crawldata[y].priority;
         }
@@ -2883,42 +2883,42 @@ document.write(mustache.render(
                             <label class="d-flex lh-lg w-100 mb-2">
                               <strong class="pe-2">Page Title:</strong>
                               <span class="flex-grow-1 text-end text-nowrap">
-                                <input type="number" name="os_s_weight_title" value="<?php echo $_RDATA['s_weights']['title']; ?>" min="0" max="100" step="0.1" class="form-control d-inline-block"
+                                <input type="number" name="os_s_weight_title" value="<?php echo $_ODATA['s_weights']['title']; ?>" min="0" max="100" step="0.1" class="form-control d-inline-block"
                                   data-bs-toggle="tooltip" data-bs-placement="bottom" title="Search terms found in the page title.">
                               </span>
                             </label>
                             <label class="d-flex lh-lg w-100 mb-2">
                               <strong class="pe-2">Body Text:</strong>
                               <span class="flex-grow-1 text-end text-nowrap">
-                                <input type="number" name="os_s_weight_body" value="<?php echo $_RDATA['s_weights']['body']; ?>" min="0" max="100" step="0.1" class="form-control d-inline-block"
+                                <input type="number" name="os_s_weight_body" value="<?php echo $_ODATA['s_weights']['body']; ?>" min="0" max="100" step="0.1" class="form-control d-inline-block"
                                   data-bs-toggle="tooltip" data-bs-placement="bottom" title="Search terms found in the page body text.">
                               </span>
                             </label>
                             <label class="d-flex lh-lg w-100 mb-2">
                               <strong class="pe-2">Keywords:</strong>
                               <span class="flex-grow-1 text-end text-nowrap">
-                                <input type="number" name="os_s_weight_keywords" value="<?php echo $_RDATA['s_weights']['keywords']; ?>" min="0" max="100" step="0.1" class="form-control d-inline-block"
+                                <input type="number" name="os_s_weight_keywords" value="<?php echo $_ODATA['s_weights']['keywords']; ?>" min="0" max="100" step="0.1" class="form-control d-inline-block"
                                   data-bs-toggle="tooltip" data-bs-placement="bottom" title="Search terms found in the page keywords meta information.">
                               </span>
                             </label>
                             <label class="d-flex lh-lg w-100 mb-2">
                               <strong class="pe-2">Description:</strong>
                               <span class="flex-grow-1 text-end text-nowrap">
-                                <input type="number" name="os_s_weight_description" value="<?php echo $_RDATA['s_weights']['description']; ?>" min="0" max="100" step="0.1" class="form-control d-inline-block"
+                                <input type="number" name="os_s_weight_description" value="<?php echo $_ODATA['s_weights']['description']; ?>" min="0" max="100" step="0.1" class="form-control d-inline-block"
                                   data-bs-toggle="tooltip" data-bs-placement="bottom" title="Search terms found in the page description meta information.">
                               </span>
                             </label>
                             <label class="d-flex lh-lg w-100 mb-2">
                               <strong class="pe-2">In URL:</strong>
                               <span class="flex-grow-1 text-end text-nowrap">
-                                <input type="number" name="os_s_weight_url" value="<?php echo $_RDATA['s_weights']['url']; ?>" min="0" max="100" step="0.1" class="form-control d-inline-block"
+                                <input type="number" name="os_s_weight_url" value="<?php echo $_ODATA['s_weights']['url']; ?>" min="0" max="100" step="0.1" class="form-control d-inline-block"
                                   data-bs-toggle="tooltip" data-bs-placement="bottom" title="Search terms found in the page URL.">
                               </span>
                             </label>
                             <label class="d-flex lh-lg w-100 mb-2">
                               <strong class="pe-2">CSS Selector:</strong>
                               <span class="flex-grow-1 text-end text-nowrap">
-                                <input type="number" name="os_s_weight_css_value" value="<?php echo $_RDATA['s_weights']['css_value']; ?>" min="0" max="100" step="0.1" class="form-control d-inline-block"
+                                <input type="number" name="os_s_weight_css_value" value="<?php echo $_ODATA['s_weights']['css_value']; ?>" min="0" max="100" step="0.1" class="form-control d-inline-block"
                                   data-bs-toggle="tooltip" data-bs-placement="bottom" title="An extra additive weight score will be added to content found in elements matching the CSS selectors below.">
                               </span>
                             </label>
@@ -2938,14 +2938,14 @@ document.write(mustache.render(
                             <label class="d-flex lh-lg w-100 mb-2">
                               <strong class="pe-2">Multi-term:</strong>
                               <span class="flex-grow-1 text-end text-nowrap">
-                                <input type="number" name="os_s_weight_multi" value="<?php echo $_RDATA['s_weights']['multi']; ?>" min="0" max="10" step="0.1" class="form-control d-inline-block"
+                                <input type="number" name="os_s_weight_multi" value="<?php echo $_ODATA['s_weights']['multi']; ?>" min="0" max="10" step="0.1" class="form-control d-inline-block"
                                   data-bs-toggle="tooltip" data-bs-placement="bottom" title="If a result matches more than one of the given search terms; applied for every search term match beyond the first.">
                               </span>
                             </label>
                             <label class="d-flex lh-lg w-100 mb-2">
                               <strong class="pe-2">Important (+):</strong>
                               <span class="flex-grow-1 text-end text-nowrap">
-                                <input type="number" name="os_s_weight_important" value="<?php echo $_RDATA['s_weights']['important']; ?>" min="0" max="10" step="0.1" class="form-control d-inline-block"
+                                <input type="number" name="os_s_weight_important" value="<?php echo $_ODATA['s_weights']['important']; ?>" min="0" max="10" step="0.1" class="form-control d-inline-block"
                                   data-bs-toggle="tooltip" data-bs-placement="bottom" title="Applied for search terms the user has marked as '+important'. Also applied to &quot;phrase matches&quot;.">
                               </span>
                             </label>
