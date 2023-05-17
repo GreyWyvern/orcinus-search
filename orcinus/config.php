@@ -155,7 +155,7 @@ if (!count($testConf->fetchAll())) {
       `sp_sleep`=0,
       `sp_ignore_ext`=\'7z au aiff avi bin bz bz2 cab cda cdr class com css csv doc docx dll dtd dwg dxf eps exe gif hqx ico image jar jav java jfif jpeg jpg js kbd mid mkv moov mov movie mp3 mp4 mpeg mpg ocx ogg png pps ppt ps psd qt ra ram rar rm rpm rtf scr sea sit svg swf sys tar.gz tga tgz tif tiff ttf uu uue vob wav woff woff2 xls xlsx z zip\',
       `sp_ignore_url`=\'\',
-      `sp_ignore_css`=\'.noindex footer form head nav noscript select style svg textarea\',
+      `sp_ignore_css`=\'.noindex footer form head nav noscript select script style svg textarea\',
       `sp_require_url`=\'\',
       `sp_title_strip`=\'\',
       `sp_category_default`=\'Main\',

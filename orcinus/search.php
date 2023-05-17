@@ -14,6 +14,7 @@ $_SDATA = array(
     'raw' => ''
   ),
   'results' => array(),
+  'tag' => 'mark',
   'json' => array(),
   'pages' => 1,
   'time' => microtime(true)
@@ -654,10 +655,26 @@ if ($_RDATA['s_searchable_pages']) {
 
               case 'phrase':
               case 'term':
-                $_RESULT->title_highlight = preg_replace($pcre, '<strong>$1</strong>', $_RESULT->title_highlight);
-                $_RESULT->url_highlight = preg_replace($pcre, '<strong>$1</strong>', $_RESULT->url_highlight);
-                $_RESULT->matchtext_highlight = preg_replace($pcre, '<strong>$1</strong>', $_RESULT->matchtext_highlight);
-                $_RESULT->description_highlight = preg_replace($pcre, '<strong>$1</strong>', $_RESULT->description_highlight);
+                $_RESULT->title_highlight = preg_replace(
+                  $pcre,
+                  '<'.$_SDATA['tag'].'>$1</'.$_SDATA['tag'].'>',
+                  $_RESULT->title_highlight
+                );
+                $_RESULT->url_highlight = preg_replace(
+                  $pcre,
+                  '<'.$_SDATA['tag'].'>$1</'.$_SDATA['tag'].'>',
+                  $_RESULT->url_highlight
+                );
+                $_RESULT->matchtext_highlight = preg_replace(
+                  $pcre,
+                  '<'.$_SDATA['tag'].'>$1</'.$_SDATA['tag'].'>',
+                  $_RESULT->matchtext_highlight
+                );
+                $_RESULT->description_highlight = preg_replace(
+                  $pcre,
+                  '<'.$_SDATA['tag'].'>$1</'.$_SDATA['tag'].'>',
+                  $_RESULT->description_highlight
+                );
 
             }
           }
