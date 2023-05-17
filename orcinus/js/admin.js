@@ -405,6 +405,9 @@ let os_get_crawl_progress = function(getLog) {
     // If crawl is complete...
     if (os_crawl_start.complete) {
 
+      let os_countup_time_end = document.getElementById('os_countup_time_end');
+      let os_countup_time_crawl = document.getElementById('os_countup_time_crawl');
+
       // Check if a new crawl has started and is ongoing
       if (data.status == 'Crawling') {
         os_crawl_start.disabled = 'disabled';
@@ -422,13 +425,11 @@ let os_get_crawl_progress = function(getLog) {
         os_crawl_start.innerHTML = 'Crawling...';
         os_crawl_navbar.innerHTML = 'Crawling...';
 
-        let os_countup_time_end = document.getElementById('os_countup_time_end');
         if (os_countup_time_end) {
           clearInterval(os_countup_time_end.interval);
           os_countup_time_end.parentNode.innerHTML = '<em>Currently crawling...</em>';
         }
 
-        let os_countup_time_crawl = document.getElementById('os_countup_time_crawl');
         if (os_countup_time_crawl) {
           os_countup_time_crawl.classList.add('active');
           os_countup_time_crawl.setAttribute('data-start', data.time_start);
@@ -445,6 +446,9 @@ let os_get_crawl_progress = function(getLog) {
       // page was loaded; if so, a crawl has finished after this page
       // was loaded; if so, reload the page
       } else if (os_crawl_loaded < data.time_end) {
+
+        if (os_countup_time_crawl)
+          clearInterval(os_countup_time_crawl.interval);
 
         // Check if the crawler modal window is open
         if (crawlerModal && crawlerModal.classList.contains('show')) {
