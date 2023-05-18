@@ -1769,7 +1769,7 @@ document.write(mustache.render(
         'SELECT *, INET_NTOA(`ip`) AS `ipaddr`
            FROM `'.$_DDATA['tbprefix'].'query` AS `t`
              INNER JOIN (
-               SELECT `query`, COUNT(`query`) AS `hits`,
+               SELECT `query`, COUNT(`query`) AS `hits`, COUNT(DISTINCT(`ip`)) AS `ipuni`,
                       REGEXP_REPLACE(`query`, \'^[[:punct:]]+\', \'\') AS `alpha`,
                       MAX(`stamp`) AS `last_hit`, AVG(`results`) AS `avg_results`
                  FROM `'.$_DDATA['tbprefix'].'query`
@@ -3110,7 +3110,8 @@ document.write(mustache.render(
                           </th>
                           <td class="text-center" data-value="<?php echo (int)$query['hits']; ?>"><?php
                             echo (int)$query['hits'];
-                          ?></td>
+                            ?> <small title="Unique IPs">(<?php echo (int)$query['ipuni'];
+                          ?>)</small></td>
                           <td class="text-center d-none d-sm-table-cell" data-value="<?php echo (int)$query['avg_results']; ?>"><?php
                             echo (int)$query['avg_results'];
                           ?></td>
