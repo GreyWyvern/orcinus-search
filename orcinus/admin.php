@@ -1810,7 +1810,9 @@ document.write(mustache.render(
   <link rel="stylesheet" href="css/bootstrap.min.css">
   <link rel="stylesheet" href="css/admin.css">
 
-  <title>Orcinus Site Search <?php echo $_ODATA['version']; ?> - Administration</title>
+  <title>Orcinus Site Search - <?php
+    echo $_RDATA['admin_pages'][$_SESSION['admin_page']];
+  ?></title>
 </head>
 <body class="pt-5">
   <nav class="navbar fixed-top navbar-expand-md bg-body-secondary">
@@ -1818,6 +1820,9 @@ document.write(mustache.render(
       <span class="navbar-brand flex-grow-1 flex-md-grow-0 mb-1">Orcinus</span><?php
       if ($_SESSION['admin_username']) { ?> 
         <div class="flex-grow-0 order-md-last">
+          <var class="me-1" title="Orcinus Site Search - Version: <?php echo $_ODATA['version']; ?>">
+             v<?php echo $_ODATA['version']; ?> 
+          </var>
           <button type="button" class="btn btn-primary" id="os_crawl_navbar" data-bs-toggle="modal" data-bs-target="#crawlerModal" data-bs-crawl="run"<?php
             if (!file_exists('./crawler.php')) echo ' disabled="disabled"'; ?>><?php
             echo ($_ODATA['sp_crawling']) ? 'Crawling...' : 'Crawler';

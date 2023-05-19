@@ -140,7 +140,7 @@ if ($err[0] != '00000')
 if (!count($testConf->fetchAll())) {
   $insert = $_DDATA['pdo']->query(
     'INSERT INTO `'.$_DDATA['tbprefix'].'config` SET
-      `version`=\'3.0\',
+      `version`=\'3.0.0\',
       `admin_from`=\'\',
       `admin_email`=\'\',
       `admin_install_root`=\'\',
