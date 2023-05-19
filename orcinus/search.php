@@ -729,7 +729,7 @@ if ($_RDATA['s_searchable_pages']) {
 
 
 
-// IF the crawler 'time_start' is more than 'timeout_crawl'
+// If the crawler 'time_start' is more than 'timeout_crawl'
 // seconds ago, the crawler is probably stuck. Unstick it.
 if (OS_getValue('sp_crawling') &&
     time() - $_ODATA['sp_time_start'] > $_ODATA['sp_timeout_crawl']) {
@@ -740,11 +740,8 @@ if (OS_getValue('sp_crawling') &&
   if (strpos(OS_getValue('sp_log'), "\n") === false && file_exists($_ODATA['sp_log'])) {
     $log = file_get_contents($_ODATA['sp_log']);
     OS_setValue('sp_log', $log."\n".'[ERROR] '.$reason);
-  } else OS_setValue('sp_log', '[ERROR] '.$eason);
-  OS_setValue('sp_time_end', time());
-  OS_setValue('sp_time_last', time() - $_ODATA['sp_time_start']);
-  OS_setValue('sp_data_transferred', 0);
-  OS_setValue('sp_data_stored', 0);
+  } else OS_setValue('sp_log', '[ERROR] '.$reason);
+  OS_setValue('sp_time_last', $_ODATA['sp_time_end'] - $_ODATA['sp_time_start']);
 
   // Send failure email to the admin(s)
   if ($_MAIL && count($_MAIL->getAllRecipientAddresses()) && $_ODATA['sp_email_failure']) {
