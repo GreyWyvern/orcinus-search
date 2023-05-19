@@ -131,13 +131,13 @@ if ($_RDATA['s_searchable_pages']) {
           if (!$t) continue;
 
           // Leading + means important, a MUST match
-          if ($t[0] == '+') {
+          if ($t[0] == '+' && strlen($t) > 1) {
 
             // Just count it as a 'phrase' of one word, functionally equivalent
             $_SDATA['terms'][] = array('phrase', substr($t, 1), false);
 
           // Leading - means negative, a MUST exclude
-          } else if ($t[0] == '-') {
+          } else if ($t[0] == '-' && strlen($t) > 1) {
             $_SDATA['terms'][] = array('exclude', substr($t, 1), false);
 
           // Restrict to a specific filetype (not yet implemented)
