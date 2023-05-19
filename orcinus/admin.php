@@ -12,8 +12,9 @@ require __DIR__.'/config.php';
  * Display a 'time since' HTML/Javascript counter
  *
  */
-function OS_countUp($time, $active, $id = '') {
-  $since = time() - $time;
+function OS_countUp($time, $id = '') {
+  $duration = ($time < 1000000);
+  $since = ($duration) ? $time : time() - $time;
   $periods = array(
     array('d', 'day', 'days'),
     array('h', 'hour', 'hours'),
@@ -23,9 +24,17 @@ function OS_countUp($time, $active, $id = '') {
   $days = floor($since / 86400); $since %= 86400;
   $hours = floor($since / 3600); $since %= 3600;
   $minutes = floor($since / 60);
-  $seconds = $since % 60; ?> 
-  <span class="countup_timer<?php if ($active) echo ' active'; ?>" data-start="<?php
-    echo $time; ?>" title="<?php echo date('r', $time); ?>"<?php
+  $seconds = $since % 60;
+  if ($duration) {
+    $duration = 'PT';
+    if ($days) $duration .= $days.'D';
+    if ($hours) $duration .= $hours.'H';
+    if ($minutes) $duration .= $minutes.'M';
+    if ($seconds) $duration .= $seconds.'S';
+  } ?> 
+  <time class="countup_timer<?php if (!$duration) echo ' active'; ?>" data-start="<?php
+    echo $time; ?>" datetime="<?php echo ($duration) ? $duration :  date('c', $time);
+    ?>"<?php if (!$duration) echo ' title="'.date('r', $time).'"';
     if (!empty($id)) echo ' id="'.htmlspecialchars($id).'"'; ?>>
     <span data-period="days"<?php
       if (!$days) echo ' class="d-none"'; ?>>
@@ -46,7 +55,7 @@ function OS_countUp($time, $active, $id = '') {
       <var><?php echo $seconds; ?></var>
       <?php echo ($seconds == 1) ? $periods[3][1] : $periods[3][2]; ?>
     </span>
-  </span><?php
+  </time><?php
 }
 
 
@@ -1910,7 +1919,7 @@ document.write(mustache.render(
                         </label>
                         <div><?php
                           if (!$_ODATA['sp_crawling']) {
-                            OS_countUp(($_ODATA['sp_time_end']) ? $_ODATA['sp_time_end'] : time(), true, 'os_countup_time_end');
+                            OS_countUp(($_ODATA['sp_time_end']) ? $_ODATA['sp_time_end'] : time(), 'os_countup_time_end');
                             ?> ago<?php
                           } else { ?> 
                             <em>Currently crawling...</em><?php
@@ -1928,9 +1937,9 @@ document.write(mustache.render(
                           <strong class="pe-2">Crawl Time</strong>
                           <var class="flex-grow-1 text-end" id="os_crawl_time_last"><?php
                             if ($_ODATA['sp_crawling']) {
-                              OS_countUp($_ODATA['sp_time_start'], true, 'os_countup_time_crawl');
+                              OS_countUp($_ODATA['sp_time_start'], 'os_countup_time_crawl');
                             } else {
-                              OS_countUp(time() - $_ODATA['sp_time_last'], false, 'os_countup_time_crawl');
+                              OS_countUp($_ODATA['sp_time_last'], 'os_countup_time_crawl');
                             }
                           ?></var>
                         </label>
