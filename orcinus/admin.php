@@ -2434,7 +2434,7 @@ document.write(mustache.render(
                           <tr>
                             <th class="pe-0"></th>
                             <th class="fs-5" scope="col">URL</th>
-                            <td class="text-center">
+                            <td class="text-center w-100">
                               <span class="d-none d-sm-inline">Showing pages </span><?php
                               echo min($_RDATA['page_index_offset'] + 1, $_RDATA['page_index_found_rows']);
                               ?> &ndash; <?php
@@ -2489,45 +2489,57 @@ document.write(mustache.render(
                           if (count($_ODATA['sp_domains']) == 1)
                             $repStr = '/^'.preg_quote(key($_ODATA['sp_domains']), '/').'/';
 
-                          foreach ($_RDATA['page_index_rows'] as $key => $row) { ?> 
-                            <tr class="lh-sm">
-                              <td class="align-middle pe-0">
-                                <input type="checkbox" data-index="<?php echo $key; ?>" name="os_index_pages[]" value="<?php echo base64_encode($row['content_checksum']); ?>" class="form-check-input mt-1">
-                              </td>
-                              <td colspan="2" class="text-nowrap">
-                                <div class="d-inline-block align-middle mw-90">
-                                  <div class="w-100 d-table table-fixed">
-                                    <div class="w-100 d-table-cell overflow-hidden text-ellipsis">
-                                      <a href="<?php echo htmlspecialchars($row['url']); ?>" title="<?php
-                                        echo htmlspecialchars($row['url']); ?>" target="_blank" class="align-middle<?php
-                                        if ($row['flag_updated']) echo ' fw-bold'; ?>"><?php
-                                        if (count($_ODATA['sp_domains']) == 1) {
-                                          echo htmlspecialchars(preg_replace($repStr, '', $row['url']));
-                                        } else echo htmlspecialchars($row['url']);
-                                      ?></a><?php
-                                      if ($row['flag_updated']) { ?> 
-                                        <img src="img/new.svg" alt="Updated" class="svg-icon"
-                                          data-bs-toggle="tooltip" data-bs-placement="top" title="Page is new or content was updated during the most recent crawl."><?php
-                                      } ?> 
+                          if (count($_RDATA['page_index_rows'])) {
+                            foreach ($_RDATA['page_index_rows'] as $key => $row) { ?> 
+                              <tr class="lh-sm">
+                                <td class="align-middle pe-0">
+                                  <input type="checkbox" data-index="<?php echo $key; ?>" name="os_index_pages[]" value="<?php echo base64_encode($row['content_checksum']); ?>" class="form-check-input mt-1">
+                                </td>
+                                <td colspan="2" class="text-nowrap">
+                                  <div class="d-inline-block align-middle mw-90">
+                                    <div class="w-100 d-table table-fixed">
+                                      <div class="w-100 d-table-cell overflow-hidden text-ellipsis">
+                                        <a href="<?php echo htmlspecialchars($row['url']); ?>" title="<?php
+                                          echo htmlspecialchars($row['url']); ?>" target="_blank" class="align-middle<?php
+                                          if ($row['flag_updated']) echo ' fw-bold'; ?>"><?php
+                                          if (count($_ODATA['sp_domains']) == 1) {
+                                            echo htmlspecialchars(preg_replace($repStr, '', $row['url']));
+                                          } else echo htmlspecialchars($row['url']);
+                                        ?></a><?php
+                                        if ($row['flag_updated']) { ?> 
+                                          <img src="img/new.svg" alt="Updated" class="svg-icon"
+                                            data-bs-toggle="tooltip" data-bs-placement="top" title="Page is new or content was updated during the most recent crawl."><?php
+                                        } ?> 
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              </td><?php
-                              if (count($_RDATA['s_category_list']) > 2) { ?> 
+                                </td><?php
+                                if (count($_RDATA['s_category_list']) > 2) { ?> 
+                                  <td class="d-none d-md-table-cell text-center"><?php
+                                    echo htmlspecialchars($row['category']);
+                                  ?></td><?php
+                                } ?> 
+                                <td class="text-center text-nowrap">
+                                  <span><?php echo htmlspecialchars($row['status']); ?></span><?php
+                                  if ($row['flag_unlisted']) { ?> 
+                                    <img src="img/hidden.svg" alt="Unlisted" class="align-middle svg-icon mb-1"
+                                      data-bs-toggle="tooltip" data-bs-placement="top" title="Unlisted: This page will be crawled for content and links as normal, but will not show up in any search results."><?php
+                                  }
+                                ?></td>
                                 <td class="d-none d-md-table-cell text-center"><?php
-                                  echo htmlspecialchars($row['category']);
-                                ?></td><?php
-                              } ?> 
-                              <td class="text-center text-nowrap">
-                                <span><?php echo htmlspecialchars($row['status']); ?></span><?php
-                                if ($row['flag_unlisted']) { ?> 
-                                  <img src="img/hidden.svg" alt="Unlisted" class="align-middle svg-icon mb-1"
-                                    data-bs-toggle="tooltip" data-bs-placement="top" title="Unlisted: This page will be crawled for content and links as normal, but will not show up in any search results."><?php
-                                }
-                              ?></td>
-                              <td class="d-none d-md-table-cell text-center"><?php
-                                echo htmlspecialchars($row['priority']);
-                              ?></td>
+                                  echo htmlspecialchars($row['priority']);
+                                ?></td>
+                              </tr><?php
+                            }
+
+                          // No pages to list with these filters
+                          } else { ?> 
+                            <tr>
+                              <td colspan="100%">
+                                <p class="text-center m-0">
+                                  No pages to list.
+                                </p>
+                              </td>
                             </tr><?php
                           } ?> 
                         </tbody>
