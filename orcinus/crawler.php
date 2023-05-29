@@ -334,8 +334,8 @@ function OS_crawlCleanUp() {
       OS_setValue('sp_time_end_success', $_ODATA['sp_time_end']);
 
       OS_crawlLog('***** Crawl completed in '.$_ODATA['sp_time_last'].'s *****', 1);
-      OS_crawlLog('Total data transferred: '.OS_readSize($_RDATA['sp_data_transferred']), 1);
-      OS_crawlLog('Average transfer speed: '.OS_readSize(round($_RDATA['sp_data_transferred'] / $_ODATA['sp_time_last'])).'/s', 1);
+      OS_crawlLog('Total data transferred: '.OS_readSize($_ODATA['sp_data_transferred']), 1);
+      OS_crawlLog('Average transfer speed: '.OS_readSize(round($_ODATA['sp_data_transferred'] / $_ODATA['sp_time_last'])).'/s', 1);
       if ($_RDATA['sp_sleep'])
         OS_crawlLog('Time spent sleeping: '.(round($_RDATA['sp_sleep'] / 10) / 100).'s', 1);
       OS_crawlLog('Time taken by cURL: '.(round($_RDATA['sp_time_curl'] * 100) / 100).'s', 1);
@@ -399,7 +399,7 @@ function OS_crawlCleanUp() {
     OS_setValue('sp_time_last', $_ODATA['sp_time_end'] - $_ODATA['sp_time_start']);
 
     OS_crawlLog('***** Crawl failed; runtime '.$_ODATA['sp_time_last'].'s *****', 1);
-    OS_crawlLog('Total data transferred: '.OS_readSize($_RDATA['sp_data_transferred']), 1);
+    OS_crawlLog('Total data transferred: '.OS_readSize($_ODATA['sp_data_transferred']), 1);
     OS_crawlLog('Search table was NOT updated', 1);
 
     if ($_ODATA['sp_sitemap_file'])
