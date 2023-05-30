@@ -57,7 +57,7 @@ foreach($_DDATA['tables'] as $key => $value)
 
 
 // ***** Create the configuration table if it doesn't exist
-if (!in_array($_DDATA['tbprefix'].'config', $_DDATA['tables'])) {
+if (!in_array($_DDATA['tbprefix'].'config', $_DDATA['tables'], true)) {
   $create = $_DDATA['pdo']->query(
     'CREATE TABLE `'.$_DDATA['tbprefix'].'config` (
       `version` VARCHAR(8) NOT NULL,
@@ -210,7 +210,7 @@ if (!count($testConf->fetchAll())) {
 
 
 // ***** Create the crawldata table if it doesn't exist
-if (!in_array($_DDATA['tbprefix'].'crawldata', $_DDATA['tables'])) {
+if (!in_array($_DDATA['tbprefix'].'crawldata', $_DDATA['tables'], true)) {
   $create = $_DDATA['pdo']->query(
     'CREATE TABLE `'.$_DDATA['tbprefix'].'crawldata` (
       `url` TEXT NOT NULL,
@@ -239,7 +239,7 @@ if (!in_array($_DDATA['tbprefix'].'crawldata', $_DDATA['tables'])) {
 }
 
 // ***** Create the query log table if it doesn't exist
-if (!in_array($_DDATA['tbprefix'].'query', $_DDATA['tables'])) {
+if (!in_array($_DDATA['tbprefix'].'query', $_DDATA['tables'], true)) {
   $create = $_DDATA['pdo']->query(
     'CREATE TABLE `'.$_DDATA['tbprefix'].'query` (
       `query` TINYTEXT NOT NULL,

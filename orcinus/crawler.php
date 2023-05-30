@@ -99,7 +99,7 @@ function OS_filterURL($_, $base) {
 
   // Accepted hostnames
   $plink = parse_url($_);
-  if (!in_array($plink['host'], $_RDATA['sp_hostnames']))
+  if (!in_array($plink['host'], $_RDATA['sp_hostnames'], true))
     return $_RDATA['sp_filter'][$_] = 'disallowed-host';
 
   // Require URL matches
@@ -220,7 +220,7 @@ function OS_fetchURL($url, $referer = '') {
       break;
 
     default: // Uncaught cURL error
-      OS_crawlLog('Uncaught cURL error:'.$url, 2);
+      OS_crawlLog('Uncaught cURL error: '.$url, 2);
       OS_crawlLog($_['errno'], 1);
       OS_crawlLog($_['error'], 1);
       OS_crawlLog(print_r($_['info'], true), 1);
@@ -739,7 +739,7 @@ foreach ($_RDATA['sp_starting'] as $starting) {
   $_RDATA['sp_require_url'][] = preg_replace('/\/[^\/]*$/', '/', $starting);
 
   $host = parse_url($starting)['host'];
-  if (!in_array($host, $_RDATA['sp_hostnames']))
+  if (!in_array($host, $_RDATA['sp_hostnames'], true))
     $_RDATA['sp_hostnames'][] = $host;
 }
 
@@ -867,7 +867,7 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
       foreach ($robots as $agent => $rules) {
         if (preg_match('/^orc(a|inus)(-?php)?-?crawler$/i', $agent) || $agent == '*') {
           foreach ($rules['disallow'] as $disrule)
-            if (!in_array($disrule, $_RDATA['sp_robots'][$purl['host']]))
+            if (!in_array($disrule, $_RDATA['sp_robots'][$purl['host']], true))
               $_RDATA['sp_robots'][$purl['host']][] = $disrule;
           foreach ($rules['allow'] as $rule) {
             $key = array_search($rule, $_RDATA['sp_robots'][$purl['host']]);
@@ -1407,7 +1407,7 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
       if (!$data['info']['noindex']) {
 
         // If this URL exists (or existed) in the live table...
-        if (in_array($url, $_RDATA['sp_exist']) || $referer == '<orphan>') {
+        if (in_array($url, $_RDATA['sp_exist'], true) || $referer == '<orphan>') {
           $_RDATA['sp_status']['Updated']++;
 
           $selectData->execute(array('url' => $url));
@@ -1600,7 +1600,7 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
       $link = OS_formatURL($link, $data['base']);
 
       // ***** If this link hasn't been crawled yet
-      if (!in_array($link, $_RDATA['sp_links'])) {
+      if (!in_array($link, $_RDATA['sp_links'], true)) {
 
         // ... and if link hasn't been queued yet
         foreach ($_RDATA['sp_queue'] as $queue)

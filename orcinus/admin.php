@@ -94,7 +94,7 @@ if ($err[0] == '00000') {
 
 // ***** Other runtime data
 $_RDATA['admin_pagination_options'] = array(25, 50, 100, 250, 500, 1000);
-if (!in_array($_ODATA['admin_index_pagination'], $_RDATA['admin_pagination_options']))
+if (!in_array($_ODATA['admin_index_pagination'], $_RDATA['admin_pagination_options'], true))
   OS_setValue('admin_index_pagination', 100);
 
 $_RDATA['admin_pages'] = array(
@@ -532,7 +532,7 @@ if (!$_SESSION['admin_username']) {
           }
 
           if (isset($_POST['os_sp_timezone']))
-            if (in_array($_POST['os_sp_timezone'], timezone_identifiers_list()))
+            if (in_array($_POST['os_sp_timezone'], timezone_identifiers_list(), true))
               OS_setValue('sp_timezone', $_POST['os_sp_timezone']);
 
           if (isset($_POST['os_sp_email_success']) && $_POST['os_sp_email_success'] == '1') {
@@ -1547,7 +1547,7 @@ document.write(mustache.render(
       // Set new Page Index pagination value
       if (!empty($_POST['os_index_hidden_pagination'])) {
         $_POST['os_index_hidden_pagination'] = (int)$_POST['os_index_hidden_pagination'];
-        if (in_array($_POST['os_index_hidden_pagination'], $_RDATA['admin_pagination_options'])) {
+        if (in_array($_POST['os_index_hidden_pagination'], $_RDATA['admin_pagination_options'], true)) {
           OS_setValue('admin_index_pagination', $_POST['os_index_hidden_pagination']);
           $_SESSION['index_page'] = 1;
         }
@@ -1569,7 +1569,7 @@ document.write(mustache.render(
 
       // Select a Page Index Status filter
       if (!empty($_POST['os_index_new_filter_status'])) {
-        if (in_array($_POST['os_index_new_filter_status'], $_RDATA['index_status_list'])) {
+        if (in_array($_POST['os_index_new_filter_status'], $_RDATA['index_status_list'], true)) {
           $_SESSION['index_filter_status'] = $_POST['os_index_new_filter_status'];
           $_SESSION['index_page'] = 1;
         }
