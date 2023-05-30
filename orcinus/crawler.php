@@ -759,14 +759,69 @@ if ($err[0] == '00000') {
 } else OS_crawlLog('Error getting list of previous URLs from crawldata table', 2);
 
 
-// Drop previous temp table if it exists
-$drop = $_DDATA['pdo']->query(
-  'DROP TABLE IF EXISTS `'.$_DDATA['tbprefix'].'crawltemp`;'
-);
+// If the crawltemp table exists here, that means a crawl was
+// interrupted without going through the shutdown function.
+// Use the data from this partially completed crawl to resume it.
+if (in_array($_DDATA['tbprefix'].'crawltemp', $_DDATA['tables'], true)) {
+  $select = $_DDATA['pdo']->query(
+    'SELECT `url`, `links` FROM `'.$_DDATA['tbprefix'].'crawltemp`;'
+  );
+  $err = $select->errorInfo();
+  if ($err[0] == '00000') {
+    OS_crawlLog('Previous crawl data exists; using it to resume crawling...', 1);
+
+    $select = $select->fetchAll();
+
+    // Run through every entry in the crawltemp table
+    foreach ($select as $row) {
+
+      // In an entry matches an existing URL in the queue (just
+      // starting URLs right now) then delete that queue entry
+      foreach ($_RDATA['sp_queue'] as $key => $queue)
+        if ($row['url'] == $queue[0])
+          unset($_RDATA['sp_queue'][$key]);
+
+      // Add it to the 'stored' and 'crawled links' list
+      $_RDATA['sp_store'][] = $row['url'];
+      $_RDATA['sp_links'][] = $row['url'];
+      OS_crawlLog('Crawl data found for: '.$row['url'], 0);
+
+      // Add links from the entry to the queue
+      $row['links'] = json_decode($row['links'], true);
+      foreach ($row['links'] as $link) {
+
+        $link = OS_formatURL($link, $url);
+
+        // ***** If this link hasn't been crawled yet
+        if (!in_array($link, $_RDATA['sp_links'], true)) {
+
+          // ... and if link hasn't been queued yet
+          foreach ($_RDATA['sp_queue'] as $queue)
+            if ($link == $queue[0]) continue 2;
+
+          // ... and if link passes our user filters
+          if ($nx = OS_filterURL($link, $url)) {
+            OS_crawlLog('Link ignored due to noindex rule \''.$nx.'\': '.$link, 0);
+            continue;
+          }
+
+          // ... then add the link to the queue
+          $_RDATA['sp_queue'][] = array($link, 0, $url);
+        }
+      }
+    }
+
+  // We couldn't select any data from the crawltemp table so delete it
+  } else {
+    $drop = $_DDATA['pdo']->query(
+      'DROP TABLE IF EXISTS `'.$_DDATA['tbprefix'].'crawltemp`;'
+    );
+  }
+}
 
 // Create a temp MySQL storage table using schema of the existing table
 $create = $_DDATA['pdo']->query(
-  'CREATE TABLE `'.$_DDATA['tbprefix'].'crawltemp`
+  'CREATE TABLE IF NOT EXISTS`'.$_DDATA['tbprefix'].'crawltemp`
      LIKE `'.$_DDATA['tbprefix'].'crawldata`;'
 );
 
