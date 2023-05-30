@@ -772,6 +772,8 @@ if (in_array($_DDATA['tbprefix'].'crawltemp', $_DDATA['tables'], true)) {
 
     $select = $select->fetchAll();
 
+    OS_crawlLog('Found '.count($select).' previously crawled URLs', 1);
+
     // Run through every entry in the crawltemp table
     foreach ($select as $row) {
 
@@ -784,13 +786,13 @@ if (in_array($_DDATA['tbprefix'].'crawltemp', $_DDATA['tables'], true)) {
       // Add it to the 'stored' and 'crawled links' list
       $_RDATA['sp_store'][] = $row['url'];
       $_RDATA['sp_links'][] = $row['url'];
-      OS_crawlLog('Crawl data found for: '.$row['url'], 0);
+      OS_crawlLog('Crawl data found for: '.$row['url'], 1);
 
       // Add links from the entry to the queue
       $row['links'] = json_decode($row['links'], true);
       foreach ($row['links'] as $link) {
 
-        $link = OS_formatURL($link, $url);
+        $link = OS_formatURL($link, $row['url']);
 
         // ***** If this link hasn't been crawled yet
         if (!in_array($link, $_RDATA['sp_links'], true)) {
@@ -800,13 +802,13 @@ if (in_array($_DDATA['tbprefix'].'crawltemp', $_DDATA['tables'], true)) {
             if ($link == $queue[0]) continue 2;
 
           // ... and if link passes our user filters
-          if ($nx = OS_filterURL($link, $url)) {
+          if ($nx = OS_filterURL($link, $row['url'])) {
             OS_crawlLog('Link ignored due to noindex rule \''.$nx.'\': '.$link, 0);
             continue;
           }
 
           // ... then add the link to the queue
-          $_RDATA['sp_queue'][] = array($link, 0, $url);
+          $_RDATA['sp_queue'][] = array($link, 0, $row['url']);
         }
       }
     }
