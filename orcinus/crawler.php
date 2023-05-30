@@ -786,7 +786,6 @@ if (in_array($_DDATA['tbprefix'].'crawltemp', $_DDATA['tables'], true)) {
       // Add it to the 'stored' and 'crawled links' list
       $_RDATA['sp_store'][] = $row['url'];
       $_RDATA['sp_links'][] = $row['url'];
-      OS_crawlLog('Crawl data found for: '.$row['url'], 1);
 
       // Add links from the entry to the queue
       $row['links'] = json_decode($row['links'], true);
@@ -802,10 +801,7 @@ if (in_array($_DDATA['tbprefix'].'crawltemp', $_DDATA['tables'], true)) {
             if ($link == $queue[0]) continue 2;
 
           // ... and if link passes our user filters
-          if ($nx = OS_filterURL($link, $row['url'])) {
-            OS_crawlLog('Link ignored due to noindex rule \''.$nx.'\': '.$link, 0);
-            continue;
-          }
+          if ($nx = OS_filterURL($link, $row['url'])) continue;
 
           // ... then add the link to the queue
           $_RDATA['sp_queue'][] = array($link, 0, $row['url']);
