@@ -3099,15 +3099,16 @@ document.write(mustache.render(
                       <tr class="text-nowrap user-select-none">
                         <th class="fs-5" scope="col">
                           <span role="button" id="os_queries_query">Query</span>
-                          <img src="img/arrow-down.svg" alt="Sort" class="align-middle svg-icon-sm mb-1">
+                          <img src="img/arrow-down.svg" alt="Sort" title="Sort order" class="align-middle svg-icon-sm mb-1">
                         </th>
                         <th class="fs-5 text-center os_sorting os_desc" scope="col">
-                          <span role="button" id="os_queries_hits">Hits</span>
-                          <img src="img/arrow-down.svg" alt="Sort" class="align-middle svg-icon-sm mb-1">
+                          <span data-bs-toggle="tooltip" data-bs-placement="top" title="The number of times this query has been searched for with (unique users / IP addresses) in brackets"
+                            role="button" id="os_queries_hits">Hits</span>
+                          <img src="img/arrow-down.svg" alt="Sort" title="Sort order" class="align-middle svg-icon-sm mb-1">
                         </th>
                         <th class="fs-5 text-center d-none d-sm-table-cell" scope="col">
-                          <span role="button" id="os_queries_results">Results</span>
-                          <img src="img/arrow-down.svg" alt="Sort" class="align-middle svg-icon-sm mb-1">
+                          <span role="button" id="os_queries_results" title="Search results returned">Results</span>
+                          <img src="img/arrow-down.svg" alt="Sort" title="Sort order" class="align-middle svg-icon-sm mb-1">
                         </th>
                         <th class="fs-5 text-center" colspan="2" scope="col">
                           <span role="button" id="os_queries_stamp">
@@ -3115,7 +3116,7 @@ document.write(mustache.render(
                             <img src="img/clock.svg" alt="" class="d-md-none align-middle svg-icon mb-1"
                               data-bs-toggle="tooltip" data-bs-placement="left" title="Time since this query was last requested">
                           </span>
-                          <img src="img/arrow-down.svg" alt="Sort" class="align-middle svg-icon-sm mb-1">
+                          <img src="img/arrow-down.svg" alt="Sort" title="Sort order" class="align-middle svg-icon-sm mb-1">
                         </th>
                       </tr>
                     </thead>

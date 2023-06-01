@@ -1687,6 +1687,7 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
         if ($nx = OS_filterURL($link, $data['base'])) {
           OS_crawlLog('Orphan URL ignored due to noindex rule \''.$nx.'\': '.$link, 0);
           $_RDATA['sp_status']['Blocked']++;
+          unset($_RDATA['sp_exist'][$key]);
           continue;
         }
 

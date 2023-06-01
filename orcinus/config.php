@@ -2,6 +2,7 @@
 
 
 $_DDATA = array();
+$_ODATA = array();
 $_RDATA = array();
 require __DIR__.'/config.ini.php';
 
@@ -365,7 +366,6 @@ $err = $odata->errorInfo();
 if ($err[0] == '00000') {
   $odata = $odata->fetchAll();
   if (count($odata)) {
-    $_ODATA = array();
     foreach ($odata[0] as $key => $value) {
       $json = json_decode($value, true);
       $_ODATA[$key] = (!is_null($json)) ? $json : $value;
