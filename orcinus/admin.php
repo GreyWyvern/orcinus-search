@@ -906,10 +906,11 @@ if (!$_SESSION['admin_username']) {
                 $select[$key]['words'] = array_unique(explode(' ', $row['content']));
 
                 foreach ($select[$key]['words'] as $index => $word) {
-                  if (!$word) continue;
-                  if (empty($words[$word])) {
-                    $words[$word] = 1;
-                  } else $words[$word]++;
+                  if ($word) {
+                    if (empty($words[$word])) {
+                      $words[$word] = 1;
+                    } else $words[$word]++;
+                  }
                 }
               }
 
@@ -1187,7 +1188,7 @@ if (os_crawldata.length) {
 
       // Prepare PCRE match text for each phrase and term
       let filetypes = [];
-      for (let x = 0, term; x < os_sdata.terms.length; x++) {
+      for (let x = 0; x < os_sdata.terms.length; x++) {
 
         // Normalize punctuation
         Object.keys(os_rdata.sp_smart).forEach(key => {
@@ -1196,9 +1197,9 @@ if (os_crawldata.length) {
 
         switch (os_sdata.terms[x][0]) {
           case 'filetype':
-            if (os_rdata.s_filetypes[term.toUpperCase()])
-              for (let z = 0; z < os_rdata.s_filetypes[term.toUpperCase()].length; z++)
-                filetypes.push(os_rdata.s_filetypes[term.toUpperCase()][z]);
+            if (os_rdata.s_filetypes[os_sdata.terms[x][1].toUpperCase()])
+              for (let z = 0; z < os_rdata.s_filetypes[os_sdata.terms[x][1].toUpperCase()].length; z++)
+                filetypes.push(os_rdata.s_filetypes[os_sdata.terms[x][1].toUpperCase()][z]);
             break;
 
           case 'exclude':
@@ -1227,7 +1228,8 @@ if (os_crawldata.length) {
       // ***** There is never any cache, so do an actual search
       for (let y = os_crawldata.length - 1; y >= 0; y--) {
         if (filetypes.length) {
-          for (let x = 0, allowMime = false; x < filetypes.length; x++)
+          let allowMime = false;
+          for (let x = 0; x < filetypes.length; x++)
             if (os_crawldata[y].content_mime == filetypes[x]) allowMime = true;
           if (!allowMime) {
             os_crawldata.splice(y, 1);

@@ -2,6 +2,15 @@
 
 
 require __DIR__.'/config.php';
+
+// Setting the $_RDATA['debug'] value to true will allow you to start
+// the crawler just by visiting this file's URL using your web browser.
+// It will output the log lines as well as any PHP errors that may
+// occur. It will also report how much memory the script is using. Use
+// this mode if your crawls are failing but the logs alone aren't
+// enough to tell you why. DO NOT leave the crawler in debug mode in a
+// production environment, or anyone can just run your crawler whenever
+// they want!
 $_RDATA['debug'] = false;
 
 
@@ -800,11 +809,10 @@ if (in_array($_DDATA['tbprefix'].'crawltemp', $_DDATA['tables'], true)) {
           foreach ($_RDATA['sp_queue'] as $queue)
             if ($link == $queue[0]) continue 2;
 
-          // ... and if link passes our user filters
-          if ($nx = OS_filterURL($link, $row['url'])) continue;
-
-          // ... then add the link to the queue
-          $_RDATA['sp_queue'][] = array($link, 0, $row['url']);
+          // ... and if link passes our user filters, add the link to
+          // the queue
+          if (!OS_filterURL($link, $row['url']))
+            $_RDATA['sp_queue'][] = array($link, 0, $row['url']);
         }
       }
     }
@@ -1662,11 +1670,9 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
         // ... and if link passes our user filters
         if ($nx = OS_filterURL($link, $data['base'])) {
           OS_crawlLog('Link ignored due to noindex rule \''.$nx.'\': '.$link, 0);
-          continue;
-        }
 
         // ... then add the link to the queue
-        $_RDATA['sp_queue'][] = array($link, $depth + 1, $url);
+        } else $_RDATA['sp_queue'][] = array($link, $depth + 1, $url);
       }
     }
   }
@@ -1683,16 +1689,16 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
 
       foreach ($_RDATA['sp_exist'] as $key => $link) {
 
-        // If orphan URL passes our user filters
+        // Check if orphan URL passes our user filters
         if ($nx = OS_filterURL($link, $data['base'])) {
+
+          // If not, remove it from the sp_exist list
           OS_crawlLog('Orphan URL ignored due to noindex rule \''.$nx.'\': '.$link, 0);
           $_RDATA['sp_status']['Blocked']++;
           unset($_RDATA['sp_exist'][$key]);
-          continue;
-        }
 
-        // ... then add the orphan to the queue
-        $_RDATA['sp_queue'][] = array($link, 0, '<orphan>');
+        // If so, then add the orphan to the queue
+        } else $_RDATA['sp_queue'][] = array($link, 0, '<orphan>');
       }
 
     // Else if we stored some pages, we're done
@@ -1717,10 +1723,9 @@ if ($_RDATA['sp_complete'] && $_ODATA['sp_sitemap_file']) {
       $sm[] = '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
       foreach ($_RDATA['sp_sitemap'] as $sitemap) {
         $sm[] = '  <url>';
-        foreach ($sitemap as $key => $value) {
-          if ($key == 'priority' && $value == 0.5) continue;
-          $sm[] = '    <'.$key.'>'.$value.'</'.$key.'>';
-        }
+        foreach ($sitemap as $key => $value)
+          if ($key != 'priority' || $value != 0.5)
+            $sm[] = '    <'.$key.'>'.$value.'</'.$key.'>';
         $sm[] = '  </url>';
       }
       $sm[] = '</urlset>';
