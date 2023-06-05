@@ -1541,9 +1541,6 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
         ));
         if ($insertNotModified->rowCount()) {
 
-          $testInsert = $insertNotModified->fetchAll()[0];
-          var_dump($testInsert);
-
           // Mark as 'stored'
           $_RDATA['sp_store'][] = $url;
 
