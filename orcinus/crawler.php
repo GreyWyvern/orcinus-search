@@ -769,7 +769,7 @@ if ($err[0] == '00000') {
 
 
 // If the crawltemp table exists here, that means a crawl was
-// interrupted without going through the shutdown function.
+// interrupted without completing the shutdown function.
 // Use the data from this partially completed crawl to resume it.
 if (in_array($_DDATA['tbprefix'].'crawltemp', $_DDATA['tables'], true)) {
   $select = $_DDATA['pdo']->query(
@@ -792,7 +792,7 @@ if (in_array($_DDATA['tbprefix'].'crawltemp', $_DDATA['tables'], true)) {
         if ($row['url'] == $queue[0])
           unset($_RDATA['sp_queue'][$key]);
 
-      // Add it to the 'stored' and 'crawled links' list
+      // Add it to the 'stored' and 'crawled links' lists
       $_RDATA['sp_store'][] = $row['url'];
       $_RDATA['sp_links'][] = $row['url'];
 
@@ -864,12 +864,17 @@ $insertTemp = $_DDATA['pdo']->prepare(
   ;'
 );
 $insertNotModified = $_DDATA['pdo']->prepare(
-  'INSERT INTO `'.$_DDATA['tbprefix'].'crawltemp`
-     SELECT * FROM `'.$_DDATA['tbprefix'].'crawldata` WHERE `url`=:url;'
-);
-$updateNotModified = $_DDATA['pdo']->prepare(
-  'UPDATE `'.$_DDATA['tbprefix'].'crawltemp`
-     SET `flag_updated`=0, `status`=:status WHERE `url`=:url;'
+  'INSERT INTO `'.$_DDATA['tbprefix'].'crawltemp` (
+      `url`, `url_sort`, `title`, `description`, `keywords`, `category`,
+      `weighted`, `links`, `content`, `content_mime`, `content_charset`,
+      `content_checksum`, `status`, `flag_unlisted`, `flag_updated`,
+      `last_modified`, `priority`
+    ) SELECT
+        `url`, 0, `title`, `description`, `keywords`, `category`,
+        `weighted`, `links`, `content`, `content_mime`, `content_charset`,
+        `content_checksum`, :status, `flag_unlisted`, 0,
+        `last_modified`, `priority`
+      FROM `'.$_DDATA['tbprefix'].'crawldata` WHERE `url`=:url;'
 );
 
 
@@ -1530,22 +1535,17 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
         $row = array('priority' => 0.5);
 
         // Get previous entry from existing search database
-        $insertNotModified->execute(array('url' => $url));
+        $insertNotModified->execute(array(
+          'url' => $url,
+          'status' => $data['info']['status']
+        ));
         if ($insertNotModified->rowCount()) {
+
+          $testInsert = $insertNotModified->fetchAll()[0];
+          var_dump($testInsert);
 
           // Mark as 'stored'
           $_RDATA['sp_store'][] = $url;
-
-          // Try to unset 'flag_updated' and update 'status'
-          $updateNotModified->execute(array(
-            'url' => $url,
-            'status' => $data['info']['status']
-          ));
-          $err = $updateNotModified->errorInfo();
-          if ($err[0] != '00000') {
-            OS_crawlLog('Database unset \'flag_updated\', set \'status\' update error: '.$url, 2);
-            OS_crawlLog($err[2], 0);
-          }
 
           // Get 'priority' & 'last_modified' values for the sitemap
           // Load the previously saved link list to add to the queue
