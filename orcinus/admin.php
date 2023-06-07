@@ -1777,8 +1777,8 @@ document.write(mustache.render(
     case 'queries':
       $_RDATA['query_log_rows'] = array();
       $queries = $_DDATA['pdo']->query(
-        'SELECT `t`.`query`, `t`.`results`, INET_NTOA(`ip`) AS `ipaddr`,
-                REGEXP_REPLACE(`query`, \'^[[:punct:]]+\', \'\') AS `alpha`,
+        'SELECT `t`.`query`, `t`.`results`, INET_NTOA(`t`.`ip`) AS `ipaddr`,
+                REGEXP_REPLACE(`t`.`query`, \'^[[:punct:]]+\', \'\') AS `alpha`,
                 `s`.`hits`, `s`.`ipuni`, `s`.`last_hit`
            FROM `'.$_DDATA['tbprefix'].'query` AS `t`
              INNER JOIN (
