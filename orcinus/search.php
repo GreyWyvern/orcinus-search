@@ -273,31 +273,49 @@ if ($_RDATA['s_searchable_pages']) {
 
             case 'exclude':
               $negs[] = 'INSTR(`content`, \''.$slashTerm.'\')=0';
+              $negs[] = '`content` NOT LIKE \'%'.$slashTerm.'%\'';
               $negs[] = 'INSTR(`url`, \''.$slashTerm.'\')=0';
+              $negs[] = '`url` NOT LIKE \'%'.$slashTerm.'%\'';
               $negs[] = 'INSTR(`title`, \''.$slashTerm.'\')=0';
+              $negs[] = '`title` NOT LIKE \'%'.$slashTerm.'%\'';
               $negs[] = 'INSTR(`description`, \''.$slashTerm.'\')=0';
+              $negs[] = '`description` NOT LIKE \'%'.$slashTerm.'%\'';
               $negs[] = 'INSTR(`keywords`, \''.$slashTerm.'\')=0';
+              $negs[] = '`keywords` NOT LIKE \'%'.$slashTerm.'%\'';
               $negs[] = 'INSTR(`weighted`, \''.$slashTerm.'\')=0';
+              $negs[] = '`weighted` NOT LIKE \'%'.$slashTerm.'%\'';
               break;
 
             case 'phrase':
               $ands[] = '('.implode(' OR ', array(
                 'INSTR(`content`, \''.$slashTerm.'\')',
+                '`content` LIKE \'%'.$slashTerm.'%\'',
                 'INSTR(`url`, \''.$slashTerm.'\')',
+                '`url` LIKE \'%'.$slashTerm.'%\'',
                 'INSTR(`title`, \''.$slashTerm.'\')',
+                '`title` LIKE \'%'.$slashTerm.'%\'',
                 'INSTR(`description`, \''.$slashTerm.'\')',
+                '`description` LIKE \'%'.$slashTerm.'%\'',
                 'INSTR(`keywords`, \''.$slashTerm.'\')',
-                'INSTR(`weighted`, \''.$slashTerm.'\')'
+                '`keywords` LIKE \'%'.$slashTerm.'%\'',
+                'INSTR(`weighted`, \''.$slashTerm.'\')',
+                '`weighted` LIKE \'%'.$slashTerm.'%\''
               )).')';
               break;
 
             case 'term':
               $ors[] = 'INSTR(`content`, \''.$slashTerm.'\')';
+              $ors[] = '`content` LIKE \'%'.$slashTerm.'%\'';
               $ors[] = 'INSTR(`url`, \''.$slashTerm.'\')';
+              $ors[] = '`url` LIKE \'%'.$slashTerm.'%\'';
               $ors[] = 'INSTR(`title`, \''.$slashTerm.'\')';
+              $ors[] = '`title` LIKE \'%'.$slashTerm.'%\'';
               $ors[] = 'INSTR(`description`, \''.$slashTerm.'\')';
+              $ors[] = '`description` LIKE \'%'.$slashTerm.'%\'';
               $ors[] = 'INSTR(`keywords`, \''.$slashTerm.'\')';
+              $ors[] = '`keywords` LIKE \'%'.$slashTerm.'%\'';
               $ors[] = 'INSTR(`weighted`, \''.$slashTerm.'\')';
+              $ors[] = '`weighted` LIKE \'%'.$slashTerm.'%\'';
 
           }
         }
