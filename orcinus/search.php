@@ -110,8 +110,8 @@ if ($_RDATA['s_searchable_pages']) {
     // Convert to UTF-8 from specified encoding
     $_REQUEST['q'] = mb_convert_encoding($_REQUEST['q'], 'UTF-8', $_ODATA['s_charset']);
 
-    if (strlen($_REQUEST['q']) > $_ODATA['s_limit_query']) {
-      $_REQUEST['q'] = substr($_REQUEST['q'], 0, $_ODATA['s_limit_query']);
+    if (mb_strlen($_REQUEST['q'], 'UTF-8') > $_ODATA['s_limit_query']) {
+      $_REQUEST['q'] = mb_substr($_REQUEST['q'], 0, $_ODATA['s_limit_query'], 'UTF-8');
       $_ORCINUS->addError('Search query truncated to maximum '.$_ODATA['s_limit_query'].' characters');
     }
 
@@ -131,13 +131,13 @@ if ($_RDATA['s_searchable_pages']) {
           if (!$t) continue;
 
           // Leading + means important, a MUST match
-          if ($t[0] == '+' && strlen($t) > 1) {
+          if ($t[0] == '+' && mb_strlen($t, 'UTF-8') > 1) {
 
             // Just count it as a 'phrase' of one word, functionally equivalent
             $_SDATA['terms'][] = array('phrase', substr($t, 1), false);
 
           // Leading - means negative, a MUST exclude
-          } else if ($t[0] == '-' && strlen($t) > 1) {
+          } else if ($t[0] == '-' && mb_strlen($t, 'UTF-8') > 1) {
             $_SDATA['terms'][] = array('exclude', substr($t, 1), false);
 
           // Restrict to a specific filetype (not yet implemented)
@@ -148,7 +148,7 @@ if ($_RDATA['s_searchable_pages']) {
               $_SDATA['terms'][] = array('filetype', $t, false);
 
           // Else if the term is greater than the term length limit, add it
-          } else if (strlen($t) >= $_ODATA['s_limit_term_length'])
+          } else if (mb_strlen($t, 'UTF-8') >= $_ODATA['s_limit_term_length'])
             $_SDATA['terms'][] = array('term', $t, false);
         }
 
@@ -439,8 +439,8 @@ if ($_RDATA['s_searchable_pages']) {
 
             // Add the page description to use as a default match text
             if (trim($row['description'])) {
-              if (strlen($row['description']) > $_ODATA['s_limit_matchtext']) {
-                $match = substr($row['description'], 0, $_ODATA['s_limit_matchtext'])."\u{2026}";
+              if (mb_strlen($row['description'], 'UTF-8') > $_ODATA['s_limit_matchtext']) {
+                $match = mb_substr($row['description'], 0, $_ODATA['s_limit_matchtext'], 'UTF-8')."\u{2026}";
               } else $match = $row['description'];
               $_SDATA['results'][$key]['matchtext'][] = array(
                 'rank' => 0,
@@ -468,12 +468,12 @@ if ($_RDATA['s_searchable_pages']) {
                       if (count($splitter) == 1) {
                         // Grab some random content if there were no
                         // matches in the content
-                        $offset = mt_rand(0, strlen($row['content']) - $_ODATA['s_limit_matchtext']);
-                      } else $offset = floor(max(0, $split[1] - (strlen($term) + $_ODATA['s_limit_matchtext']) / 2));
-                      $match = trim(substr($row['content'], $offset, $_ODATA['s_limit_matchtext']));
+                        $offset = mt_rand(0, mb_strlen($row['content'], 'UTF-8') - $_ODATA['s_limit_matchtext']);
+                      } else $offset = floor(max(0, $split[1] - (mb_strlen($term, 'UTF-8') + $_ODATA['s_limit_matchtext']) / 2));
+                      $match = trim(mb_substr($row['content'], $offset, $_ODATA['s_limit_matchtext'], 'UTF-8'));
 
                       // Add appropriate ellipses
-                      if ($offset + ((strlen($term) + $_ODATA['s_limit_matchtext']) / 2) < strlen($row['content']))
+                      if ($offset + ((mb_strlen($term, 'UTF-8') + $_ODATA['s_limit_matchtext']) / 2) < mb_strlen($row['content'], 'UTF-8'))
                         $match .= "\u{2026}";
 
                       if ($offset) $match = "\u{2026}".$match;

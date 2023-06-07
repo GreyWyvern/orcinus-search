@@ -1777,17 +1777,18 @@ document.write(mustache.render(
     case 'queries':
       $_RDATA['query_log_rows'] = array();
       $queries = $_DDATA['pdo']->query(
-        'SELECT *, INET_NTOA(`ip`) AS `ipaddr`
+        'SELECT `t`.`query`, `t`.`results`, INET_NTOA(`ip`) AS `ipaddr`,
+                REGEXP_REPLACE(`query`, \'^[[:punct:]]+\', \'\') AS `alpha`,
+                `s`.`hits`, `s`.`ipuni`, `s`.`last_hit`
            FROM `'.$_DDATA['tbprefix'].'query` AS `t`
              INNER JOIN (
-               SELECT `query`, COUNT(`query`) AS `hits`, COUNT(DISTINCT(`ip`)) AS `ipuni`,
-                      REGEXP_REPLACE(`query`, \'^[[:punct:]]+\', \'\') AS `alpha`,
-                      MAX(`stamp`) AS `last_hit`, AVG(`results`) AS `avg_results`
+               SELECT `query`, COUNT(DISTINCT(`ip`)) AS `ipuni`,
+                      COUNT(`query`) AS `hits`, MAX(`stamp`) AS `last_hit`
                  FROM `'.$_DDATA['tbprefix'].'query`
                    GROUP BY `query`
              ) AS `s` ON `s`.`query`=`t`.`query` AND `s`.`last_hit`=`t`.`stamp`
                GROUP BY `t`.`query`
-                 ORDER BY `s`.`alpha` ASC;'
+                 ORDER BY `alpha` ASC;'
       );
       $err = $queries->errorInfo();
       if ($err[0] == '00000') {
@@ -3141,8 +3142,8 @@ document.write(mustache.render(
                             echo (int)$query['hits'];
                             ?> <small title="Unique IPs">(<?php echo (int)$query['ipuni'];
                           ?>)</small></td>
-                          <td class="text-center d-none d-sm-table-cell" data-value="<?php echo (int)$query['avg_results']; ?>"><?php
-                            echo (int)$query['avg_results'];
+                          <td class="text-center d-none d-sm-table-cell" data-value="<?php echo (int)$query['results']; ?>"><?php
+                            echo (int)$query['results'];
                           ?></td>
                           <td class="text-end" data-value="<?php echo (int)$query['last_hit']; ?>">
                             <time datetime="<?php echo date('c', (int)$query['last_hit']); ?>"><?php
