@@ -796,6 +796,13 @@ if (in_array($_DDATA['tbprefix'].'crawltemp', $_DDATA['tables'], true)) {
       $_RDATA['sp_store'][] = $row['url'];
       $_RDATA['sp_links'][] = $row['url'];
 
+      // Rebuild the domains list
+      $prurl = parse_url($row['url']);
+      $domain = $prurl['scheme'].'://'.$prurl['host'];
+      if (!isset($_RDATA['sp_domains'][$domain])) {
+        $_RDATA['sp_domains'][$domain] = 1;
+      } else $_RDATA['sp_domains'][$domain]++;
+
       // Add links from the entry to the queue
       $row['links'] = json_decode($row['links'], true);
       foreach ($row['links'] as $link) {
