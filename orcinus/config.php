@@ -454,7 +454,7 @@ if (class_exists('PHPMailer\PHPMailer\PHPMailer')) {
 // ***** Load the default Search Result Template
 if (!$_ODATA['s_result_template']) {
   OS_setValue('s_result_template', '<section id="os_results">
-  <!-- Orcinus Site Search {{version}} - HTML Template -->
+  <!-- Orcinus Site Search v{{version}} - HTML Template -->
 
   {{#errors}}
     <ul>
