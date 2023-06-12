@@ -162,7 +162,7 @@ if (!$_SESSION['admin_username']) {
             $md5 = md5(hrtime(true));
             OS_setValue('sp_key', $md5);
             OS_setValue('sp_log', '');
-            OS_setValue('sp_progress', '0/1');
+            OS_setValue('sp_progress', array(0, 1, false));
             $response = array(
               'status' => 'Success',
               'message' => 'Key set to initiate crawler',
@@ -172,7 +172,7 @@ if (!$_SESSION['admin_username']) {
           } else {
             $response = array(
               'status' => 'Error',
-              'message' => 'Crawler is already running; current progress: '.$_ODATA['sp_progress']
+              'message' => 'Crawler is already running; current progress: '.$_ODATA['sp_progress'][0].' / '.$_ODATA['sp_progress'][1]
             );
           }
           break;
@@ -1942,6 +1942,10 @@ document.write(mustache.render(
                             if ($_ODATA['sp_crawling']) {
                               OS_countUp($_ODATA['sp_time_start'], 'os_countup_time_crawl');
                             } else {
+                              if ($_ODATA['sp_progress'][2]) { ?> 
+                                <img src="img/warning.svg" alt="Notice" class="align-middle svg-icon mb-1 me-1"
+                                  data-bs-toggle="tooltip" data-bs-placement="top" title="The most recent crawl was interrupted and resumed. Values displayed may not reflect the actual crawl data."><?php
+                              }
                               OS_countUp($_ODATA['sp_time_last'], 'os_countup_time_crawl');
                             }
                           ?></var>

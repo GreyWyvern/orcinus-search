@@ -625,7 +625,7 @@ OS_setValue('sp_crawling', 1);
 OS_setValue('sp_cancel', 0);
 OS_setValue('sp_time_start', time());
 
-OS_setValue('sp_progress', array(0, 0));
+OS_setValue('sp_progress', array(0, 1, false));
 OS_setValue('sp_pages_stored', 0);
 OS_setValue('sp_data_transferred', 0);
 OS_setValue('sp_data_stored', 0);
@@ -658,6 +658,7 @@ $_RDATA['sp_prev_dls'] = 0;
 $_RDATA['sp_time_curl'] = 0;
 $_RDATA['sp_sleep'] = 0;
 $_RDATA['sp_sha1'] = array();
+$_RDATA['sp_resumed'] = false;
 $_RDATA['sp_whitespace'] = array(
   "\u{0009}" => ' ',  "\u{000A}" => "\n", "\u{000B}" => "\n", "\u{000C}" => "\n",
   "\u{000D}" => "\n", "\u{0085}" => "\n", "\u{00A0}" => ' ',  "\u{1680}" => ' ',
@@ -773,7 +774,7 @@ if ($err[0] == '00000') {
 // Use the data from this partially completed crawl to resume it.
 if (in_array($_DDATA['tbprefix'].'crawltemp', $_DDATA['tables'], true)) {
   $select = $_DDATA['pdo']->query(
-    'SELECT `url`, `links` FROM `'.$_DDATA['tbprefix'].'crawltemp`;'
+    'SELECT `url`, `links`, `content_checksum` FROM `'.$_DDATA['tbprefix'].'crawltemp`;'
   );
   $err = $select->errorInfo();
   if ($err[0] == '00000') {
@@ -782,6 +783,7 @@ if (in_array($_DDATA['tbprefix'].'crawltemp', $_DDATA['tables'], true)) {
     $select = $select->fetchAll();
 
     OS_crawlLog('Found '.count($select).' previously crawled URLs', 1);
+    $_RDATA['sp_resumed'] = true;
 
     // Run through every entry in the crawltemp table
     foreach ($select as $row) {
@@ -795,6 +797,9 @@ if (in_array($_DDATA['tbprefix'].'crawltemp', $_DDATA['tables'], true)) {
       // Add it to the 'stored' and 'crawled links' lists
       $_RDATA['sp_store'][] = $row['url'];
       $_RDATA['sp_links'][] = $row['url'];
+
+      // Add the content hash to the tally
+      $_RDATA['sp_sha1'][$row['content_checksum']] = $row['url'];
 
       // Rebuild the domains list
       $prurl = parse_url($row['url']);
@@ -957,7 +962,8 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
   OS_crawlLog('Crawling: '.$url.' (Depth: '.$depth.')', 1);
   OS_setValue('sp_progress', array(
     count($_RDATA['sp_links']),
-    count($_RDATA['sp_links']) + count($_RDATA['sp_queue'])
+    count($_RDATA['sp_links']) + count($_RDATA['sp_queue']),
+    $_RDATA['sp_resumed']
   ));
   OS_setValue('sp_time_end', time());
 

@@ -182,7 +182,7 @@ if (!count($testConf->fetchAll())) {
       `sp_useragent`=\'OrcinusCrawler/3.0 (https://greywyvern.com/orcinus/)\',
       `sp_crawling`=0,
       `sp_cancel`=0,
-      `sp_progress`=\'\',
+      `sp_progress`=\'[0,1,false]\',
       `sp_email_success`=0,
       `sp_email_failure`=1,
       `sp_log`=\'\',
