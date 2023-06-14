@@ -60,7 +60,7 @@ let toolTipList = [...toolTipElems].map(elem => new bootstrap.Tooltip(elem));
 
 
 /* ***** Page >> Crawler Managment ********************************* */
-let countUpTimers = document.querySelectorAll('span.countup_timer');
+let countUpTimers = document.querySelectorAll('time.countup_timer');
 let timeTracker = (new Date()).getTime();
 let countUpPeriods = [['day', 'days'], ['hour', 'hours'], ['minute', 'minutes'], ['second', 'seconds']];
 for (let x = 0; x < countUpTimers.length; x++) {
@@ -355,9 +355,10 @@ if (queriesModal) {
     values = {
       query: btn.title,
       hits: values[1].getAttribute('data-value'),
-      results: values[2].getAttribute('data-value'),
-      stamp: new Date(parseInt(values[3].getAttribute('data-value')) * 1000).toString(),
-      ipaddr: values[4].innerHTML
+      hits_unique: values[2].getAttribute('data-value'),
+      results: values[3].getAttribute('data-value'),
+      stamp: new Date(parseInt(values[4].getAttribute('data-value')) * 1000).toString(),
+      ipaddr: values[5].innerHTML
     };
 
     Object.keys(values).forEach(keys => {

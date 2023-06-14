@@ -3144,7 +3144,8 @@ document.write(mustache.render(
                           </th>
                           <td class="text-center" data-value="<?php echo (int)$query['hits']; ?>"><?php
                             echo (int)$query['hits'];
-                            ?> <small title="Unique IPs">(<?php echo (int)$query['ipuni'];
+                            ?> <small title="Unique IPs" data-value="<?php echo (int)$query['ipuni']; ?>">(<?php
+                            echo (int)$query['ipuni'];
                           ?>)</small></td>
                           <td class="text-center d-none d-sm-table-cell" data-value="<?php echo (int)$query['results']; ?>"><?php
                             echo (int)$query['results'];
@@ -3223,14 +3224,16 @@ document.write(mustache.render(
                             <div class="row">
                               <div class="col-sm-6">
                                 <label class="d-flex">
-                                  <strong class="pe-2">Hit Count</strong>
+                                  <strong class="pe-2" data-bs-toggle="tooltip" data-bs-placement="top"
+                                    title="Total requests for this query">Hit Count</strong>
                                   <var class="flex-grow-1 text-end" id="os_queries_modal_hits"></var>
                                 </label>
                               </div>
                               <div class="col-sm-6">
                                 <label class="d-flex">
-                                  <strong class="pe-2">Results Returned</strong>
-                                  <var class="flex-grow-1 text-end" id="os_queries_modal_results"></var>
+                                  <strong class="pe-2" data-bs-toggle="tooltip" data-bs-placement="top"
+                                    title="Unique requests for this query based on IP address">Unique IPs</strong>
+                                  <var class="flex-grow-1 text-end" id="os_queries_modal_hits_unique"></var>
                                 </label>
                               </div>
                             </div>
@@ -3242,6 +3245,12 @@ document.write(mustache.render(
                             <label class="d-flex flex-column">
                               <strong class="pe-2">Date / Time Requested</strong>
                               <var id="os_queries_modal_stamp"></var>
+                            </label>
+                          </li>
+                          <li class="list-group-item">
+                            <label class="d-flex">
+                              <strong class="pe-2">Results Returned</strong>
+                              <var class="flex-grow-1 text-end" id="os_queries_modal_results"></var>
                             </label>
                           </li>
                           <li class="list-group-item">
