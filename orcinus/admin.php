@@ -975,7 +975,7 @@ if (!$_SESSION['admin_username']) {
                 array(
                   'version' => $_ODATA['version'],
                   'date' => date('r'),
-                  'sp_smart' => json_encode($_RDATA['sp_punct'], JSON_INVALID_UTF8_IGNORE),
+                  'sp_punct' => json_encode($_RDATA['sp_punct'], JSON_INVALID_UTF8_IGNORE),
                   's_latin' => json_encode($_RDATA['s_latin'], JSON_INVALID_UTF8_IGNORE),
                   's_filetypes' => json_encode($_RDATA['s_filetypes'], JSON_INVALID_UTF8_IGNORE),
                   's_category_list' => json_encode($_RDATA['s_category_list'], JSON_INVALID_UTF8_IGNORE),

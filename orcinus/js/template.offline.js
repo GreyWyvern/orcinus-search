@@ -14,7 +14,7 @@ function os_preg_quote(str, delimiter) {
 
 // ***** Variable Migration
 let os_rdata = {
-  sp_smart: {{{sp_smart}}},
+  sp_punct: {{{sp_punct}}},
   s_latin: {{{s_latin}}},
   s_filetypes: {{{s_filetypes}}},
   s_category_list: {{{s_category_list}}}
@@ -187,8 +187,8 @@ if (os_crawldata.length) {
       for (let x = 0; x < os_sdata.terms.length; x++) {
 
         // Normalize punctuation
-        Object.keys(os_rdata.sp_smart).forEach(key => {
-          os_sdata.terms[x][1] = os_sdata.terms[x][1].replace(key, os_rdata.sp_smart[key]);
+        Object.keys(os_rdata.sp_punct).forEach(key => {
+          os_sdata.terms[x][1] = os_sdata.terms[x][1].replace(key, os_rdata.sp_punct[key]);
         });
 
         switch (os_sdata.terms[x][0]) {
