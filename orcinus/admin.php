@@ -953,60 +953,49 @@ if (!$_SESSION['admin_username']) {
 
                 $select[$key]['url'] = implode('?', $rq);
               }
+
+              foreach ($select[$key] as $prop => $value)
+                if (is_string($value)) $select[$key][$prop] = addslashes($value);
             }
 
-            require_once __DIR__.'/mustache/src/Mustache/Autoloader.php';
-            Mustache_Autoloader::register();
-
-            $_JDATA = array(
-              'version' => $_ODATA['version'],
-              'date' => date('r'),
-              'sp_smart' => json_encode($_RDATA['sp_punct'], JSON_INVALID_UTF8_IGNORE),
-              's_latin' => json_encode($_RDATA['s_latin'], JSON_INVALID_UTF8_IGNORE),
-              's_filetypes' => json_encode($_RDATA['s_filetypes'], JSON_INVALID_UTF8_IGNORE),
-              's_category_list' => json_encode($_RDATA['s_category_list'], JSON_INVALID_UTF8_IGNORE),
-              'jw_compression' => $_ODATA['jw_compression'],
-              'jw_depth' => str_repeat('../', $_ODATA['jw_depth']),
-              's_limit_query' => $_ODATA['s_limit_query'],
-              's_limit_terms' => $_ODATA['s_limit_terms'],
-              's_limit_term_length' => $_ODATA['s_limit_term_length'],
-              's_limit_matchtext' => $_ODATA['s_limit_matchtext'],
-              's_show_filetype_html' => $_ODATA['s_show_filetype_html'],
-              's_results_pagination' => $_ODATA['s_results_pagination'],
-              's_limit_results' => $_ODATA['s_limit_results'],
-              's_result_template' => json_encode(preg_replace('/\s{2,}/', ' ', $_ODATA['s_result_template']), JSON_INVALID_UTF8_IGNORE),
-              's_weights' => json_encode($_ODATA['s_weights'], JSON_INVALID_UTF8_IGNORE),
-              'os_crawldata' => array()
-            );
-
-            foreach ($select as $key => $row) {
-              $_JDATA['os_crawldata'][] = array(
-                'content_mime' => addslashes($row['content_mime']),
-                'url' => addslashes($row['url']),
-                'category' => addslashes($row['category']),
-                'priority' => $row['priority'],
-                'title' => addslashes($row['title']),
-                'description' => addslashes($row['description']),
-                'keywords' => addslashes($row['keywords']),
-                'weighted' => addslashes($row['weighted']),
-                'words' => addslashes($row['words'])
-              );
-            }
-
-            // Populate the offline javascript Mustache template
-            $output = new Mustache_Engine(array('entity_flags' => ENT_QUOTES));
-            $_JOUTPUT = $output->render(
-              file_get_contents(__DIR__.'/js/template.offline.js'),
-              $_JDATA
-            );
-
-// Use this for dodgy character check on javascript output
-// [^\w\s()\[\]{};:.‖‘’‟„…/@©~®§⇔⇕⇒⇨⇩↪&\\^<>›×™*·,±_²°|≥!#$¢£+≤=•«%½»?"'-]
+            // Use this for dodgy character check on javascript output
+            // [^\w\s()\[\]{};:.‖‘’‟„…/@©~®§⇔⇕⇒⇨⇩↪&\\^<>›×™*·,±_²°|≥!#$¢£+≤=•«%½»?"'-]
 
             header('Content-type: text/javascript; charset='.strtolower($_ODATA['s_charset']));
             header('Content-disposition: attachment; filename="offline-search.js"');
-            mb_convert_encoding($_JOUTPUT, 'UTF-8', $_ODATA['s_charset']);
-            die($_JOUTPUT);
+
+            // Populate the offline javascript Mustache template
+            require_once __DIR__.'/mustache/src/Mustache/Autoloader.php';
+            Mustache_Autoloader::register();
+
+            $output = new Mustache_Engine(array('entity_flags' => ENT_QUOTES));
+            die(mb_convert_encoding(
+              $output->render(
+                file_get_contents(__DIR__.'/js/template.offline.js'),
+                array(
+                  'version' => $_ODATA['version'],
+                  'date' => date('r'),
+                  'sp_smart' => json_encode($_RDATA['sp_punct'], JSON_INVALID_UTF8_IGNORE),
+                  's_latin' => json_encode($_RDATA['s_latin'], JSON_INVALID_UTF8_IGNORE),
+                  's_filetypes' => json_encode($_RDATA['s_filetypes'], JSON_INVALID_UTF8_IGNORE),
+                  's_category_list' => json_encode($_RDATA['s_category_list'], JSON_INVALID_UTF8_IGNORE),
+                  'jw_compression' => $_ODATA['jw_compression'],
+                  'jw_depth' => str_repeat('../', $_ODATA['jw_depth']),
+                  's_limit_query' => $_ODATA['s_limit_query'],
+                  's_limit_terms' => $_ODATA['s_limit_terms'],
+                  's_limit_term_length' => $_ODATA['s_limit_term_length'],
+                  's_limit_matchtext' => $_ODATA['s_limit_matchtext'],
+                  's_show_filetype_html' => $_ODATA['s_show_filetype_html'],
+                  's_results_pagination' => $_ODATA['s_results_pagination'],
+                  's_limit_results' => $_ODATA['s_limit_results'],
+                  's_result_template' => json_encode(preg_replace('/\s{2,}/', ' ', $_ODATA['s_result_template']), JSON_INVALID_UTF8_IGNORE),
+                  's_weights' => json_encode($_ODATA['s_weights'], JSON_INVALID_UTF8_IGNORE),
+                  'os_crawldata' => $select
+                )
+              ),
+              'UTF-8',
+              $_ODATA['s_charset']
+            ));
 
           } else $_SESSION['error'][] = 'Error reading from the search result database: '.$err[2];
           break;
