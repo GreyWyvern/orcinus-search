@@ -21,7 +21,8 @@ let os_rdata = {
 };
 
 let os_odata = {
-  s_weights: {{{s_weights}}}
+  s_weights: {{{s_weights}}},
+  jw_depth: {{jw_depth}}
 };
 
 Object.keys(os_odata.s_weights).forEach(key => {
@@ -446,7 +447,7 @@ if (os_crawldata.length) {
 
           // Highlight the terms in the title, url and matchtext
           result.title = resultsPage[x].title;
-          result.url = '{{jw_depth}}' + resultsPage[x].url.replace(/^\//, '');
+          result.url = resultsPage[x].url.replace(/^\//, '{{jw_depth}}');
           result.matchtext = resultsPage[x].matchtext;
           result.description = resultsPage[x].description;
           result.title_highlight = resultsPage[x].title;
@@ -508,5 +509,3 @@ document.write(mustache.render(
   {{{s_result_template}}},
   os_TEMPLATE
 ));
-let os_results = document.getElementById('os_results');
-os_results.setAttribute('data-typeahead-prefix', '{{jw_depth}}');

@@ -21,8 +21,8 @@ $('input.os_typeahead').attr('autocomplete', 'off').typeahead({
   source: os_bloodhound,
   display: 'title'
 }).bind('typeahead:selected', function (obj, datum) {
-  let os_results = document.getElementById('os_results');
-  if (os_results.getAttribute('data-typeahead-prefix') !== 'undefined')
-    datum.url = os_results.getAttribute('data-typeahead-prefix') + datum.url.replace(/^\//, '');
+  if (typeof os_odata.jw_depth == 'string')
+    datum.url = datum.url.replace(/^\//, os_odata.jw_depth);
+
   window.location.href = datum.url;
 });
