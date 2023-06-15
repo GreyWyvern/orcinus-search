@@ -889,28 +889,26 @@ if (!$_SESSION['admin_username']) {
           }
 
           // ***** Write to and download the Offline Javascript file
-          $query_status = ($_ODATA['s_show_orphans']) ? '(`status`=\'OK\' || `status`=\'Orphan\')' : '`status`=\'OK\'';
-
-          $select = $_DDATA['pdo']->query(
+          $crawldata = $_DDATA['pdo']->query(
             'SELECT `url`, `title`, `description`, `keywords`, `category`,
                     `content_mime`, `weighted`, `content`, `priority`
               FROM `'.$_DDATA['tbprefix'].'crawldata`
-                WHERE `flag_unlisted`<>1 AND '.$query_status.' AND
+                WHERE `flag_unlisted`=0 '.$_RDATA['s_show_orphans'].' AND
                       `url` LIKE \''.addslashes($_ODATA['jw_hostname']).'/%\';'
           );
-          $err = $select->errorInfo();
+          $err = $crawldata->errorInfo();
           if ($err[0] == '00000') {
-            $select = $select->fetchAll();
+            $crawldata = $crawldata->fetchAll();
 
             // If compression value is less than 100 then get a word
             // list frequency report from all indexed pages
             if ($_ODATA['jw_compression'] < 100) {
 
               $words = array();
-              foreach ($select as $key => $row) {
-                $select[$key]['words'] = array_unique(explode(' ', $row['content']));
+              foreach ($crawldata as $key => $row) {
+                $crawldata[$key]['words'] = array_unique(explode(' ', $row['content']));
 
-                foreach ($select[$key]['words'] as $index => $word) {
+                foreach ($crawldata[$key]['words'] as $index => $word) {
                   if ($word) {
                     if (empty($words[$word])) {
                       $words[$word] = 1;
@@ -924,42 +922,42 @@ if (!$_SESSION['admin_username']) {
               // threshold
               $compressionFilter = array();
               Foreach ($words as $word => $count)
-                if (($count / count($select)) * 100 >= $_ODATA['jw_compression'])
+                if (($count / count($crawldata)) * 100 >= $_ODATA['jw_compression'])
                   $compressionFilter[] = $word;
             }
 
             $repStr = '/^'.preg_quote($_ODATA['jw_hostname'], '/').'/';
 
-            foreach ($select as $key => $row) {
+            foreach ($crawldata as $key => $row) {
 
               // Use the compression filter to remove all of the most
               // common words from the content of this page
               if ($_ODATA['jw_compression'] < 100) {
-                $select[$key]['words'] = array_diff($row['words'], $compressionFilter);
-                $select[$key]['words'] = implode(' ', $select[$key]['words']);
-              } else $select[$key]['words'] = $row['content'];
+                $crawldata[$key]['words'] = array_diff($row['words'], $compressionFilter);
+                $crawldata[$key]['words'] = implode(' ', $crawldata[$key]['words']);
+              } else $crawldata[$key]['words'] = $row['content'];
 
               // Remove the common domain from all URLs
-              $select[$key]['url'] = preg_replace($repStr, '', $row['url']);
+              $crawldata[$key]['url'] = preg_replace($repStr, '', $row['url']);
 
               // Format non-.html filenames into .html ones
               if ($row['content_mime'] == 'text/html') {
-                $rq = explode('?', $select[$key]['url'], 2);
+                $rq = explode('?', $crawldata[$key]['url'], 2);
                 if ($rq[0] == '' || $rq[0][strlen($rq[0]) - 1] == '/')
                   $rq[0] .= 'index.html';
 
                 if (!preg_match('/\.html?$/', $rq[0]))
                   $rq[0] .= '.html';
 
-                $select[$key]['url'] = implode('?', $rq);
+                $crawldata[$key]['url'] = implode('?', $rq);
               }
 
-              foreach ($select[$key] as $prop => $value)
-                if (is_string($value)) $select[$key][$prop] = addslashes($value);
+              foreach ($crawldata[$key] as $prop => $value)
+                if (is_string($value)) $crawldata[$key][$prop] = addslashes($value);
             }
 
             // Use this for dodgy character check on javascript output
-            // [^\w\s()\[\]{};:.‖‘’‟„…/@©~®§⇔⇕⇒⇨⇩↪&\\^<>›×™*·,±_²°|≥!#$¢£+≤=•«%½»?"'-]
+            // [^\w\s()\[\]{};:.‖‘’‟„…/@©~®§⇔⇕⇒⇨⇩↪&\\^<>›×™*·,±_²°|≥!#$¢£+≤=•«%½»?`"'-]
 
             header('Content-type: text/javascript; charset='.strtolower($_ODATA['s_charset']));
             header('Content-disposition: attachment; filename="offline-search.js"');
@@ -990,7 +988,7 @@ if (!$_SESSION['admin_username']) {
                   's_limit_results' => $_ODATA['s_limit_results'],
                   's_result_template' => json_encode(preg_replace('/\s{2,}/', ' ', $_ODATA['s_result_template']), JSON_INVALID_UTF8_IGNORE),
                   's_weights' => json_encode($_ODATA['s_weights'], JSON_INVALID_UTF8_IGNORE),
-                  'os_crawldata' => $select
+                  'os_crawldata' => $crawldata
                 )
               ),
               'UTF-8',

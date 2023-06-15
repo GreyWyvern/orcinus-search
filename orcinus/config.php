@@ -702,11 +702,11 @@ if ($err[0] == '00000') {
 
 // Count searchable pages
 $_RDATA['s_searchable_pages'] = 0;
-$query_status = ($_ODATA['s_show_orphans']) ? '(`status`=\'OK\' || `status`=\'Orphan\')' : '`status`=\'OK\'';
+$_RDATA['s_show_orphans'] = ($_ODATA['s_show_orphans']) ? '' : ' AND `status`!=\'Orphan\' ';
 $searchable = $_DDATA['pdo']->query(
   'SELECT COUNT(`status`) as `count`
     FROM `'.$_DDATA['tbprefix'].'crawldata`
-      WHERE '.$query_status.' AND `flag_unlisted`=0;'
+      WHERE `flag_unlisted`=0 '.$_RDATA['s_show_orphans'].';'
 );
 $err = $searchable->errorInfo();
 if ($err[0] == '00000') {

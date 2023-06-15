@@ -1566,9 +1566,7 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
             $data['links'] = json_decode($row['links'], true);
             $data['info']['filetime'] = $row['last_modified'];
 
-          } else {
-            OS_crawlLog('Database existing table row read error: '.$url, 2);
-          }
+          } else OS_crawlLog('Database existing table row read error: '.$url, 2);
 
         // Could not insert previously stored row into temp table
         } else {

@@ -253,8 +253,7 @@ if ($_RDATA['s_searchable_pages']) {
           $searchSQL .= ' AND `category`=\''.addslashes($_REQUEST['c']).'\'';
 
         // Show or do not show Orphans
-        if (!$_ODATA['s_show_orphans'])
-          $searchSQL .= ' AND `status`!=\'Orphan\'';
+        $searchSQL .= $_RDATA['s_show_orphans'];
 
         $ands = array();
         $ors = array();
