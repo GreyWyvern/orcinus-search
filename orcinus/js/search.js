@@ -29,8 +29,8 @@ $('input.os_typeahead').attr('autocomplete', 'off').typeahead({
   // Else we are online
   } else {
 
-    // On user click of a search suggestion, add this search to the
-    // query log
+    // On user click of a search suggestion, add this search query to
+    // the query log and cache
     fetch(new Request(window.location.origin + window.location.pathname), {
       method: 'POST',
       headers: { 'Content-type': 'application/json' },
