@@ -21,6 +21,19 @@ $_SDATA = array(
 );
 
 
+/* ***** Handle POST Requests ************************************** */
+unset($_REQUEST['log']);
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+
+  // JSON POST request
+  // These are usually sent by javascript fetch()
+  if ($_SERVER['CONTENT_TYPE'] == 'application/json') {
+    $postBody = file_get_contents('php://input');
+    $_REQUEST = json_decode($postBody, true);
+  }
+}
+
+
 foreach ($_ODATA['s_weights'] as $key => $weight)
   $_ODATA['s_weights'][$key] = (float)$weight;
 
@@ -656,6 +669,8 @@ if ($_RDATA['s_searchable_pages']) {
             $result['url'] = preg_replace($repStr, '', $result['url']);
 
           // Highlight the terms in the title, url and matchtext
+          $_RESULT->query = $_REQUEST['q'];
+
           $_RESULT->title = $result['title'];
           $_RESULT->url = $result['url'];
           $_RESULT->matchtext = $result['matchtext'];
@@ -833,9 +848,10 @@ if ($_ODATA['sp_interval'] && !$_ODATA['sp_crawling'] &&
   }
 }
 
-
 // Output JSON and exit if requested
 if (isset($_REQUEST['json'])) {
   header('Content-type: application/json; charset='.$_ODATA['s_charset']);
   die(json_encode($_SDATA['json'], JSON_INVALID_UTF8_IGNORE));
-} ?>
+
+// Just log this query and do not post results
+} else if (isset($_REQUEST['log'])) die(); ?>
