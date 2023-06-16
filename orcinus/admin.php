@@ -1130,9 +1130,7 @@ if (!$_SESSION['admin_username']) {
         $_RDATA['page_index_offset'] = ($_SESSION['index_page'] - 1) * $_ODATA['admin_index_pagination'];
 
         $indexRows->execute(array(
-          'text1' => '%'.$text.'%',
-          'text2' => '%'.$text.'%',
-          'text1' => '%'.$text.'%',
+          'text1' => $text,
           'text2' => '%'.$text.'%',
           'category1' => $category,
           'category2' => $category,
