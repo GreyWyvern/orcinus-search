@@ -476,7 +476,7 @@ if (!$_SESSION['admin_username']) {
             $_POST['os_sp_ignore_url'] = substr($_POST['os_sp_ignore_url'], 0, 4095);
             $_POST['os_sp_ignore_url'] = explode("\n", $_POST['os_sp_ignore_url']);
             foreach ($_POST['os_sp_ignore_url'] as $key => $ignore) {
-              if ($ignore == '*') {
+              if ($ignore[0] == '*') {
                 $ignore = substr($ignore, 1);
                 $test = preg_match('/'.str_replace('/', '\/', $ignore).'/', 'test');
                 if ($test === false) {
