@@ -116,7 +116,7 @@ function OS_filterURL($_, $base) {
     $foundRequired = false;
     foreach ($_RDATA['sp_require_url'] as $requireURL) {
       if ($requireURL[0] == '*') {
-        if (preg_match('/'.preg_quote(substr($requireURL, 1), '/').'/', $_))
+        if (preg_match('/'.str_replace('/', '\/', substr($requireURL, 1)).'/', $_))
           $foundRequired = true;
       } else if (strpos($_, $requireURL) !== false)
         $foundRequired = true;
@@ -128,7 +128,7 @@ function OS_filterURL($_, $base) {
   // Ignore URL matches
   foreach ($_RDATA['sp_ignore_url'] as $ignoreURL) {
     if ($ignoreURL[0] == '*') {
-      if (preg_match('/'.preg_quote(substr($ignoreURL, 1), '/').'/', $_))
+      if (preg_match('/'.str_replace('/', '\/', substr($ignoreURL, 1)).'/', $_))
         return $_RDATA['sp_filter'][$_] = 'ignore-url';
     } else if (strpos($_, $ignoreURL) !== false)
      return $_RDATA['sp_filter'][$_] = 'ignore-url';
