@@ -457,8 +457,16 @@ if (!$_SESSION['admin_username']) {
             $_POST['os_sp_require_url'] = preg_replace('/\n+/', "\n", $_POST['os_sp_require_url']);
             $_POST['os_sp_require_url'] = substr($_POST['os_sp_require_url'], 0, 4095);
             $_POST['os_sp_require_url'] = explode("\n", $_POST['os_sp_require_url']);
-            foreach ($_POST['os_sp_require_url'] as $key => $require)
-              $_POST['os_sp_require_url'][$key] = filter_var($require, FILTER_SANITIZE_URL);
+            foreach ($_POST['os_sp_require_url'] as $key => $require) {
+              if ($require[0] == '*') {
+                $require = substr($require, 1);
+                $test = preg_match('/'.str_replace('/', '\/', $require).'/', 'test');
+                if ($test === false) {
+                  $_SESSION['error'][] = 'Invalid regular expression in Require URL Match field \''.$require.'\' removed.';
+                  unset($_POST['os_sp_require_url'][$key]);
+                }
+              } else $_POST['os_sp_require_url'][$key] = filter_var($require, FILTER_SANITIZE_URL);
+            }
             OS_setValue('sp_require_url', implode("\n", $_POST['os_sp_require_url']));
           }
 
@@ -467,8 +475,16 @@ if (!$_SESSION['admin_username']) {
             $_POST['os_sp_ignore_url'] = preg_replace('/\n+/', "\n", $_POST['os_sp_ignore_url']);
             $_POST['os_sp_ignore_url'] = substr($_POST['os_sp_ignore_url'], 0, 4095);
             $_POST['os_sp_ignore_url'] = explode("\n", $_POST['os_sp_ignore_url']);
-            foreach ($_POST['os_sp_ignore_url'] as $key => $require)
-              $_POST['os_sp_ignore_url'][$key] = filter_var($require, FILTER_SANITIZE_URL);
+            foreach ($_POST['os_sp_ignore_url'] as $key => $ignore) {
+              if ($ignore == '*') {
+                $ignore = substr($ignore, 1);
+                $test = preg_match('/'.str_replace('/', '\/', $ignore).'/', 'test');
+                if ($test === false) {
+                  $_SESSION['error'][] = 'Invalid regular expression in Ignore URL Match field \''.$ignore.'\' removed.';
+                  unset($_POST['os_sp_ignore_url'][$key]);
+                }
+              } else $_POST['os_sp_ignore_url'][$key] = filter_var($ignore, FILTER_SANITIZE_URL);
+            }
             OS_setValue('sp_ignore_url', implode("\n", $_POST['os_sp_ignore_url']));
           }
 
@@ -503,8 +519,16 @@ if (!$_SESSION['admin_username']) {
             $_POST['os_sp_title_strip'] = preg_replace('/\n+/', "\n", $_POST['os_sp_title_strip']);
             $_POST['os_sp_title_strip'] = substr($_POST['os_sp_title_strip'], 0, 4095);
             $_POST['os_sp_title_strip'] = explode("\n", $_POST['os_sp_title_strip']);
-            foreach ($_POST['os_sp_title_strip'] as $key => $require)
-              $_POST['os_sp_title_strip'][$key] = filter_var($require, FILTER_SANITIZE_SPECIAL_CHARS);
+            foreach ($_POST['os_sp_title_strip'] as $key => $title_strip) {
+              if ($title_strip[0] == '*') {
+                $title_strip = substr($title_strip, 1);
+                $test = preg_match('/'.str_replace('/', '\/', $title_strip).'/', 'test');
+                if ($test === false) {
+                  $_SESSION['error'][] = 'Invalid regular expression in Remove Text from Titles field \''.$title_strip.'\' removed.';
+                  unset($_POST['os_sp_title_strip'][$key]);
+                }
+              } else $_POST['os_sp_title_strip'][$key] = filter_var($title_strip, FILTER_SANITIZE_SPECIAL_CHARS);
+            }
             OS_setValue('sp_title_strip', implode("\n", $_POST['os_sp_title_strip']));
           }
 
