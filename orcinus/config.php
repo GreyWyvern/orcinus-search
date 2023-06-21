@@ -122,7 +122,6 @@ if (!in_array($_DDATA['tbprefix'].'config', $_DDATA['tables'], true)) {
       `s_limit_query_log` TINYINT UNSIGNED NOT NULL,
       `jw_hostname` TINYTEXT NOT NULL,
       `jw_compression` TINYINT UNSIGNED NOT NULL,
-      `jw_depth` TINYINT UNSIGNED NOT NULL,
       PRIMARY KEY (`version`)
     ) ENGINE = MyISAM, CHARACTER SET = utf8mb4, COLLATE = utf8mb4_unicode_520_ci;'
   );
@@ -202,8 +201,7 @@ if (!count($testConf->fetchAll())) {
       `s_result_template`=\'\',
       `s_limit_query_log`=14,
       `jw_hostname`=\'\',
-      `jw_compression`=25,
-      `jw_depth`=0
+      `jw_compression`=25
     ;'
   );
   $err = $insert->errorInfo();

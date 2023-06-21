@@ -902,11 +902,6 @@ if (!$_SESSION['admin_username']) {
             OS_setValue('jw_compression', (int)$_POST['os_jw_compression']);
           }
 
-          if (isset($_POST['os_jw_depth'])) {
-            $_POST['os_jw_depth'] = max(0, min(255, (int)$_POST['os_jw_depth']));
-            OS_setValue('jw_depth', (int)$_POST['os_jw_depth']);
-          }
-
           if ($_POST['os_submit'] == 'os_jw_config') {
             $_SESSION['message'][] = 'Offline javascript search settings have been saved.';
             break;
@@ -1002,7 +997,6 @@ if (!$_SESSION['admin_username']) {
                   's_filetypes' => json_encode($_RDATA['s_filetypes'], JSON_INVALID_UTF8_IGNORE),
                   's_category_list' => json_encode($_RDATA['s_category_list'], JSON_INVALID_UTF8_IGNORE),
                   'jw_compression' => $_ODATA['jw_compression'],
-                  'jw_depth' => str_repeat('../', $_ODATA['jw_depth']),
                   's_limit_query' => $_ODATA['s_limit_query'],
                   's_limit_terms' => $_ODATA['s_limit_terms'],
                   's_limit_term_length' => $_ODATA['s_limit_term_length'],
@@ -2300,15 +2294,6 @@ if (!$_SESSION['admin_username']) {
                           <var class="text-end flex-grow-1 text-nowrap">
                             <input type="number" name="os_jw_compression" value="<?php echo $_ODATA['jw_compression']; ?>" min="0" max="100" step="1" class="form-control d-inline-block"
                               data-bs-toggle="tooltip" data-bs-placement="top" title="Apply text content compression to the output. 100 is no compression, while 0 is maximum compression.">
-                          </var>
-                        </label>
-                      </li>
-                      <li class="list-group-item">
-                        <label class="d-flex lh-lg w-100">
-                          <strong class="pe-2">Search Page Directory Depth:</strong>
-                          <var class="text-end flex-grow-1 text-nowrap">
-                            <input type="number" name="os_jw_depth" value="<?php echo $_ODATA['jw_depth']; ?>" min="0" max="255" step="1" class="form-control d-inline-block"
-                              data-bs-toggle="tooltip" data-bs-placement="top" title="How many directories deep from your Home Page is your Search Page?">
                           </var>
                         </label>
                       </li>
