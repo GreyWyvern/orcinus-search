@@ -43,6 +43,8 @@ function OS_crawlLog($text, $level = 0) {
 function OS_cleanTextUTF8(&$_, $charset, $entity = false) {
   global $_RDATA;
 
+  if (!trim($charset)) $charset = 'ISO-8859-1';
+
   if (strtoupper($charset) != 'UTF-8')
     $_ = mb_convert_encoding($_, 'UTF-8', $charset);
 
@@ -611,6 +613,10 @@ switch ($_SERVER['REQUEST_METHOD']) {
     die($_ODATA['sp_useragent']);
 
 }
+
+// If we are in debug mode, but the crawler is already running, exit
+if ($_RDATA['debug'] && $_ODATA['sp_crawling'])
+  die('Crawler is already running; exiting...');
 
 
 /* ***** Begin Crawl Execution ************************************* */
@@ -1407,9 +1413,9 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
                       strpos($data['content'], "\u{2}") === false &&
                       strpos($data['content'], "\u{1}") === false) {
 
-                    OS_cleanTextUTF8($data['title'], $data['info']['charset']);
-                    OS_cleanTextUTF8($data['keywords'], $data['info']['charset']);
-                    OS_cleanTextUTF8($data['description'], $data['info']['charset']);
+                    OS_cleanTextUTF8($data['title'], mb_detect_encoding($data['title']));
+                    OS_cleanTextUTF8($data['keywords'], mb_detect_encoding($data['keywords']));
+                    OS_cleanTextUTF8($data['description'], mb_detect_encoding($data['description']));
 
                   } else {
                     $data['errno'] = 703;
