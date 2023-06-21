@@ -22,7 +22,7 @@ let os_rdata = {
 
 let os_odata = {
   s_weights: {{{s_weights}}},
-  jw_depth: {{jw_depth}}
+  jw_depth: '{{jw_depth}}'
 };
 
 Object.keys(os_odata.s_weights).forEach(key => {
