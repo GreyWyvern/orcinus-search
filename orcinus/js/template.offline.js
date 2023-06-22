@@ -80,8 +80,12 @@ function os_return_all() {
 
 // Create the Mustache template
 let os_TEMPLATE = {
+  errors: false,
+
+  online: false,
   version: '{{version}}',
   searchable: false,
+
   addError: function(text) {
     if (!this.errors) {
       this.errors = {};

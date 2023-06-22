@@ -59,6 +59,8 @@ foreach ($_RDATA['s_latin'] as $char => $latin) {
 // {{{{{ Initialize the Mustache templating engine
 class OS_Mustache {
   public $errors;
+
+  public $online = true;
   public $version;
   public $searchable;
 
