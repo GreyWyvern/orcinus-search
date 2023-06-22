@@ -56,17 +56,17 @@ class PDFObject
     /**
      * @var Document
      */
-    protected $document = null;
+    protected $document;
 
     /**
      * @var Header
      */
-    protected $header = null;
+    protected $header;
 
     /**
      * @var string
      */
-    protected $content = null;
+    protected $content;
 
     /**
      * @var Config
@@ -75,9 +75,9 @@ class PDFObject
 
     public function __construct(
         Document $document,
-        ?Header $header = null,
-        ?string $content = null,
-        ?Config $config = null
+        Header $header = null,
+        string $content = null,
+        Config $config = null
     ) {
         $this->document = $document;
         $this->header = $header ?? new Header();
@@ -249,7 +249,7 @@ class PDFObject
     /**
      * @throws \Exception
      */
-    public function getText(?Page $page = null): string
+    public function getText(Page $page = null): string
     {
         $result = '';
         $sections = $this->getSectionsText($this->content);
@@ -283,8 +283,8 @@ class PDFObject
                         $args = preg_split('/\s/s', $command[self::COMMAND]);
                         $y = array_pop($args);
                         $x = array_pop($args);
-                        if (((float) $x <= 0) ||
-                            (false !== $current_position_td['y'] && (float) $y < (float) $current_position_td['y'])
+                        if (((float) $x <= 0)
+                            || (false !== $current_position_td['y'] && (float) $y < (float) $current_position_td['y'])
                         ) {
                             // vertical offset
                             $text .= "\n";
@@ -456,7 +456,7 @@ class PDFObject
     /**
      * @throws \Exception
      */
-    public function getTextArray(?Page $page = null): array
+    public function getTextArray(Page $page = null): array
     {
         $text = [];
         $sections = $this->getSectionsText($this->content);
@@ -592,18 +592,22 @@ class PDFObject
                 case '/':
                     $type = $char;
                     if (preg_match(
-                        '/^\/([A-Z0-9\._,\+]+\s+[0-9.\-]+)\s+([A-Z]+)\s*/si',
-                        substr($text_part, $offset),
-                        $matches
+                        '/\G\/([A-Z0-9\._,\+]+\s+[0-9.\-]+)\s+([A-Z]+)\s*/si',
+                        $text_part,
+                        $matches,
+                        0,
+                        $offset
                     )
                     ) {
                         $operator = $matches[2];
                         $command = $matches[1];
                         $offset += \strlen($matches[0]);
                     } elseif (preg_match(
-                        '/^\/([A-Z0-9\._,\+]+)\s+([A-Z]+)\s*/si',
-                        substr($text_part, $offset),
-                        $matches
+                        '/\G\/([A-Z0-9\._,\+]+)\s+([A-Z]+)\s*/si',
+                        $text_part,
+                        $matches,
+                        0,
+                        $offset
                     )
                     ) {
                         $operator = $matches[2];
@@ -621,7 +625,14 @@ class PDFObject
                         // get elements
                         $command = $this->getCommandsText($text_part, $offset);
 
-                        if (preg_match('/^\s*[A-Z]{1,2}\s*/si', substr($text_part, $offset), $matches)) {
+                        if (preg_match(
+                            '/\G\s*[A-Z]{1,2}\s*/si',
+                            $text_part,
+                            $matches,
+                            0,
+                            $offset
+                        )
+                        ) {
                             $operator = trim($matches[0]);
                             $offset += \strlen($matches[0]);
                         }
@@ -642,7 +653,14 @@ class PDFObject
                         $offset = $strpos + 1;
                     }
 
-                    if (preg_match('/^\s*[A-Z]{1,2}\s*/si', substr($text_part, $offset), $matches)) {
+                    if (preg_match(
+                        '/\G\s*[A-Z]{1,2}\s*/si',
+                        $text_part,
+                        $matches,
+                        0,
+                        $offset
+                    )
+                    ) {
                         $operator = trim($matches[0]);
                         $offset += \strlen($matches[0]);
                     }
@@ -682,7 +700,14 @@ class PDFObject
                         $command = substr($text_part, $offset, $strpos - $offset - 1);
                         $offset = $strpos;
 
-                        if (preg_match('/^\s*([A-Z\']{1,2})\s*/si', substr($text_part, $offset), $matches)) {
+                        if (preg_match(
+                            '/\G\s*([A-Z\']{1,2})\s*/si',
+                            $text_part,
+                            $matches,
+                            0,
+                            $offset
+                        )
+                        ) {
                             $operator = $matches[1];
                             $offset += \strlen($matches[0]);
                         }
@@ -693,19 +718,35 @@ class PDFObject
                     if ('ET' == substr($text_part, $offset, 2)) {
                         break;
                     } elseif (preg_match(
-                        '/^\s*(?P<data>([0-9\.\-]+\s*?)+)\s+(?P<id>[A-Z]{1,3})\s*/si',
-                        substr($text_part, $offset),
-                        $matches
+                        '/\G\s*(?P<data>([0-9\.\-]+\s*?)+)\s+(?P<id>[A-Z]{1,3})\s*/si',
+                        $text_part,
+                        $matches,
+                        0,
+                        $offset
                     )
                     ) {
                         $operator = trim($matches['id']);
                         $command = trim($matches['data']);
                         $offset += \strlen($matches[0]);
-                    } elseif (preg_match('/^\s*([0-9\.\-]+\s*?)+\s*/si', substr($text_part, $offset), $matches)) {
+                    } elseif (preg_match(
+                        '/\G\s*([0-9\.\-]+\s*?)+\s*/si',
+                        $text_part,
+                        $matches,
+                        0,
+                        $offset
+                    )
+                    ) {
                         $type = 'n';
                         $command = trim($matches[0]);
                         $offset += \strlen($matches[0]);
-                    } elseif (preg_match('/^\s*([A-Z\*]+)\s*/si', substr($text_part, $offset), $matches)) {
+                    } elseif (preg_match(
+                        '/\G\s*([A-Z\*]+)\s*/si',
+                        $text_part,
+                        $matches,
+                        0,
+                        $offset
+                    )
+                    ) {
                         $type = '';
                         $operator = $matches[1];
                         $command = '';
@@ -731,7 +772,7 @@ class PDFObject
         Document $document,
         Header $header,
         ?string $content,
-        ?Config $config = null
+        Config $config = null
     ): self {
         switch ($header->get('Type')->getContent()) {
             case 'XObject':
