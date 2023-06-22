@@ -45,8 +45,7 @@ function OS_cleanTextUTF8(&$_, $charset, $entity = false) {
 
   if (!trim($charset)) $charset = 'ISO-8859-1';
 
-  if (strtoupper($charset) != 'UTF-8')
-    $_ = mb_convert_encoding($_, 'UTF-8', $charset);
+  $_ = mb_convert_encoding($_, 'UTF-8', $charset);
 
   if ($entity)
     $_ = html_entity_decode($_, $entity | ENT_SUBSTITUTE, 'UTF-8');
@@ -673,7 +672,7 @@ $_RDATA['sp_whitespace'] = array(
   "\u{2008}" => ' ',  "\u{2009}" => ' ',  "\u{200A}" => ' ',  "\u{200B}" => ' ',
   "\u{200C}" => ' ',  "\u{200D}" => '',   "\u{2028}" => "\n", "\u{2029}" => "\n",
   "\u{202F}" => ' ',  "\u{205F}" => ' ',  "\u{2060}" => '',   "\u{3000}" => ' ',
-  "\u{FEFF}" => ' '
+  "\u{FEFF}" => ' ',  "\u{FFFD}" => ''
 );
 
 
