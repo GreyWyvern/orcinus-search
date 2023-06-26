@@ -1399,7 +1399,7 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
                 $data['content'] = str_replace(array("\\\n\r", "\\\n"), '', $data['content']);
 
                 $data['info']['charset'] = mb_detect_encoding($data['content']);
-                if (!$data['info']['charset']) $data['info']['charset'] = 'ISO-8859-1';
+                if (!$data['info']['charset']) $data['info']['charset'] = 'CP1252';
                 OS_cleanTextUTF8($data['content'], $data['info']['charset']);
 
                 if ($data['content']) {
