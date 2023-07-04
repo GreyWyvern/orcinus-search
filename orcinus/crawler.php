@@ -1383,20 +1383,35 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
               try {
                 $pdf = $_PDF->parseContent($data['body']);
 
-                $meta = $pdf->getDetails();
-                if (!empty($meta['Title']) && trim($meta['Title']))
-                  $data['title'] = $meta['Title'];
-                if (!empty($meta['Subject']) && trim($meta['Subject']))
-                  $data['description'] = $meta['Subject'];
-                if (!empty($meta['Keywords']) && trim($meta['Keywords']))
-                  $data['keywords'] = $meta['Keywords'];
-                $data['content'] = $pdf->getText();
+                $metadata = $pdf->getDetails();
 
-                // remove escaped whitespace
-                $data['title'] = str_replace(array("\\\n\r", "\\\n"), '', $data['title']);
-                $data['description'] = str_replace(array("\\\n\r", "\\\n"), '', $data['description']);
-                $data['keywords'] = str_replace(array("\\\n\r", "\\\n"), '', $data['keywords']);
-                $data['content'] = str_replace(array("\\\n\r", "\\\n"), '', $data['content']);
+                // Prefer regular PDF metadata first, then try XMP
+                $getItems = array(
+                  'title' => array('Title', 'dc:title', 'pdf:title'),
+                  'description' => array('Subject', 'dc:description', 'pdf:subject'),
+                  'keywords' => array('Keywords', 'dc:subject', 'pdf:keywords')
+                );
+
+                foreach ($getItems as $key => $item) {
+                  foreach ($item as $opt) {
+                    if (!empty($metadata[$opt])) {
+
+                      // Check if this is an array of list-items and if
+                      // so, convert it to a comma-separated string
+                      if (is_array($metadata[$opt]) && isset($metadata[$opt][0]) && is_string($metadata[$opt][0]))
+                        $metadata[$opt] = implode(', ', $metadata[$opt]);
+
+                      // Use the first valid string value we find as
+                      // the appropriate property value
+                      if (is_string($metadata[$opt]) && trim($metadata[$opt])) {
+                        $data[$key] = $metadata[$opt];
+                        break;
+                      }
+                    }
+                  }
+                }
+
+                $data['content'] = $pdf->getText();
 
                 $data['info']['charset'] = mb_detect_encoding($data['content']);
                 if (!$data['info']['charset']) $data['info']['charset'] = 'CP1252';
