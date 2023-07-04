@@ -32,6 +32,8 @@
 
 namespace Smalot\PdfParser;
 
+use Smalot\PdfParser\Encoding\PDFDocEncoding;
+
 /**
  * Technical references :
  * - http://www.mactech.com/articles/mactech/Vol.15/15.09/PDFIntro/index.html
@@ -62,7 +64,7 @@ class Document
     protected $trailer;
 
     /**
-     * @var Metadata
+     * @var array<mixed>
      */
     protected $metadata = [];
 
@@ -149,6 +151,43 @@ class Document
             $details['Pages'] = 0;
         }
 
+        // Decode and repair encoded document properties
+        foreach ($details as $key => $value) {
+            if (\is_string($value)) {
+
+                // If the string is already UTF-8 encoded, that means we only
+                // need to repair Adobe's ham-fisted insertion of line-feeds
+                // every ~127 characters, which doesn't seem to be multi-byte
+                // safe
+                if (mb_check_encoding($value, 'UTF-8')) {
+
+                    $value = str_replace("\x5c\x0d", '', $value);
+
+                    while (preg_match("/\x5c\x5c\xe0([\xb4-\xb8])(.)/", $value, $match)) {
+                        $diff = (\ord($match[1]) - 182) * 64;
+                        $newbyte = PDFDocEncoding::convertPDFDoc2UTF8(\chr(\ord($match[2]) + $diff));
+                        $value = preg_replace("/\x5c\x5c\xe0".$match[1].$match[2]."/", $newbyte, $value);
+                    }
+
+                    while (preg_match("/(.)\x9c\xe0([\xb3-\xb7])/", $value, $match)) {
+                        $diff = \ord($match[2]) - 181;
+                        $newbyte = \chr(\ord($match[1]) + $diff);
+                        $value = preg_replace("/".$match[1]."\x9c\xe0".$match[2]."/", $newbyte, $value);
+                    }
+
+                    $value = str_replace("\xe5\xb0\x8d", '', $value);
+
+                    $details[$key] = $value;
+
+                // If the string is just PDFDocEncoding, remove any line-feeds
+                // and decode the whole thing.
+                } else {
+                    $value = str_replace("\\\r", '', $value);
+                    $details[$key] = PDFDocEncoding::convertPDFDoc2UTF8($value);
+                }
+            }
+        }
+
         $details = array_merge($details, $this->metadata);
 
         $this->details = $details;
@@ -162,101 +201,92 @@ class Document
         $xml = xml_parser_create();
         xml_parser_set_option($xml, \XML_OPTION_SKIP_WHITE, 1);
 
-        if (xml_parse_into_struct($xml, $content, $values, $index)) {
-            $detail = '';
-
+        if (1 === xml_parse_into_struct($xml, $content, $values, $index)) {
+            /*
+             * short overview about the following code parts:
+             *
+             * The output of xml_parse_into_struct is a single dimensional array (= $values), and the $stack is a last-on,
+             * first-off array of pointers to positions in $metadata, while iterating through it, that potentially turn the
+             * results into a more intuitive multi-dimensional array. When an "open" XML tag is encountered,
+             * we save the current $metadata context in the $stack, then create a child array of $metadata and
+             * make that the current $metadata context. When a "close" XML tag is encountered, the operations are
+             * reversed: the most recently added $metadata context from $stack (IOW, the parent of the current
+             * element) is set as the current $metadata context.
+             */
+            $metadata = [];
+            $stack = [];
             foreach ($values as $val) {
-                switch ($val['tag']) {
-                    case 'DC:CREATOR':
-                        $detail = ('open' == $val['type']) ? 'Author' : '';
-                        break;
+                // Standardize to lowercase
+                $val['tag'] = strtolower($val['tag']);
 
-                    case 'DC:DESCRIPTION':
-                        $detail = ('open' == $val['type']) ? 'Description' : '';
-                        break;
+                // Ignore structural x: and rdf: XML elements
+                if (0 === strpos($val['tag'], 'x:')) {
+                    continue;
+                } elseif (0 === strpos($val['tag'], 'rdf:') && 'rdf:li' != $val['tag']) {
+                    continue;
+                }
 
-                    case 'DC:TITLE':
-                        $detail = ('open' == $val['type']) ? 'Title' : '';
-                        break;
+                switch ($val['type']) {
+                    case 'open':
+                        // Create an array of list items
+                        if ('rdf:li' == $val['tag']) {
+                            $metadata[] = [];
 
-                    case 'DC:SUBJECT':
-                        $detail = ('open' == $val['type']) ? 'Subject' : '';
-                        break;
+                            // Move up one level in the stack
+                            $stack[\count($stack)] = &$metadata;
+                            $metadata = &$metadata[\count($metadata) - 1];
+                        } else {
+                            // Else create an array of named values
+                            $metadata[$val['tag']] = [];
 
-                    case 'RDF:LI':
-                        if ($detail && 'complete' == $val['type'] && isset($val['value'])) {
-                            $this->metadata[$detail] = $val['value'];
+                            // Move up one level in the stack
+                            $stack[\count($stack)] = &$metadata;
+                            $metadata = &$metadata[$val['tag']];
                         }
                         break;
 
-                    case 'DC:FORMAT':
-                        if ('complete' == $val['type'] && isset($val['value'])) {
-                            $this->metadata['Format'] = $val['value'];
+                    case 'complete':
+                        if (isset($val['value'])) {
+                            // Assign a value to this list item
+                            if ('rdf:li' == $val['tag']) {
+                                $metadata[] = $val['value'];
+
+                                // Else assign a value to this property
+                            } else {
+                                $metadata[$val['tag']] = $val['value'];
+                            }
                         }
                         break;
 
-                    case 'PDF:KEYWORDS':
-                        if ('complete' == $val['type'] && isset($val['value'])) {
-                            $this->metadata['Keywords'] = $val['value'];
+                    case 'close':
+                        // If the value of this property is a single-
+                        // element array where the element is of type
+                        // string, use the value of the first list item
+                        // as the value for this property
+                        if (\is_array($metadata) && isset($metadata[0]) && 1 == \count($metadata) && \is_string($metadata[0])) {
+                            $metadata = $metadata[0];
                         }
-                        break;
 
-                    case 'PDF:PRODUCER':
-                        if ('complete' == $val['type'] && isset($val['value'])) {
-                            $this->metadata['Producer'] = $val['value'];
-                        }
-                        break;
-
-                    case 'PDFX:SOURCEMODIFIED':
-                        if ('complete' == $val['type'] && isset($val['value'])) {
-                            $this->metadata['SourceModified'] = $val['value'];
-                        }
-                        break;
-
-                    case 'PDFX:COMPANY':
-                        if ('complete' == $val['type'] && isset($val['value'])) {
-                            $this->metadata['Company'] = $val['value'];
-                        }
-                        break;
-
-                    case 'XMP:CREATEDATE':
-                        if ('complete' == $val['type'] && isset($val['value'])) {
-                            $this->metadata['CreationDate'] = $val['value'];
-                        }
-                        break;
-
-                    case 'XMP:CREATORTOOL':
-                        if ('complete' == $val['type'] && isset($val['value'])) {
-                            $this->metadata['Creator'] = $val['value'];
-                        }
-                        break;
-
-                    case 'XMP:MODIFYDATE':
-                        if ('complete' == $val['type'] && isset($val['value'])) {
-                            $this->metadata['ModDate'] = $val['value'];
-                        }
-                        break;
-
-                    case 'XMP:METADATADATE':
-                        if ('complete' == $val['type'] && isset($val['value'])) {
-                            $this->metadata['MetadataDate'] = $val['value'];
-                        }
-                        break;
-
-                    case 'XMPMM:DOCUMENTID':
-                        if ('complete' == $val['type'] && isset($val['value'])) {
-                            $this->metadata['DocumentUUID'] = $val['value'];
-                        }
-                        break;
-
-                    case 'XMPMM:INSTANCEID':
-                        if ('complete' == $val['type'] && isset($val['value'])) {
-                            $this->metadata['InstanceUUID'] = $val['value'];
-                        }
+                        // Move down one level in the stack
+                        $metadata = &$stack[\count($stack) - 1];
+                        unset($stack[\count($stack) - 1]);
                         break;
                 }
             }
+
+            // Only use this metadata if it's referring to a PDF
+            if (isset($metadata['dc:format']) && 'application/pdf' == $metadata['dc:format']) {
+                // According to the XMP specifications: 'Conflict resolution
+                // for separate packets that describe the same resource is
+                // beyond the scope of this document.' - Section 6.1
+                // Source: https://www.adobe.com/devnet/xmp.html
+                // Source: https://github.com/adobe/XMP-Toolkit-SDK/blob/main/docs/XMPSpecificationPart1.pdf
+                // So if there are multiple XMP blocks, just merge the values
+                // of each found block over top of the existing values
+                $this->metadata = array_merge($this->metadata, $metadata);
+            }
         }
+        xml_parser_free($xml);
     }
 
     public function getDictionary(): array
