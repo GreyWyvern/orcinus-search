@@ -250,7 +250,7 @@ function OS_crawlCleanUp() {
   global $_DDATA, $_ODATA, $_RDATA, $_cURL, $_MAIL;
 
   // If the crawl has already been canceled, don't bother
-  if (!$_ODATA['sp_crawling']) return;
+  if (!OS_getValue('sp_crawling')) return;
 
   $error = error_get_last();
   if (!is_null($error) && $error['type'] == E_ERROR) {
@@ -477,7 +477,7 @@ switch ($_SERVER['REQUEST_METHOD']) {
           if (!empty($_POST->sp_key) &&
               $_ODATA['sp_key'] &&
               $_POST->sp_key == $_ODATA['sp_key']) {
-            if ($_ODATA['sp_crawling']) {
+            if (OS_getValue('sp_crawling')) {
               $response = array(
                 'status' => 'Error',
                 'message' => 'Crawler is already running; current progress: '.$_ODATA['sp_progress'][0].'/'.$_ODATA['sp_progress'][1]
@@ -485,6 +485,7 @@ switch ($_SERVER['REQUEST_METHOD']) {
             }
 
             // Go crawl!
+            OS_setValue('sp_crawling', 1);
             OS_setValue('sp_key', '');
 
           } else {
@@ -499,7 +500,7 @@ switch ($_SERVER['REQUEST_METHOD']) {
           $lines = array();
 
           if (!empty($_POST->log)) {
-            if ($_ODATA['sp_crawling']) {
+            if (OS_getValue('sp_crawling')) {
               if (strpos($_ODATA['sp_log'], "\n") === false && file_exists($_ODATA['sp_log']))
                 $lines = file($_ODATA['sp_log'], FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
             } else $lines = explode("\n", $_ODATA['sp_log']);
@@ -527,7 +528,7 @@ switch ($_SERVER['REQUEST_METHOD']) {
           break;
 
         case 'cancel':
-          if ($_ODATA['sp_crawling']) {
+          if (OS_getValue('sp_crawling')) {
 
             // IF the crawler 'time_start' is more than 'timeout_crawl'
             // seconds ago, or the 'force' token is set, the crawler is
@@ -594,16 +595,33 @@ switch ($_SERVER['REQUEST_METHOD']) {
   case '':
     if (!empty($_SERVER['argv'][0]) && $_SERVER['argv'][0] == $_SERVER['PHP_SELF']) {
       $_SERVER['REQUEST_METHOD'] = 'CLI';
-      if (!empty($_SERVER['argv'][1]) && preg_match('/^-log=([012])$/', $_SERVER['argv'][1], $match)) {
-        $_RDATA['sp_log_clilevel'] = (int)$match[1];
-      } else $_RDATA['sp_log_clilevel'] = 2;
+      if (!OS_getValue('sp_crawling')) {
+
+        // Set the logging level, if specified
+        if (!empty($_SERVER['argv'][1]) && preg_match('/^-log=([012])$/', $_SERVER['argv'][1], $match)) {
+          $_RDATA['sp_log_clilevel'] = (int)$match[1];
+        } else $_RDATA['sp_log_clilevel'] = 2;
+
+        // Start a crawl
+        OS_setValue('sp_crawling', 1);
+
+      } else die('Crawler is already running; exiting...');
     } else die($_ODATA['sp_useragent']);
     break;
 
   // Don't do anything for GET requests, unless in debug mode
   case 'GET':
     header('Content-type: text/plain; charset='.strtolower($_ODATA['s_charset']));
-    if (!$_RDATA['debug']) die($_ODATA['sp_useragent']);
+    if ($_RDATA['debug']) {
+
+      // If we are in debug mode, but the crawler is already running, exit
+      if (OS_getValue('sp_crawling'))
+        die('Crawler is already running; exiting...');
+
+      // Start a crawl
+      OS_setValue('sp_crawling', 1);
+
+    } else die($_ODATA['sp_useragent']);
     break;
 
   // Exit for all other request types
@@ -612,10 +630,6 @@ switch ($_SERVER['REQUEST_METHOD']) {
     die($_ODATA['sp_useragent']);
 
 }
-
-// If we are in debug mode, but the crawler is already running, exit
-if ($_RDATA['debug'] && $_ODATA['sp_crawling'])
-  die('Crawler is already running; exiting...');
 
 
 /* ***** Begin Crawl Execution ************************************* */
@@ -626,7 +640,6 @@ libxml_use_internal_errors(true);
 if (function_exists('apache_setenv'))
   apache_setenv('no-gzip', '1');
 
-OS_setValue('sp_crawling', 1);
 OS_setValue('sp_cancel', 0);
 OS_setValue('sp_time_start', time());
 
