@@ -1742,7 +1742,7 @@ if (!$_SESSION['admin_username']) {
                               <strong class="pe-2">Link Depth:</strong>
                               <span class="flex-grow-1 text-end text-nowrap">
                                 <input type="number" name="os_sp_limit_depth" value="<?php echo $_ODATA['sp_limit_depth']; ?>" min="0" max="255" step="1" class="form-control d-inline-block"
-                                  data-bs-toggle="tooltip" data-bs-placement="bottom" title="Maximum number of links to crawl away from your starting URLs.">
+                                  data-bs-toggle="tooltip" data-bs-placement="bottom" title="Maximum number of links to crawl away from your starting URLs. Pages deeper than this value will be ignored, but the crawler will continue scanning links in the queue.">
                               </span>
                             </label>
                             <label class="d-flex lh-lg w-100 mb-2">
@@ -2212,7 +2212,7 @@ if (!$_SESSION['admin_username']) {
                         <label class="d-flex w-100">
                           <strong class="pe-2">Current Query Log Size</strong>
                           <var class="text-end flex-grow-1 text-nowrap"><?php
-                            echo OS_readSize($_RDATA['s_query_info']['Data_length'] - $_RDATA['s_cache_size']);
+                            echo OS_readSize($_RDATA['s_query_info']['Data_length'] - $_RDATA['s_cache_size'], true);
                           ?></var>
                         </label>
                       </li>
@@ -2378,7 +2378,7 @@ if (!$_SESSION['admin_username']) {
                           <strong class="pe-2">Maximum Number of Terms:</strong>
                           <span class="flex-grow-1 text-end text-nowrap">
                             <input type="number" name="os_s_limit_terms" value="<?php echo $_ODATA['s_limit_terms']; ?>" min="0" max="255" step="1" class="form-control d-inline-block"
-                              data-bs-toggle="tooltip" data-bs-placement="bottom" title="Search terms beyond this limit in a single query will be ignored.">
+                              data-bs-toggle="tooltip" data-bs-placement="bottom" title="Search terms beyond this limit in a single query will be ignored. &quot;Phrase searches&quot; count as a single term.">
                           </span>
                         </label>
                         <label class="d-flex lh-lg w-100 mb-2">
@@ -2402,42 +2402,42 @@ if (!$_SESSION['admin_username']) {
                               <strong class="pe-2">Page Title:</strong>
                               <span class="flex-grow-1 text-end text-nowrap">
                                 <input type="number" name="os_s_weight_title" value="<?php echo $_ODATA['s_weights']['title']; ?>" min="0" max="100" step="0.1" class="form-control d-inline-block"
-                                  data-bs-toggle="tooltip" data-bs-placement="bottom" title="Search terms found in the page title.">
+                                  data-bs-toggle="tooltip" data-bs-placement="bottom" title="Search terms found in the page title. Default: 1.3">
                               </span>
                             </label>
                             <label class="d-flex lh-lg w-100 mb-2">
                               <strong class="pe-2">Body Text:</strong>
                               <span class="flex-grow-1 text-end text-nowrap">
                                 <input type="number" name="os_s_weight_body" value="<?php echo $_ODATA['s_weights']['body']; ?>" min="0" max="100" step="0.1" class="form-control d-inline-block"
-                                  data-bs-toggle="tooltip" data-bs-placement="bottom" title="Search terms found in the page body text.">
+                                  data-bs-toggle="tooltip" data-bs-placement="bottom" title="Search terms found in the page body text. Default: 0.5">
                               </span>
                             </label>
                             <label class="d-flex lh-lg w-100 mb-2">
                               <strong class="pe-2">Keywords:</strong>
                               <span class="flex-grow-1 text-end text-nowrap">
                                 <input type="number" name="os_s_weight_keywords" value="<?php echo $_ODATA['s_weights']['keywords']; ?>" min="0" max="100" step="0.1" class="form-control d-inline-block"
-                                  data-bs-toggle="tooltip" data-bs-placement="bottom" title="Search terms found in the page keywords meta information.">
+                                  data-bs-toggle="tooltip" data-bs-placement="bottom" title="Search terms found in the page keywords meta information. Default: 2.1">
                               </span>
                             </label>
                             <label class="d-flex lh-lg w-100 mb-2">
                               <strong class="pe-2">Description:</strong>
                               <span class="flex-grow-1 text-end text-nowrap">
                                 <input type="number" name="os_s_weight_description" value="<?php echo $_ODATA['s_weights']['description']; ?>" min="0" max="100" step="0.1" class="form-control d-inline-block"
-                                  data-bs-toggle="tooltip" data-bs-placement="bottom" title="Search terms found in the page description meta information.">
+                                  data-bs-toggle="tooltip" data-bs-placement="bottom" title="Search terms found in the page description meta information. Default: 0.4">
                               </span>
                             </label>
                             <label class="d-flex lh-lg w-100 mb-2">
                               <strong class="pe-2">In URL:</strong>
                               <span class="flex-grow-1 text-end text-nowrap">
                                 <input type="number" name="os_s_weight_url" value="<?php echo $_ODATA['s_weights']['url']; ?>" min="0" max="100" step="0.1" class="form-control d-inline-block"
-                                  data-bs-toggle="tooltip" data-bs-placement="bottom" title="Search terms found in the page URL.">
+                                  data-bs-toggle="tooltip" data-bs-placement="bottom" title="Search terms found in the page URL. Default: 0.2">
                               </span>
                             </label>
                             <label class="d-flex lh-lg w-100 mb-2">
                               <strong class="pe-2">CSS Selector:</strong>
                               <span class="flex-grow-1 text-end text-nowrap">
                                 <input type="number" name="os_s_weight_css_value" value="<?php echo $_ODATA['s_weights']['css_value']; ?>" min="0" max="100" step="0.1" class="form-control d-inline-block"
-                                  data-bs-toggle="tooltip" data-bs-placement="bottom" title="An extra additive weight score will be added to content found in elements matching the CSS selectors below.">
+                                  data-bs-toggle="tooltip" data-bs-placement="bottom" title="An extra additive weight score will be added to content found in elements matching the CSS selectors below. Default: 1.9">
                               </span>
                             </label>
                           </div>
@@ -2457,14 +2457,14 @@ if (!$_SESSION['admin_username']) {
                               <strong class="pe-2">Multi-term:</strong>
                               <span class="flex-grow-1 text-end text-nowrap">
                                 <input type="number" name="os_s_weight_multi" value="<?php echo $_ODATA['s_weights']['multi']; ?>" min="0" max="10" step="0.1" class="form-control d-inline-block"
-                                  data-bs-toggle="tooltip" data-bs-placement="bottom" title="If a result matches more than one of the given search terms; applied for every search term match beyond the first.">
+                                  data-bs-toggle="tooltip" data-bs-placement="bottom" title="Applied if a result matches more than one of the given search terms, for every search term match beyond the first. Default: 2.5">
                               </span>
                             </label>
                             <label class="d-flex lh-lg w-100 mb-2">
                               <strong class="pe-2">Important (+):</strong>
                               <span class="flex-grow-1 text-end text-nowrap">
                                 <input type="number" name="os_s_weight_important" value="<?php echo $_ODATA['s_weights']['important']; ?>" min="0" max="10" step="0.1" class="form-control d-inline-block"
-                                  data-bs-toggle="tooltip" data-bs-placement="bottom" title="Applied for search terms the user has marked as '+important'. Also applied to &quot;phrase matches&quot;.">
+                                  data-bs-toggle="tooltip" data-bs-placement="bottom" title="Applied for search terms the user has marked as '+important' and &quot;phrase matches&quot;. Default: 1.5">
                               </span>
                             </label>
                           </div>
