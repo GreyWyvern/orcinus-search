@@ -372,10 +372,7 @@ if (!$_SESSION['admin_username']) {
         // ***** Crawler >> Settings
         case 'os_sp_crawl_config':
           if (isset($_POST['os_sp_starting'])) {
-            $_POST['os_sp_starting'] = str_replace("\r\n", "\n", trim($_POST['os_sp_starting']));
-            $_POST['os_sp_starting'] = preg_replace('/\n+/', "\n", $_POST['os_sp_starting']);
-            $_POST['os_sp_starting'] = substr($_POST['os_sp_starting'], 0, 4095);
-            $_POST['os_sp_starting'] = explode("\n", $_POST['os_sp_starting']);
+            $_POST['os_sp_starting'] = explode("\n", substr(preg_replace('/\n+/', "\n", str_replace("\r\n", "\n", trim($_POST['os_sp_starting']))), 0, 4095));
             foreach ($_POST['os_sp_starting'] as $key => $starting) {
               $starting = preg_replace(
                 '/#.*$/',
@@ -453,10 +450,7 @@ if (!$_SESSION['admin_username']) {
           }
 
           if (isset($_POST['os_sp_require_url'])) {
-            $_POST['os_sp_require_url'] = str_replace("\r\n", "\n", trim($_POST['os_sp_require_url']));
-            $_POST['os_sp_require_url'] = preg_replace('/\n+/', "\n", $_POST['os_sp_require_url']);
-            $_POST['os_sp_require_url'] = substr($_POST['os_sp_require_url'], 0, 4095);
-            $_POST['os_sp_require_url'] = explode("\n", $_POST['os_sp_require_url']);
+            $_POST['os_sp_require_url'] = explode("\n", substr(preg_replace('/\n+/', "\n", str_replace("\r\n", "\n", trim($_POST['os_sp_require_url']))), 0, 4095));
             foreach ($_POST['os_sp_require_url'] as $key => $require) {
               if ($require[0] == '*') {
                 $require = substr($require, 1);
@@ -471,10 +465,7 @@ if (!$_SESSION['admin_username']) {
           }
 
           if (isset($_POST['os_sp_ignore_url'])) {
-            $_POST['os_sp_ignore_url'] = str_replace("\r\n", "\n", trim($_POST['os_sp_ignore_url']));
-            $_POST['os_sp_ignore_url'] = preg_replace('/\n+/', "\n", $_POST['os_sp_ignore_url']);
-            $_POST['os_sp_ignore_url'] = substr($_POST['os_sp_ignore_url'], 0, 4095);
-            $_POST['os_sp_ignore_url'] = explode("\n", $_POST['os_sp_ignore_url']);
+            $_POST['os_sp_ignore_url'] = explode("\n", substr(preg_replace('/\n+/', "\n", str_replace("\r\n", "\n", trim($_POST['os_sp_ignore_url']))), 0, 4095));
             foreach ($_POST['os_sp_ignore_url'] as $key => $ignore) {
               if ($ignore[0] == '*') {
                 $ignore = substr($ignore, 1);
@@ -498,8 +489,7 @@ if (!$_SESSION['admin_username']) {
           }
 
           if (isset($_POST['os_sp_category_default'])) {
-            $_POST['os_sp_category_default'] = preg_replace(array('/\s/', '/ {2,}/'), ' ', trim($_POST['os_sp_category_default']));
-            $_POST['os_sp_category_default'] = preg_replace('/[^\w \d-]/', '', $_POST['os_sp_category_default']);
+            $_POST['os_sp_category_default'] = preg_replace('/[^\w \d-]/', '', preg_replace(array('/\s/', '/ {2,}/'), ' ', trim($_POST['os_sp_category_default'])));
             if ($_POST['os_sp_category_default']) {
               OS_setValue('sp_category_default', substr($_POST['os_sp_category_default'], 0, 30));
             } else $_SESSION['error'][] = 'Category names may only contain letters, numbers, spaces or dashes.';
@@ -515,10 +505,7 @@ if (!$_SESSION['admin_username']) {
           }
 
           if (isset($_POST['os_sp_title_strip'])) {
-            $_POST['os_sp_title_strip'] = str_replace("\r\n", "\n", trim($_POST['os_sp_title_strip']));
-            $_POST['os_sp_title_strip'] = preg_replace('/\n+/', "\n", $_POST['os_sp_title_strip']);
-            $_POST['os_sp_title_strip'] = substr($_POST['os_sp_title_strip'], 0, 4095);
-            $_POST['os_sp_title_strip'] = explode("\n", $_POST['os_sp_title_strip']);
+            $_POST['os_sp_title_strip'] = explode("\n", substr(preg_replace('/\n+/', "\n", str_replace("\r\n", "\n", trim($_POST['os_sp_title_strip']))), 0, 4095));
             foreach ($_POST['os_sp_title_strip'] as $key => $title_strip) {
               if ($title_strip[0] == '*') {
                 $title_strip = substr($title_strip, 1);
@@ -571,10 +558,7 @@ if (!$_SESSION['admin_username']) {
 
           if (isset($_POST['os_admin_email'])) {
             if ($_MAIL) {
-              $_POST['os_admin_email'] = str_replace("\r\n", "\n", $_POST['os_admin_email']);
-              $_POST['os_admin_email'] = preg_replace('/\n+/', "\n", $_POST['os_admin_email']);
-              $_POST['os_admin_email'] = substr($_POST['os_admin_email'], 0, 4095);
-              $_POST['os_admin_email'] = explode("\n", $_POST['os_admin_email']);
+              $_POST['os_admin_email'] = explode("\n", substr(preg_replace('/\n+/', "\n", str_replace("\r\n", "\n", $_POST['os_admin_email'])), 0, 4095));
               foreach ($_POST['os_admin_email'] as $key => $admin_email) {
                 $email = $_MAIL->parseAddresses($admin_email);
                 if (count($email)) {
@@ -596,8 +580,7 @@ if (!$_SESSION['admin_username']) {
         // ***** Crawler >> Sitemap
         case 'os_sp_sitemap_config':
           if (isset($_POST['os_sp_sitemap_file'])) {
-            $_POST['os_sp_sitemap_file'] = substr($_POST['os_sp_sitemap_file'], 0, 255);
-            $_POST['os_sp_sitemap_file'] = filter_var($_POST['os_sp_sitemap_file'], FILTER_SANITIZE_URL);
+            $_POST['os_sp_sitemap_file'] = filter_var(substr($_POST['os_sp_sitemap_file'], 0, 255), FILTER_SANITIZE_URL);
             if ($_POST['os_sp_sitemap_file']) {
               if (preg_match('/\.xml(\.gz)?$/', $_POST['os_sp_sitemap_file'])) {
                 OS_setValue('sp_sitemap_file', $_POST['os_sp_sitemap_file']);
@@ -669,9 +652,7 @@ if (!$_SESSION['admin_username']) {
 
                 case 'category':
                   if (!empty($_POST['os_apply_new_category'])) {
-                    $_POST['os_apply_new_category'] = preg_replace(array('/\s/', '/ {2,}/'), ' ', trim($_POST['os_apply_new_category']));
-                    $_POST['os_apply_new_category'] = preg_replace('/[^\w \d-]/', '', $_POST['os_apply_new_category']);
-                    $_POST['os_apply_new_category'] = substr($_POST['os_apply_new_category'], 0, 30);
+                    $_POST['os_apply_new_category'] = substr(preg_replace('/[^\w \d-]/', '', preg_replace(array('/\s/', '/ {2,}/'), ' ', trim($_POST['os_apply_new_category']))), 0, 30);
 
                     if ($_POST['os_apply_new_category']) {
                       $update = $_DDATA['pdo']->prepare(
@@ -697,9 +678,7 @@ if (!$_SESSION['admin_username']) {
 
                 case 'priority':
                   if (!empty($_POST['os_apply_new_priority'])) {
-                    $_POST['os_apply_new_priority'] = (float)$_POST['os_apply_new_priority'];
-                    $_POST['os_apply_new_priority'] = max(0, min(1, $_POST['os_apply_new_priority']));
-                    $_POST['os_apply_new_priority'] = round($_POST['os_apply_new_priority'], 5);
+                    $_POST['os_apply_new_priority'] = round(max(0, min(1, (float)$_POST['os_apply_new_priority'])), 5);
 
                     $update = $_DDATA['pdo']->prepare(
                       'UPDATE `'.$_DDATA['tbprefix'].'crawldata` SET `priority`=:priority WHERE `content_checksum`=:content_checksum;'
@@ -814,8 +793,7 @@ if (!$_SESSION['admin_username']) {
           }
 
           if (isset($_POST['os_s_charset'])) {
-            $_POST['os_s_charset'] = substr($_POST['os_s_charset'], 0, 63);
-            $_POST['os_s_charset'] = preg_replace('/[^\w\d\.:_-]/', '', $_POST['os_s_charset']);
+            $_POST['os_s_charset'] = preg_replace('/[^\w\d\.:_-]/', '', substr($_POST['os_s_charset'], 0, 63));
             OS_setValue('s_charset', $_POST['os_s_charset']);
           }
 
@@ -1250,11 +1228,7 @@ if (!$_SESSION['admin_username']) {
         $median = $median->fetchAll();
         if (count($median)) {
           $index = floor(count($median) / 2);
-          if (count($median) & 1) {
-            $_RDATA['q_median_results'] = $median[$index]['results'];
-          } else {
-            $_RDATA['q_median_results'] = ($median[$index - 1]['results'] + $median[$index]['results']) / 2;
-          }
+          $_RDATA['q_median_results'] = (count($median) & 1) ? $median[$index]['results'] : ($median[$index - 1]['results'] + $median[$index]['results']) / 2;
         }
       } else $_SESSION['error'][] = 'Could not read result counts from query log.';
       break;

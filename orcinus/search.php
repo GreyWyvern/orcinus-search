@@ -155,7 +155,7 @@ if ($_RDATA['s_searchable_pages']) {
           } else if ($t[0] == '-' && mb_strlen($t, 'UTF-8') > 1) {
             $_SDATA['terms'][] = array('exclude', substr($t, 1), false);
 
-          // Restrict to a specific filetype (not yet implemented)
+          // Restrict to a specific filetype
           // Really, we'd only allow HTML, XML and PDF here
           } else if (strpos(strtolower($t), 'filetype:') === 0) {
             $t = trim(substr($t, 9));
@@ -204,10 +204,10 @@ if ($_RDATA['s_searchable_pages']) {
               $_SDATA['formatted'][] = $term;
 
             // Regexp for later use pattern matching results
-            $_SDATA['terms'][$key][2] = preg_quote(strtolower($term), '/');
-            $_SDATA['terms'][$key][2] = strtr($_SDATA['terms'][$key][2], $_RDATA['s_latin_pcre']);
-            $_SDATA['terms'][$key][2] = '/('.$_SDATA['terms'][$key][2].')/iu';
-
+            $_SDATA['terms'][$key][2] = '/('.strtr(
+              preg_quote(strtolower($term), '/'),
+              $_RDATA['s_latin_pcre']
+            ).')/iu';
         }
       }
 
@@ -715,9 +715,11 @@ if ($_RDATA['s_searchable_pages']) {
 
           // Convert output back to $_ODATA['s_charset'] before storing
           if (strtoupper($_ODATA['s_charset']) != 'UTF-8') {
-            $_RESULT = json_encode($_RESULT, JSON_INVALID_UTF8_IGNORE);
-            $_RESULT = mb_convert_encoding($_RESULT, $_ODATA['s_charset'], 'UTF-8');
-            $_RESULT = json_decode($_RESULT, true);
+            $_RESULT = json_decode(mb_convert_encoding(
+              json_encode($_RESULT, JSON_INVALID_UTF8_IGNORE),
+              $_ODATA['s_charset'],
+              'UTF-8'
+            ), true);
           }
 
           $_ORCINUS->searchable->searched->results->result_list[] = $_RESULT;
