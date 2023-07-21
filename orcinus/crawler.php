@@ -806,7 +806,7 @@ if (in_array($_DDATA['tbprefix'].'crawltemp', $_DDATA['tables'], true)) {
     // Run through every entry in the crawltemp table
     foreach ($select as $row) {
 
-      // In an entry matches an existing URL in the queue (just
+      // If an entry matches an existing URL in the queue (just
       // starting URLs right now) then delete that queue entry
       foreach ($_RDATA['sp_queue'] as $key => $queue)
         if ($row['url'] == $queue[0])
@@ -852,6 +852,13 @@ if (in_array($_DDATA['tbprefix'].'crawltemp', $_DDATA['tables'], true)) {
     $drop = $_DDATA['pdo']->query(
       'DROP TABLE IF EXISTS `'.$_DDATA['tbprefix'].'crawltemp`;'
     );
+    $err = $drop->errorInfo();
+    if ($err[0] != '00000') {
+      // If we couldn't delete the interrupted crawldata table, this is
+      // a fatal error
+      OS_crawlLog('Could not delete previously interrupted crawl data; unable to crawl.', 2);
+      throw new Exception('Could not delete previously interrupted crawl data; unable to crawl.');
+    }
   }
 }
 
@@ -860,7 +867,13 @@ $create = $_DDATA['pdo']->query(
   'CREATE TABLE IF NOT EXISTS`'.$_DDATA['tbprefix'].'crawltemp`
      LIKE `'.$_DDATA['tbprefix'].'crawldata`;'
 );
-
+$err = $create->errorInfo();
+if ($err[0] != '00000') {
+  // If we could not create the crawldata table, or an interrupted
+  // crawldata table doesn't exist, then this is a fatal error
+  OS_crawlLog('Unable to create or reuse existing crawl data table; unable to crawl.', 2);
+  throw new Exception('Unable to create or reuse existing crawl data table; unable to crawl.');
+}
 
 // Prepare SQL statements
 $selectData = $_DDATA['pdo']->prepare(
