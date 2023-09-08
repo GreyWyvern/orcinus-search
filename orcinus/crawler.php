@@ -1415,7 +1415,8 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
                 $getItems = array(
                   'title' => array('Title', 'dc:title', 'pdf:title'),
                   'description' => array('Subject', 'dc:description', 'pdf:subject'),
-                  'keywords' => array('Keywords', 'dc:subject', 'pdf:keywords')
+                  'keywords' => array('Keywords', 'dc:subject', 'pdf:keywords'),
+                  'modified' => array('SourceModified', 'pdfx:sourcemodified', 'CreationDate', 'xmp:createdate')
                 );
 
                 foreach ($getItems as $key => $item) {
@@ -1443,6 +1444,10 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
                 if (!$data['info']['charset']) $data['info']['charset'] = 'CP1252';
                 OS_cleanTextUTF8($data['content'], $data['info']['charset']);
 
+                if (!empty($data['modified']))
+                  if ($stamp = strtotime($data['modified']))
+                    $data['info']['filetime'] = $stamp;
+  
                 if ($data['content']) {
 
                   // Discard the PDF text if it contains Unicode control

@@ -259,7 +259,7 @@ if ($_RDATA['s_searchable_pages']) {
         // Begin building the basic query
         $searchSQL = '
           SELECT `url`, `category`, `content`, `content_mime`, `title`,
-                 `description`, `keywords`, `weighted`, `priority`
+                 `description`, `keywords`, `weighted`, `last_modified`, `priority`
             FROM `'.$_DDATA['tbprefix'].'crawldata`
               WHERE `flag_unlisted`=0 AND `priority`>0';
 
@@ -349,12 +349,16 @@ if ($_RDATA['s_searchable_pages']) {
         $err = $searchQuery->errorInfo();
         if ($err[0] == '00000') {
           $searchQuery = $searchQuery->fetchAll();
+          $pdfList = array();
 
           // Apply relevance to each listing and then sort
           foreach ($searchQuery as $key => $row) {
             $searchQuery[$key]['relevance'] = 0;
             $searchQuery[$key]['multi'] = -1;
             $searchQuery[$key]['phrase'] = 0;
+
+            if ($row['content_mime'] == 'application/pdf')
+              $pdfList[] = array($key, $row['last_modified']);
 
             // Lowercase values for easy compare
             $row['lc_content'] = strtolower($row['content']);
@@ -425,6 +429,14 @@ if ($_RDATA['s_searchable_pages']) {
             $searchQuery[$key]['relevance'] *= $_ODATA['s_weights']['important'] ** $searchQuery[$key]['phrase'];
 
             $searchQuery[$key]['relevance'] *= $row['priority'];
+          }
+
+          // Apply the PDF Last Modified multiplier
+          if (count($pdfList) > 1) {
+            foreach ($pdfList as $value) {
+              $diff = (time() - $value[1]) / (60 * 60 * 24 * 365);
+              $searchQuery[$value[0]]['relevance'] *= $_ODATA['s_weights']['pdflastmod'] ** $diff;
+            }
           }
 
           // Sort the list by relevance value
@@ -541,6 +553,7 @@ if ($_RDATA['s_searchable_pages']) {
             unset($_SDATA['results'][$key]['content']);
             unset($_SDATA['results'][$key]['keywords']);
             unset($_SDATA['results'][$key]['weighted']);
+            unset($_SDATA['results'][$key]['last_modified']);
             unset($_SDATA['results'][$key]['multi']);
             unset($_SDATA['results'][$key]['phrase']);
           }

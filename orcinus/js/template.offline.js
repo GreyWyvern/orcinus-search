@@ -41,11 +41,12 @@ const os_params = new URLSearchParams(window.location.search);
 
 
 // ***** Page Object Constructor
-function os_page(content_mime, url, category, priority, title, description, keywords, weighted, content) {
+function os_page(content_mime, url, category, priority, last_modified, title, description, keywords, weighted, content) {
   this.content_mime = content_mime;
   this.url = url;
   this.category = category;
   this.priority = parseFloat(priority);
+  this.last_modified = parseInt(last_modified);
   this.title = title;
   this.description = description;
   this.keywords = keywords;
@@ -62,7 +63,7 @@ function os_page(content_mime, url, category, priority, title, description, keyw
 // ***** Search Database
 let os_crawldata = [
 {{#os_crawldata}}
-new os_page('{{{content_mime}}}', '{{{url}}}', '{{{category}}}', {{priority}}, '{{{title}}}', '{{{description}}}', '{{{keywords}}}', '{{{weighted}}}', '{{{words}}}'),
+new os_page('{{{content_mime}}}', '{{{url}}}', '{{{category}}}', {{priority}}, {{last_modified}}, '{{{title}}}', '{{{description}}}', '{{{keywords}}}', '{{{weighted}}}', '{{{words}}}'),
 {{/os_crawldata}}
 ];
 
@@ -226,6 +227,7 @@ if (os_crawldata.length) {
 
 
       // ***** There is never any cache, so do an actual search
+      let pdfList = [];
       for (let y = os_crawldata.length - 1; y >= 0; y--) {
         if (filetypes.length) {
           let allowMime = false;
@@ -237,6 +239,7 @@ if (os_crawldata.length) {
           }
         }
 
+        let addRelevance;
         for (let x = 0; x < os_sdata.terms.length; x++) {
           addRelevance = 0;
 
@@ -274,20 +277,28 @@ if (os_crawldata.length) {
 
             if (addRelevance) {
               os_crawldata[y].multi++;
+              os_crawldata[y].relevance += addRelevance;
             } else if (os_sdata.terms[x][0] == 'phrase')
               os_crawldata.splice(y, 1);
 
           }
         }
 
-        if (addRelevance) {
-          os_crawldata[y].relevance += addRelevance;
+        if (os_crawldata[y].content_mime == 'application/pdf')
+          pdfList.push([y, os_crawldata[y].last_modified]);
 
-          // Calculate multipliers
-          os_crawldata[y].relevance *= Math.pow(os_odata.s_weights.multi, os_crawldata[y].multi);
-          os_crawldata[y].relevance *= Math.pow(os_odata.s_weights.important, os_crawldata[y].phrase);
+        // Calculate multipliers
+        os_crawldata[y].relevance *= Math.pow(os_odata.s_weights.multi, os_crawldata[y].multi);
+        os_crawldata[y].relevance *= Math.pow(os_odata.s_weights.important, os_crawldata[y].phrase);
 
-          os_crawldata[y].relevance *= os_crawldata[y].priority;
+        os_crawldata[y].relevance *= os_crawldata[y].priority;
+      }
+
+      // Apply the PDF Last Modified multiplier
+      if (pdfList.length > 1) {
+        for (let y = 0, diff; y < pdfList.length; y++) {
+          diff = ((new Date()).getTime() / 1000 - pdfList[y][1]) / (60 * 60 * 24 * 365);
+          os_crawldata[pdfList[y][0]].relevance *= os_odata.s_weights.pdflastmod ** diff;
         }
       }
 

@@ -5,3 +5,4 @@ orcinus/GeoIP2/geoip2.phar
 orcinus/GeoIP2/COPYRIGHT.txt
 orcinus/config.ini.php
 *.7z
+orcinus/js/offline-search.js

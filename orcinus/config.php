@@ -196,7 +196,7 @@ if (!count($testConf->fetchAll())) {
       `s_results_pagination`=10,
       `s_limit_matchtext`=256,
       `s_limit_cache`=256,
-      `s_weights`=\'{"title":"1.3","body":"0.5","keywords":"2.1","description":"0.4","css_value":"1.9","url":"0.2","multi":"2.5","important":"1.5"}\',
+      `s_weights`=\'{"title":"1.3","body":"0.5","keywords":"2.1","description":"0.4","css_value":"1.9","url":"0.2","multi":"2.5","important":"1.5","pdflastmod":"1.0"}\',
       `s_weight_css`=\'.important dt h1 h2 h3\',
       `s_show_orphans`=0,
       `s_show_filetype_html`=0,

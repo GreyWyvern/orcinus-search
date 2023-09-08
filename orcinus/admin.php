@@ -769,6 +769,9 @@ if (!$_SESSION['admin_username']) {
           if (!isset($_POST['os_s_weight_important'])) $_POST['os_s_weight_important'] = $_ODATA['s_weights']['important'];
           $_POST['os_s_weight_important'] = number_format(max(0, (float)$_POST['os_s_weight_important']), 1, '.', '');
 
+          if (!isset($_POST['os_s_weight_pdflastmod'])) $_POST['os_s_weight_pdflastmod'] = $_ODATA['s_weights']['pdflastmod'];
+          $_POST['os_s_weight_pdflastmod'] = number_format(max(0.1, (float)$_POST['os_s_weight_pdflastmod']), 1, '.', '');
+
           if (!isset($_POST['os_s_weight_css_value'])) $_POST['os_s_weight_css_value'] = $_ODATA['s_weights']['css_value'];
           $_POST['os_s_weight_css_value'] = number_format(max(0, (float)$_POST['os_s_weight_css_value']), 1, '.', '');
 
@@ -780,7 +783,8 @@ if (!$_SESSION['admin_username']) {
             'css_value' => $_POST['os_s_weight_css_value'],
             'url' => $_POST['os_s_weight_url'],
             'multi' => $_POST['os_s_weight_multi'],
-            'important' => $_POST['os_s_weight_important']
+            'important' => $_POST['os_s_weight_important'],
+            'pdflastmod' => $_POST['os_s_weight_pdflastmod']
           ));
 
           if (isset($_POST['os_s_weight_css'])) {
@@ -888,7 +892,7 @@ if (!$_SESSION['admin_username']) {
           // ***** Write to and download the Offline Javascript file
           $crawldata = $_DDATA['pdo']->query(
             'SELECT `url`, `title`, `description`, `keywords`, `category`,
-                    `content_mime`, `weighted`, `content`, `priority`
+                    `content_mime`, `weighted`, `content`, `last_modified`, `priority`
               FROM `'.$_DDATA['tbprefix'].'crawldata`
                 WHERE `flag_unlisted`=0 '.$_RDATA['s_show_orphans'].' AND
                       `url` LIKE \''.addslashes($_ODATA['jw_hostname']).'/%\';'
@@ -2425,7 +2429,7 @@ if (!$_SESSION['admin_username']) {
                             <h5 class="text-center">
                               Multipliers
                               <img src="img/help.svg" alt="Information" class="align-middle svg-icon mb-1"
-                                data-bs-toggle="tooltip" data-bs-placement="top" title="These values MULTIPLY the final relevance score for a search result. Should be greater than 1.0.">
+                                data-bs-toggle="tooltip" data-bs-placement="top" title="These values MULTIPLY the final relevance score for a search result.">
                             </h5>
                             <label class="d-flex lh-lg w-100 mb-2">
                               <strong class="pe-2">Multi-term:</strong>
@@ -2441,6 +2445,18 @@ if (!$_SESSION['admin_username']) {
                                   data-bs-toggle="tooltip" data-bs-placement="bottom" title="Applied for search terms the user has marked as '+important' and &quot;phrase matches&quot;. Default: 1.5">
                               </span>
                             </label>
+                            <label class="d-flex lh-lg w-100 mb-2">
+                              <strong class="pe-2">PDF Last Modified:</strong>
+                              <span class="flex-grow-1 text-end text-nowrap">
+                                <input type="number" name="os_s_weight_pdflastmod" value="<?php echo $_ODATA['s_weights']['pdflastmod']; ?>" min="0.1" max="10" step="0.1" class="form-control d-inline-block"
+                                  data-bs-toggle="tooltip" data-bs-placement="bottom" title="Rank PDFs by examining their 'Last Modified' dates. Default: 1.0">
+                              </span>
+                            </label>
+                            <p id="os_s_weight_pdflastmod_text" class="form-text">
+                              The <em>PDF Last Modified</em> multiplier lets you rank older PDFs lower in
+                              search results based on years of age. <em>eg</em>. a value of 0.5 means a
+                              year-old PDF has its relevance value halved. Minimum value: 0.1
+                            </p>
                           </div>
                         </div>
                       </li>
