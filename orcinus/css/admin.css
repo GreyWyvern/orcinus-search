@@ -68,6 +68,12 @@ img.svg-icon-flag {
   box-shadow:0 0.1em 0.2em rgba(0,0,0,0.3);
 }
 
+#os_index_table.show-page-titles div[data-page-title]::before {
+  content:attr(data-page-title);
+  display:block;
+  font-size:80%;
+}
+
 #os_queries_thead > tr > th > img {
   visibility:hidden;
 }

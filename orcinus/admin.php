@@ -118,6 +118,7 @@ if (!isset($_SESSION['index_page'])) $_SESSION['index_page'] = 1;
 if (empty($_SESSION['index_filter_category'])) $_SESSION['index_filter_category'] = '<none>';
 if (empty($_SESSION['index_filter_status'])) $_SESSION['index_filter_status'] = '<none>';
 if (empty($_SESSION['index_filter_text'])) $_SESSION['index_filter_text'] = '';
+if (empty($_SESSION['index_show_page_titles'])) $_SESSION['index_show_page_titles'] = 'off';
 if (empty($_SESSION['admin_username'])) $_SESSION['admin_username'] = '';
 
 if (!$_SESSION['admin_username']) {
@@ -140,6 +141,7 @@ if (!$_SESSION['admin_username']) {
     }
   }
 
+// We are logged in with a valid admin username
 } else {
 
   /* ***** Handle POST Requests ************************************** */
@@ -341,6 +343,24 @@ if (!$_SESSION['admin_username']) {
           }
           break;
 
+        // ***** Set an admin UI session variable
+        case 'setsession':
+          if (!empty($_POST->variable) && isset($_SESSION[$_POST->variable])) {
+            if (empty($_POST->value)) $_POST->value = '';
+            $_SESSION[$_POST->variable] = $_POST->value;
+
+            $response = array(
+              'status' => 'Success',
+              'message' => $_POST->value
+            );
+
+          } else {
+            $response = array(
+              'status' => 'Error',
+              'message' => 'Invalid session variable given'
+            );
+          }
+          break;
 
         // ***** Not used?
         case 'fetch':
@@ -1873,7 +1893,8 @@ if (!$_SESSION['admin_username']) {
                     <input type="hidden" name="os_index_new_filter_category" value="">
                     <input type="hidden" name="os_index_new_filter_status" value="">
                     <div class="rounded-3 border border-1 border-secondary-subtle shadow border-bottom-0 mb-3 overflow-hidden">
-                      <table class="table table-striped w-100 mb-0" id="os_index_table">
+                      <table id="os_index_table" class="table table-striped w-100 mb-0 <?php
+                        if ($_SESSION['index_show_page_titles'] == 'on') echo 'show-page-titles'; ?>">
                         <thead>
                           <tr class="bg-black text-white">
                             <th colspan="6">
@@ -1917,7 +1938,7 @@ if (!$_SESSION['admin_username']) {
                           </tr>
                           <tr>
                             <th class="pe-0"></th>
-                            <th class="fs-5" scope="col">URL</th>
+                            <th class="fs-5 text-nowrap" scope="col" id="os_header_url">URL</th>
                             <td class="text-center w-100">
                               <span class="d-none d-sm-inline">Showing pages </span><?php
                               echo min($_RDATA['page_index_offset'] + 1, $_RDATA['page_index_found_rows']);
@@ -1982,7 +2003,8 @@ if (!$_SESSION['admin_username']) {
                                 <td colspan="2" class="text-nowrap">
                                   <div class="d-inline-block align-middle mw-90">
                                     <div class="w-100 d-table table-fixed">
-                                      <div class="w-100 d-table-cell overflow-hidden text-ellipsis">
+                                      <div class="w-100 d-table-cell overflow-hidden text-ellipsis"
+                                        data-page-title="<?php echo htmlspecialchars($row['title']); ?>">
                                         <a href="<?php echo htmlspecialchars($row['url']); ?>" title="<?php
                                           echo htmlspecialchars($row['url']); ?>" target="_blank" class="align-middle<?php
                                           if ($row['flag_updated']) echo ' fw-bold'; ?>"><?php
@@ -1999,18 +2021,18 @@ if (!$_SESSION['admin_username']) {
                                   </div>
                                 </td><?php
                                 if (count($_RDATA['s_category_list']) > 2) { ?> 
-                                  <td class="d-none d-md-table-cell text-center"><?php
+                                  <td class="d-none d-md-table-cell text-center align-middle"><?php
                                     echo htmlspecialchars($row['category']);
                                   ?></td><?php
                                 } ?> 
-                                <td class="text-center text-nowrap">
+                                <td class="text-center text-nowrap align-middle">
                                   <span><?php echo htmlspecialchars($row['status']); ?></span><?php
                                   if ($row['flag_unlisted']) { ?> 
                                     <img src="img/hidden.svg" alt="Unlisted" class="align-middle svg-icon mb-1"
                                       data-bs-toggle="tooltip" data-bs-placement="top" title="Unlisted: This page will be crawled for content and links as normal, but will not show up in any search results."><?php
                                   }
                                 ?></td>
-                                <td class="d-none d-md-table-cell text-center"><?php
+                                <td class="d-none d-md-table-cell text-center align-middle"><?php
                                   echo htmlspecialchars($row['priority']);
                                 ?></td>
                               </tr><?php

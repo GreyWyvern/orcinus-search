@@ -208,6 +208,47 @@ if (os_index_filter_by_status) {
   }, false);
 }
 
+let os_header_url = document.getElementById('os_header_url');
+let os_index_table = document.getElementById('os_index_table');
+if (os_header_url && os_index_table) {
+  let input = document.createElement('input');
+      input.type = 'checkbox';
+      input.title = 'Show Page Titles';
+      input.classList.add('form-check-input', 'fs-6', 'ms-2', 'mt-2');
+      if (os_index_table.classList.contains('show-page-titles'))
+        input.checked = 'checked';
+    os_header_url.appendChild(input);
+      input.addEventListener('change', function() {
+        if (this.checked) {
+          os_index_table.classList.add('show-page-titles');
+        } else os_index_table.classList.remove('show-page-titles');
+
+        fetch(new Request('./admin.php'), {
+          method: 'POST',
+          headers: { 'Content-type': 'application/json' },
+          body: JSON.stringify({
+            action: 'setsession',
+            variable: 'index_show_page_titles',
+            value: (this.checked) ? 'on' : 'off'
+          })
+        })
+        .then((response) => response.text())
+        .then((data) => {
+          try {
+            data = JSON.parse(data);
+          } catch(e) { 
+            data = {
+             'status': 'Error',
+             'message': 'Invalid response from server'
+            };
+          }
+
+          if (data.status != 'Success')
+            console.log('Could not save session variable. Reason: ' + data.message);
+        });
+      }, false);
+}
+
 let os_index_check_all = document.querySelectorAll('input[name="os_index_check_all"]');
 for (let x = 0; x < os_index_check_all.length; x++) {
   os_index_check_all[x].addEventListener('click', function() {
@@ -624,7 +665,7 @@ os_crawl_start.addEventListener('click', function(e) {
       clearInterval(os_crawl_interval);
       os_crawl_interval = setInterval(os_get_crawl_progress, 1000);
 
-    } else if (data.status = 'Error') {
+    } else if (data.status == 'Error') {
       os_crawl_log.value = data.message;
       os_crawl_start.innerHTML = 'Couldn\'t Start Crawl';
       os_crawl_navbar.innerHTML = 'Crawler';
