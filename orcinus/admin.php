@@ -2449,7 +2449,7 @@ if (!$_SESSION['admin_username']) {
                               <strong class="pe-2">PDF Last Modified:</strong>
                               <span class="flex-grow-1 text-end text-nowrap">
                                 <input type="number" name="os_s_weight_pdflastmod" value="<?php echo $_ODATA['s_weights']['pdflastmod']; ?>" min="0.1" max="10" step="0.1" class="form-control d-inline-block"
-                                  data-bs-toggle="tooltip" data-bs-placement="bottom" title="Rank PDFs by examining their 'Last Modified' dates. Default: 1.0">
+                                  data-bs-toggle="tooltip" data-bs-placement="bottom" title="Attempt to rank PDFs by examining the ages of their content. Default: 1.0">
                               </span>
                             </label>
                             <p id="os_s_weight_pdflastmod_text" class="form-text">
