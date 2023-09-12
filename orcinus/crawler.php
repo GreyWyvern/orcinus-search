@@ -907,7 +907,7 @@ $insertTemp = $_DDATA['pdo']->prepare(
   ;'
 );
 $insertNotModified = $_DDATA['pdo']->prepare(
-  'INSERT INTO `'.$_DDATA['tbprefix'].'crawltemp` (
+  'REPLACE INTO `'.$_DDATA['tbprefix'].'crawltemp` (
       `url`, `url_sort`, `title`, `description`, `keywords`, `category`,
       `weighted`, `links`, `content`, `content_mime`, `content_charset`,
       `content_checksum`, `status`, `flag_unlisted`, `flag_updated`,
