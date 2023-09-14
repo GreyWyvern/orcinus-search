@@ -208,45 +208,41 @@ if (os_index_filter_by_status) {
   }, false);
 }
 
-let os_header_url = document.getElementById('os_header_url');
+let os_show_page_titles = document.getElementById('os_show_page_titles');
 let os_index_table = document.getElementById('os_index_table');
-if (os_header_url && os_index_table) {
-  let input = document.createElement('input');
-      input.type = 'checkbox';
-      input.title = 'Show Page Titles';
-      input.classList.add('form-check-input', 'fs-6', 'ms-2', 'mt-2');
-      if (os_index_table.classList.contains('show-page-titles'))
-        input.checked = 'checked';
-    os_header_url.appendChild(input);
-      input.addEventListener('change', function() {
-        if (this.checked) {
-          os_index_table.classList.add('show-page-titles');
-        } else os_index_table.classList.remove('show-page-titles');
+if (os_show_page_titles && os_index_table) {
+  if (os_index_table.classList.contains('show-page-titles'))
+    os_show_page_titles.checked = 'checked';
 
-        fetch(new Request('./admin.php'), {
-          method: 'POST',
-          headers: { 'Content-type': 'application/json' },
-          body: JSON.stringify({
-            action: 'setsession',
-            variable: 'index_show_page_titles',
-            value: (this.checked) ? 'on' : 'off'
-          })
-        })
-        .then((response) => response.text())
-        .then((data) => {
-          try {
-            data = JSON.parse(data);
-          } catch(e) { 
-            data = {
-             'status': 'Error',
-             'message': 'Invalid response from server'
-            };
-          }
+  os_show_page_titles.addEventListener('change', function() {
+    if (this.checked) {
+      os_index_table.classList.add('show-page-titles');
+    } else os_index_table.classList.remove('show-page-titles');
 
-          if (data.status != 'Success')
-            console.log('Could not save session variable. Reason: ' + data.message);
-        });
-      }, false);
+    fetch(new Request('./admin.php'), {
+      method: 'POST',
+      headers: { 'Content-type': 'application/json' },
+      body: JSON.stringify({
+        action: 'setsession',
+        variable: 'index_show_page_titles',
+        value: (this.checked) ? 'on' : 'off'
+      })
+    })
+    .then((response) => response.text())
+    .then((data) => {
+      try {
+        data = JSON.parse(data);
+      } catch(e) { 
+        data = {
+         'status': 'Error',
+         'message': 'Invalid response from server'
+        };
+      }
+
+      if (data.status != 'Success')
+        console.log('Could not save session variable. Reason: ' + data.message);
+    });
+  }, false);
 }
 
 let os_index_check_all = document.querySelectorAll('input[name="os_index_check_all"]');

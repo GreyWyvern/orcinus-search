@@ -83,3 +83,14 @@ img.svg-icon-flag {
 #os_queries_thead > tr > th.os_asc > img {
   transform:rotate(180deg);
 }
+
+nav.navbar {
+  background-image:url(../img/header/001.png);
+  background-repeat:no-repeat;
+  background-attachment:scroll;
+  background-position:-0.6em -1em;
+  background-size:7em;
+}
+nav.navbar .navbar-brand {
+  opacity:0.01;
+}

@@ -1312,7 +1312,8 @@ if (!$_SESSION['admin_username']) {
 <body class="pt-5">
   <nav class="navbar fixed-top navbar-expand-md bg-body-secondary">
     <div class="container-fluid">
-      <span class="navbar-brand flex-grow-1 flex-md-grow-0 mb-1">Orcinus</span><?php
+      <a href="https://greywyvern.com/orcinus/" class="navbar-brand flex-grow-1 flex-md-grow-0 mb-1"
+        target="_blank" title="Orcinus Search v<?php echo $_ODATA['version']; ?>">Orcinus</a><?php
       if ($_SESSION['admin_username']) { ?> 
         <div class="flex-grow-0 order-md-last">
           <var class="me-1" title="Orcinus Site Search - Version: <?php echo $_ODATA['version']; ?>">
@@ -1938,7 +1939,10 @@ if (!$_SESSION['admin_username']) {
                           </tr>
                           <tr>
                             <th class="pe-0"></th>
-                            <th class="fs-5 text-nowrap" scope="col" id="os_header_url">URL</th>
+                            <th class="fs-5 text-nowrap" scope="col">URL
+                              <input type="checkbox" class="form-check-input fs-6 ms-1 mt-2" id="os_show_page_titles"
+                                data-bs-toggle="tooltip" data-bs-placement="top" title="Show Page Titles">
+                            </th>
                             <td class="text-center w-100">
                               <span class="d-none d-sm-inline">Showing pages </span><?php
                               echo min($_RDATA['page_index_offset'] + 1, $_RDATA['page_index_found_rows']);
