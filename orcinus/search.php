@@ -462,6 +462,7 @@ if ($_RDATA['s_searchable_pages']) {
           // proper match text for each
           foreach ($_SDATA['results'] as $key => $row) {
             $_SDATA['results'][$key]['matchtext'] = array();
+            $_SDATA['results'][$key]['fragment'] = array();
 
             // Add the page description to use as a default match text
             if (trim($row['description'])) {
@@ -495,7 +496,10 @@ if ($_RDATA['s_searchable_pages']) {
                         // Grab some random content if there were no
                         // matches in the content
                         $offset = mt_rand(0, mb_strlen($row['content'], 'UTF-8') - $_ODATA['s_limit_matchtext']);
-                      } else $offset = floor(max(0, $split[1] - (mb_strlen($term, 'UTF-8') + $_ODATA['s_limit_matchtext']) / 2));
+                      } else {
+                        $_SDATA['results'][$key]['fragment'][] = $split[0];
+                        $offset = floor(max(0, $split[1] - (mb_strlen($term, 'UTF-8') + $_ODATA['s_limit_matchtext']) / 2));
+                      }
                       $match = trim(mb_substr($row['content'], $offset, $_ODATA['s_limit_matchtext'], 'UTF-8'));
 
                       // Add appropriate ellipses
@@ -733,6 +737,14 @@ if ($_RDATA['s_searchable_pages']) {
               $_ODATA['s_charset'],
               'UTF-8'
             ), true);
+          }
+
+          // Append text fragment(s) to the URL if applicable
+          if ($_ODATA['s_text_fragments'] && count($result['fragment'])) {
+            $result['fragment'] = array_map(function($a) {
+              return str_replace(array(',', '-'), array('%2C', '%2D'), urlencode($a));
+            }, array_values(array_unique($result['fragment'])));
+            $_RESULT->url .= '#:~:text='.implode('&text=', $result['fragment']);
           }
 
           $_ORCINUS->searchable->searched->results->result_list[] = $_RESULT;

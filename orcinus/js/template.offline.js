@@ -54,6 +54,7 @@ function os_page(content_mime, url, category, priority, last_modified, title, de
   this.content = content;
 
   this.matchtext = [];
+  this.fragment = [];
 
   this.relevance = 0;
   this.multi = -1;
@@ -354,8 +355,11 @@ if (os_crawldata.length) {
                   if (splitter.length == 1) {
                     // Grab some random content if there were no
                     // matches in the content
-                    let offset = Math.floor(Math.random() * os_sdata.results[x].content.length - {{s_limit_matchtext}});
-                  } else offset = Math.floor(Math.max(0, caret - (splitter[z].length + {{s_limit_matchtext}}) / 2));
+                    offset = Math.floor(Math.random() * os_sdata.results[x].content.length - {{s_limit_matchtext}});
+                  } else {
+                    os_sdata.results[x].fragment.push(splitter[z]);
+                    offset = Math.floor(Math.max(0, caret - (splitter[z].length + {{s_limit_matchtext}}) / 2));
+                  }
                   let match = os_sdata.results[x].content.substring(offset, offset + {{s_limit_matchtext}}).trim();
 
                   // Add appropriate ellipses
@@ -482,6 +486,17 @@ if (os_crawldata.length) {
                 result.description_highlight = result.description_highlight.replace(os_sdata.terms[z][2], '<strong>$1</strong>');
 
             }
+          }
+
+          // Append text fragment(s) to the URL if applicable
+          if ({{s_text_fragments}} && resultsPage[x].fragment.length) {
+            resultsPage[x].fragment = resultsPage[x].fragment.filter(function(v, i, a) {
+              return a.indexOf(v) === i;
+            });
+            resultsPage[x].fragment = resultsPage[x].fragment.map(function(x) {
+              return x.replace(',', '%2C').replace('-', '%2D');
+            });
+            result.url += '#:~:text=' + resultsPage[x].fragment.join('&text=');
           }
 
           os_TEMPLATE.searchable.searched.results.result_list.push(result);

@@ -846,6 +846,29 @@ if (!$_SESSION['admin_username']) {
           } else $_POST['os_s_show_filetype_html'] = 0;
           OS_setValue('s_show_filetype_html', $_POST['os_s_show_filetype_html']);
 
+          if (isset($_POST['os_s_text_fragments']) && $_POST['os_s_text_fragments'] == '1') {
+            $_POST['os_s_text_fragments'] = 1;
+            if (strpos($_ODATA['s_result_template'], ' href="{{url}}" rel="noopener" ') === false) {
+              OS_setValue('s_result_template', str_replace(
+                ' href="{{url}}" ',
+                ' href="{{url}}" rel="noopener" ',
+                $_ODATA['s_result_template']
+              ));
+              $_SESSION['message'][] = <<<ORCINUS
+Note: <code>rel="noopener"</code> has been added to the links in your result template.
+<a href="https://developer.mozilla.org/en-US/docs/Web/Text_fragments#:~:text=noopener" rel="noopener" target="_blank">More info...</a>
+ORCINUS;
+            }
+          } else {
+            $_POST['os_s_text_fragments'] = 0;
+            OS_setValue('s_result_template', str_replace(
+              ' href="{{url}}" rel="noopener" ',
+              ' href="{{url}}" ',
+              $_ODATA['s_result_template']
+            ));
+          }
+          OS_setValue('s_text_fragments', $_POST['os_s_text_fragments']);
+
           $_SESSION['message'][] = 'Search settings have been saved.';
           break;
 
@@ -1004,6 +1027,7 @@ if (!$_SESSION['admin_username']) {
                   's_limit_term_length' => $_ODATA['s_limit_term_length'],
                   's_limit_matchtext' => $_ODATA['s_limit_matchtext'],
                   's_show_filetype_html' => $_ODATA['s_show_filetype_html'],
+                  's_text_fragments' => $_ODATA['s_text_fragments'],
                   's_results_pagination' => $_ODATA['s_results_pagination'],
                   's_limit_results' => $_ODATA['s_limit_results'],
                   's_result_template' => json_encode(preg_replace('/\s{2,}/', ' ', $_ODATA['s_result_template']), JSON_INVALID_UTF8_IGNORE),
@@ -1360,7 +1384,7 @@ if (!$_SESSION['admin_username']) {
       while ($error = array_shift($_SESSION['error'])) { ?> 
         <div class="col-10 col-sm-8 col-md-7">
           <div class="alert alert-danger alert-dismissible fade show mx-auto" role="alert"><?php
-            echo htmlspecialchars($error); ?> 
+            echo $error; ?> 
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
           </div>
         </div><?php
@@ -1368,7 +1392,7 @@ if (!$_SESSION['admin_username']) {
       while ($message = array_shift($_SESSION['message'])) { ?> 
         <div class="col-10 col-sm-8 col-md-7">
           <div class="alert alert-info alert-dismissible fade show mx-auto" role="alert"><?php
-            echo htmlspecialchars($message); ?> 
+            echo $message; ?> 
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
           </div>
         </div><?php
@@ -2536,6 +2560,14 @@ if (!$_SESSION['admin_username']) {
                                   data-bs-toggle="tooltip" data-bs-placement="top" title="By default the [HTML] filetype is hidden in search results, since it's assumed."<?php
                                   if ($_ODATA['s_show_filetype_html']) echo ' checked="checked"'; ?>>
                                 <label for="os_s_show_filetype_html" class="form-check-label">Show [HTML] filetype in search results</label>
+                              </li>
+                              <li class="form-check mb-1">
+                                <input type="checkbox" name="os_s_text_fragments" id="os_s_text_fragments" value="1" class="form-check-input"
+                                  data-bs-toggle="tooltip" data-bs-placement="top" title="Use special links that try to highlight the first match of each term on the target page."<?php
+                                  if ($_ODATA['s_text_fragments']) echo ' checked="checked"'; ?>>
+                                <label for="os_s_text_fragments" class="form-check-label">
+                                  Use <a href="https://developer.mozilla.org/en-US/docs/Web/Text_fragments#:~:text=Text%20fragment" rel="noopener" target="_blank">text fragments</a> in result links
+                                </label>
                               </li>
                             </ul>
                           </div>
