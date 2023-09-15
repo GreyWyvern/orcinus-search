@@ -1879,28 +1879,25 @@ ORCINUS;
                           } else { ?> 
                             <li class="page-item disabled"><span class="page-link">Previous</span></li><?php
                           }
-                          if ($_RDATA['index_pages'] < 6) {
-                            for ($x = 1; $x <= $_RDATA['index_pages']; $x++) {
-                              if ($x != $_SESSION['index_page']) { ?>
-                                <li class="page-item"><a class="page-link" href="?ipage=<?php echo $x; ?>"><?php echo $x; ?></a></li><?php
-                              } else { ?> 
-                                <li class="page-item disabled"><span class="page-link"><strong><?php echo $x; ?></strong></span></li><?php
-                              }
+                          for ($x = 1; $x <= $_RDATA['index_pages']; $x++) {
+                            if ($x != $_SESSION['index_page']) { ?>
+                              <li class="page-item"><a class="page-link" href="?ipage=<?php echo $x; ?>"><?php echo $x; ?></a></li><?php
+                            } else { ?> 
+                              <li class="page-item disabled"><span class="page-link"><strong><?php echo $x; ?></strong></span></li><?php
                             }
-                          } else { ?> 
-                            <li class="page-item d-table">
-                              <label class="d-table-cell align-middle h-100 text-nowrap ps-3 pe-3 h-100 border border-1">
-                                <span class="align-middle">Jump to page:</span>
-                                <select name="os_index_pagination_page_select" class="form-select form-select-sm d-inline-block w-auto"><?php
-                                  for ($x = 1; $x <= $_RDATA['index_pages']; $x++) { ?> 
-                                    <option value="<?php echo $x; ?>"<?php 
-                                      if ($x == $_SESSION['index_page']) echo ' selected="selected"';
-                                      ?>><?php echo $x; ?></option><?php
-                                  }
-                                ?></select>
-                              </label>
-                            </li><?php
-                          }
+                          } ?> 
+                          <li class="page-item d-none border border-1" id="os_pagination_jump">
+                            <label class="text-nowrap ps-3 pe-3 h-100 d-flex align-items-center">
+                              <span class="pe-1">Jump to page:</span>
+                              <select name="os_index_pagination_page_select" class="form-select form-select-sm d-inline-block w-auto"><?php
+                                for ($x = 1; $x <= $_RDATA['index_pages']; $x++) { ?> 
+                                  <option value="<?php echo $x; ?>"<?php 
+                                    if ($x == $_SESSION['index_page']) echo ' selected="selected"';
+                                    ?>><?php echo $x; ?></option><?php
+                                }
+                              ?></select>
+                            </label>
+                          </li><?php
                           if ($_SESSION['index_page'] < $_RDATA['index_pages']) { ?> 
                             <li class="page-item"><a class="page-link" href="?ipage=<?php echo $_SESSION['index_page'] + 1; ?>">Next</a></li><?php
                           } else { ?> 
