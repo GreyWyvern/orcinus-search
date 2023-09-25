@@ -359,6 +359,13 @@ for (let x = 0; x < os_index_with_selected.length; x++) {
 
 
 /* ***** Page >> Query Log ***************************************** */
+let os_admin_query_log_display = document.querySelector('select[name="os_admin_query_log_display"]');
+if (os_admin_query_log_display) {
+  os_admin_query_log_display.addEventListener('change', function() {
+    this.form.submit();
+  }, false);
+}
+
 let os_queries_tbody = document.getElementById('os_queries_tbody');
 if (os_queries_tbody) {
   let os_queries_sort = function() {

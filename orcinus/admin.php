@@ -97,6 +97,10 @@ $_RDATA['admin_pagination_options'] = array(25, 50, 100, 250, 500, 1000);
 if (!in_array($_ODATA['admin_index_pagination'], $_RDATA['admin_pagination_options'], true))
   OS_setValue('admin_index_pagination', 100);
 
+$_RDATA['admin_query_log_display_options'] = array(10, 25, 50, 100, 250, 500, 1000, 0);
+if (!in_array($_ODATA['admin_query_log_display'], $_RDATA['admin_query_log_display_options'], true))
+  OS_setValue('admin_query_log_display', 250);
+
 $_RDATA['admin_pages'] = array(
   'crawler' => 'Crawler',
   'index' => 'Page Index',
@@ -1093,6 +1097,16 @@ ORCINUS;
         exit();
       }
 
+      // Query Log row display limit
+      if (isset($_POST['os_admin_query_log_display'])) {
+        $_POST['os_admin_query_log_display'] = (int)$_POST['os_admin_query_log_display'];
+        if (in_array($_POST['os_admin_query_log_display'], $_RDATA['admin_query_log_display_options'], true))
+          OS_setValue('admin_query_log_display', $_POST['os_admin_query_log_display']);
+
+        header('Location: '.$_SERVER['REQUEST_URI']);
+        exit();
+      }
+
       // Unknown POST command
       header('Content-type: text/plain; charset='.strtolower($_ODATA['s_charset']));
       var_dump($_POST);
@@ -1283,6 +1297,8 @@ ORCINUS;
 
     case 'queries':
       $_RDATA['query_log_rows'] = array();
+      $_RDATA['query_log_found_rows'] = false;
+
       $queries = $_DDATA['pdo']->query(
         'SELECT `t`.`query`, `t`.`results`, INET_NTOA(`t`.`ip`) AS `ipaddr`,
                 REGEXP_REPLACE(`t`.`query`, \'^[[:punct:]]+\', \'\') AS `alpha`,
@@ -1300,6 +1316,7 @@ ORCINUS;
       $err = $queries->errorInfo();
       if ($err[0] == '00000') {
         $_RDATA['query_log_rows'] = $queries->fetchAll();
+        $_RDATA['query_log_found_rows'] = count($_RDATA['query_log_rows']);
 
         if (count($_RDATA['query_log_rows'])) {
           $x = 0;
@@ -1312,6 +1329,10 @@ ORCINUS;
           usort($_RDATA['query_log_rows'], function($a, $b) {
             return $b['hits'] - $a['hits'];
           });
+
+          // Limit the queries displayed to just the top X
+          if ($_ODATA['admin_query_log_display'])
+            $_RDATA['query_log_rows'] = array_slice($_RDATA['query_log_rows'], 0, (int)$_ODATA['admin_query_log_display']);
 
         } else $_SESSION['message'][] = 'The query log is currently empty.';
       } else $_SESSION['error'][] = 'Database error reading query log table: '.$err[2];
@@ -2629,8 +2650,8 @@ ORCINUS;
             </div><?php
 
             if (count($_RDATA['query_log_rows'])) { ?> 
-              <div class="col-xl-10 col-xxl-8">
-                <div class="rounded-3 border border-1 border-secondary-subtle shadow border-bottom-0 mb-3 overflow-hidden">
+              <form action="<?php echo $_SERVER['REQUEST_URI']; ?>" method="post" class="col-xl-10 col-xxl-8">
+                <fieldset class="rounded-3 border border-1 border-secondary-subtle shadow border-bottom-0 mb-3 overflow-hidden">
                   <table class="table table-striped w-100 mb-0">
                     <thead id="os_queries_thead">
                       <tr class="text-nowrap user-select-none">
@@ -2638,6 +2659,19 @@ ORCINUS;
                           <span role="button" id="os_queries_query">Query</span>
                           <img src="img/arrow-down.svg" alt="Sort" title="Sort order" class="align-middle svg-icon-sm mb-1">
                         </th>
+                        <td class="p-1">
+                          <label>
+                            <span class="d-none d-md-inline">Show top:</span>
+                            <select name="os_admin_query_log_display" class="form-select d-inline-block w-auto align-middle"
+                              data-bs-toggle="tooltip" data-bs-placement="top" title="Limit display of the Query Log to the top X queries sorted by hits; the 'Download' button will still download the entire log"><?php
+                              foreach ($_RDATA['admin_query_log_display_options'] as $opt) { ?> 
+                                <option value="<?php echo $opt; ?>"<?php
+                                  if ($_ODATA['admin_query_log_display'] == $opt) echo ' selected="selected"';
+                                  ?>><?php echo ($opt) ? $opt : 'All'; ?></option><?php
+                              } ?> 
+                            </select>
+                          </label>
+                        </td>
                         <th class="fs-5 text-center os_sorting os_desc" scope="col">
                           <span data-bs-toggle="tooltip" data-bs-placement="top" title="The number of times this query has been searched for with (unique users / IP addresses) in brackets"
                             role="button" id="os_queries_hits">Hits</span>
@@ -2656,11 +2690,26 @@ ORCINUS;
                           <img src="img/arrow-down.svg" alt="Sort" title="Sort order" class="align-middle svg-icon-sm mb-1">
                         </th>
                       </tr>
-                    </thead>
+                    </thead><?php
+                    if ($_RDATA['query_log_found_rows'] > count($_RDATA['query_log_rows'])) { ?> 
+                      <tfoot class="table-group-divider">
+                        <tr>
+                          <td class="text-center" colspan="6">
+                            <em>
+                              Showing top <?php
+                                echo count($_RDATA['query_log_rows']);
+                              ?> queries of <?php
+                                echo $_RDATA['query_log_found_rows'];
+                              ?> total queries
+                            </em>
+                          </td>
+                        </tr>
+                      </tfoot><?php
+                    } ?> 
                     <tbody class="table-group-divider" id="os_queries_tbody"><?php
                       foreach ($_RDATA['query_log_rows'] as $query) { ?> 
                         <tr class="text-nowrap">
-                          <th scope="row" data-value="<?php echo count($_RDATA['query_log_rows']) - $query['rownum']; ?>">
+                          <th scope="row" data-value="<?php echo count($_RDATA['query_log_rows']) - $query['rownum']; ?>" colspan="2">
                             <div class="d-inline-block align-middle mw-90">
                               <div class="w-100 d-table table-fixed">
                                 <div class="w-100 d-table-cell overflow-hidden text-ellipsis">
@@ -2732,7 +2781,7 @@ ORCINUS;
                       } ?> 
                     </tbody>
                   </table>
-                </div>
+                </fieldset>
 
                 <div class="modal fade" id="queriesModal" tabindex="-1" aria-labelledby="queriesModalLabel" aria-hidden="true">
                   <div class="modal-dialog modal-dialog-centered">
@@ -2794,7 +2843,7 @@ ORCINUS;
                     </div>
                   </div>
                 </div>
-              </div><?php
+              </form><?php
             } ?> 
           </section><?php
           break;
