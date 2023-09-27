@@ -132,7 +132,7 @@ function OS_filterURL($_, $base) {
       if (preg_match('/'.str_replace('/', '\/', substr($ignoreURL, 1)).'/', $_))
         return $_RDATA['sp_filter'][$_] = 'ignore-url';
     } else if (strpos($_, $ignoreURL) !== false)
-     return $_RDATA['sp_filter'][$_] = 'ignore-url';
+      return $_RDATA['sp_filter'][$_] = 'ignore-url';
   }
 
   // Ignore extensions
@@ -660,6 +660,7 @@ $_RDATA['sp_starting'] = array_filter(array_map('trim', explode("\n", $_ODATA['s
 $_RDATA['sp_hostnames'] = array();
 $_RDATA['sp_ignore_url'] = array_filter(array_map('trim', explode("\n", $_ODATA['sp_ignore_url'])));
 $_RDATA['sp_ignore_css'] = array_filter(explode(' ', $_ODATA['sp_ignore_css']));
+$_RDATA['sp_title_strip'] = array_filter(array_map('trim', explode("\n", $_ODATA['sp_title_strip'])));
 $_RDATA['s_weight_css'] = array_filter(explode(' ', $_ODATA['s_weight_css']));
 $_RDATA['sp_require_url'] = array_filter(array_map('trim', explode("\n", $_ODATA['sp_require_url'])));
 $_RDATA['sp_ignore_ext_regexp'] = implode('|', array_map('preg_quote', array_filter(explode(' ', $_ODATA['sp_ignore_ext']))));
@@ -1527,11 +1528,10 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
     case 'not-modified-304':
     case 'not-modified-sha1':
 
-      $data['info']['status'] = 'OK';
       if ($referer == '<orphan>') {
         $data['info']['status'] = 'Orphan';
         $_RDATA['sp_status']['Orphan']++;
-      }
+      } else $data['info']['status'] = 'OK';
 
       // ***** If we got new or updated content for this URL
       if (!$data['info']['noindex']) {
@@ -1563,10 +1563,17 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
         if ($data['info']['filetime'] <= 0)
           $data['info']['filetime'] = time();
 
+        // Remove text from titles
+        foreach ($_RDATA['sp_title_strip'] as $titleStrip) {
+          if ($titleStrip[0] == '*') {
+            $data['title'] = preg_replace('/'.str_replace('/', '\/', substr($titleStrip, 1)).'/', '', $data['title']);
+          } else $data['title'] = str_replace($titleStrip, '', $data['title']);
+        }
+
         $port = (!empty($data['url']['port'])) ? ':'.$data['url']['port'] : '';
         $insertTemp->execute(array(
           'url' => $url,
-          'title' => $data['title'],
+          'title' => trim($data['title']),
           'description' => $data['description'],
           'keywords' => $data['keywords'],
           'category' => $row['category'],
