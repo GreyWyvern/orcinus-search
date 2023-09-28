@@ -1846,7 +1846,7 @@ ORCINUS;
                         <div class="row">
                           <label class="col-md-6 d-flex flex-column lh-lg mb-2">
                             <strong class="flex-grow-1">Ignore HTML Content by CSS Selector:</strong>
-                            <textarea rows="5" cols="30" name="os_sp_ignore_css" class="form-control pb-4"
+                            <textarea rows="5" cols="30" name="os_sp_ignore_css" class="form-control"
                               data-bs-toggle="tooltip" data-bs-placement="top" title="Text content contained in elements matching these CSS selectors will not be stored. Simple CSS selectors only (#id, .class or element). Separated by spaces. Links from these elements will still be scanned."><?php
                               echo htmlspecialchars($_ODATA['sp_ignore_css']);
                             ?></textarea>

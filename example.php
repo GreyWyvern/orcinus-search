@@ -21,7 +21,7 @@ require 'orcinus/search.php';
   $_ORCINUS->render(); ?> 
 
   <!-- Script files below are only required for Typeahead -->
-  <script src="orcinus/js/jquery-3.6.4.min.js"></script>
+  <script src="orcinus/js/jquery.min.js"></script>
   <script src="orcinus/js/typeahead.bundle.min.js"></script>
   <script src="orcinus/js/search.js"></script>
 </body>
