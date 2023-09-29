@@ -1939,8 +1939,8 @@ ORCINUS;
                       <table id="os_index_table" class="table table-striped w-100 mb-0 <?php
                         if ($_SESSION['index_show_page_titles'] == 'on') echo 'show-page-titles'; ?>">
                         <thead>
-                          <tr class="bg-black text-white">
-                            <th colspan="6">
+                          <tr>
+                            <th colspan="6" class="bg-black text-white">
                               <div class="row">
                                 <div class="col-md-6 d-flex mb-2 mb-md-0">
                                   <h3 class="d-flex flex-column justify-content-center mb-0 pe-2">Filters:</h3>

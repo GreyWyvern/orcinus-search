@@ -772,7 +772,12 @@ $_RDATA['s_latin'] = array(
   'color' => array('colour'),
   'fiber' => array('fibre'),
 
+ 'ffi' => array('ﬃ'),
+ 'ffl' => array('ﬄ'),
   'ae' => array('æ', 'Æ', 'ä', 'Ä'),
+  'ff' => array('ﬀ'),
+  'fi' => array('ﬁ'),
+  'fl' => array('ﬂ'),
   'oe' => array('œ', 'Œ', 'ö', 'Ö', 'ø', 'Ø'),
   'ss' => array('ß'),
   'sz' => array('ß'),
