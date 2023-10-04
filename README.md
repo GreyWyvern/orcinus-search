@@ -4,7 +4,7 @@
 
 > ℹ️ **NOTE**: This project is not yet officially released and thus probably contains bugs and other nasties. Please use at your own risk! If you do try it out, I would very much appreciate your feedback and issue reports.
 
-![banner](https://user-images.githubusercontent.com/137631/233513460-93269bbb-f218-4b00-a7bf-7fc4575d15d4.png)
+![orcinus-banner](https://github.com/GreyWyvern/orcinus-search/assets/137631/d504de08-3029-4e68-acf5-1dd1e5008674)
 
 The **Orcinus Site Search** PHP script is an all-in-one website crawler, indexer and search engine that extracts searchable content from plain text, XML, HTML and PDF files at a single, or multiple websites. It replaces 3rd party, remote search solutions such as Google etc. 
 
