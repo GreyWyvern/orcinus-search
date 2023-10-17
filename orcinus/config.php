@@ -101,7 +101,7 @@ if (!in_array($_DDATA['tbprefix'].'config', $_DDATA['tables'], true)) {
       `sp_sitemap_file` TINYTEXT NOT NULL,
       `sp_sitemap_hostname` TINYTEXT NOT NULL,
       `sp_useragent` TINYTEXT NOT NULL,
-      `sp_crawling` BOOLEAN NOT NULL,
+      `sp_crawling` INT UNSIGNED NOT NULL,
       `sp_cancel` BOOLEAN NOT NULL,
       `sp_progress` TINYTEXT NOT NULL,
       `sp_email_success` BOOLEAN NOT NULL,

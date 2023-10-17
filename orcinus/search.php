@@ -495,7 +495,7 @@ if ($_RDATA['s_searchable_pages']) {
                       if (count($splitter) == 1) {
                         // Grab some random content if there were no
                         // matches in the content
-                        $offset = mt_rand(0, mb_strlen($row['content'], 'UTF-8') - $_ODATA['s_limit_matchtext']);
+                        $offset = mt_rand(0, max(0, mb_strlen($row['content'], 'UTF-8') - $_ODATA['s_limit_matchtext']));
                       } else {
                         $_SDATA['results'][$key]['fragment'][] = $split[0];
                         $offset = floor(max(0, $split[1] - (mb_strlen($term, 'UTF-8') + $_ODATA['s_limit_matchtext']) / 2));

@@ -474,19 +474,16 @@ switch ($_SERVER['REQUEST_METHOD']) {
       if (empty($_POST->action)) $_POST->action = '';
       switch ($_POST->action) {
         case 'crawl':
-          if (!empty($_POST->sp_key) &&
-              $_ODATA['sp_key'] &&
+          if (!empty($_POST->sp_key) && OS_getValue('sp_key') &&
               $_POST->sp_key == $_ODATA['sp_key']) {
             if (OS_getValue('sp_crawling')) {
               $response = array(
                 'status' => 'Error',
                 'message' => 'Crawler is already running; current progress: '.$_ODATA['sp_progress'][0].'/'.$_ODATA['sp_progress'][1]
               );
-            }
 
             // Go crawl!
-            OS_setValue('sp_crawling', 1);
-            OS_setValue('sp_key', '');
+            } else OS_setValue('sp_crawling', getmypid());
 
           } else {
             $response = array(
@@ -494,6 +491,8 @@ switch ($_SERVER['REQUEST_METHOD']) {
               'message' => 'Incorrect key to initiate crawler'
             );
           }
+
+          OS_setValue('sp_key', '');
           break;
 
         case 'progress':
@@ -513,6 +512,7 @@ switch ($_SERVER['REQUEST_METHOD']) {
             }
           }
 
+          // If crawl is in progress, return just the last 15 lines
           if ($_ODATA['sp_crawling']) $lines = array_slice($lines, -15);
 
           $response = array(
@@ -603,7 +603,7 @@ switch ($_SERVER['REQUEST_METHOD']) {
         } else $_RDATA['sp_log_clilevel'] = 2;
 
         // Start a crawl
-        OS_setValue('sp_crawling', 1);
+        OS_setValue('sp_crawling', getmypid());
 
       } else die('Crawler is already running; exiting...');
     } else die($_ODATA['sp_useragent']);
@@ -619,7 +619,7 @@ switch ($_SERVER['REQUEST_METHOD']) {
         die('Crawler is already running; exiting...');
 
       // Start a crawl
-      OS_setValue('sp_crawling', 1);
+      OS_setValue('sp_crawling', getmypid());
 
     } else die($_ODATA['sp_useragent']);
     break;
@@ -630,6 +630,12 @@ switch ($_SERVER['REQUEST_METHOD']) {
     die($_ODATA['sp_useragent']);
 
 }
+
+
+// One last check for a race condition
+sleep(1);
+if (OS_getValue('sp_crawling') != getmypid())
+  die('Crawler is already running; exiting...');
 
 
 /* ***** Begin Crawl Execution ************************************* */
