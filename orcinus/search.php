@@ -448,7 +448,7 @@ if ($_RDATA['s_searchable_pages']) {
           // Normalize results from 0 - 100 and delete results with
           // relevance values < 5% of the top result
           for ($x = count($searchQuery) - 1; $x >= 0; $x--) {
-            if ($searchQuery[0]['relevance'] * 0.05 <= $searchQuery[$x]['relevance']) {
+            if ($searchQuery[0]['relevance'] > 0 && $searchQuery[0]['relevance'] * 0.05 <= $searchQuery[$x]['relevance']) {
               $searchQuery[$x]['relevance'] /= $searchQuery[0]['relevance'] * 0.01;
             } else unset($searchQuery[$x]);
           }

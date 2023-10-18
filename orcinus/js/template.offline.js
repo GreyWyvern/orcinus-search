@@ -312,7 +312,7 @@ if (os_crawldata.length) {
       // Normalize results from 0 - 100 and delete results with
       // relevance values < 5% of the top result
       for (let x = os_crawldata.length - 1; x >= 0; x--) {
-        if (os_crawldata[0].relevance * 0.05 <= os_crawldata[x].relevance) {
+        if (os_crawldata[0].relevance > 0 && os_crawldata[0].relevance * 0.05 <= os_crawldata[x].relevance) {
           os_crawldata[x].relevance /= os_crawldata[0].relevance * 0.01;
         } else os_crawldata.splice(x, 1);
       }
