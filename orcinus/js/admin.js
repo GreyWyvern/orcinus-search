@@ -358,6 +358,61 @@ for (let x = 0; x < os_index_with_selected.length; x++) {
 }
 
 
+/* ***** Page >> Search Statistics ********************************* */
+let bars = document.querySelectorAll('table.bar-graph td[data-height]');
+for (let x = 0; x < bars.length; x++) {
+  bars[x].style.height = '0px';
+  bars[x].style.transition = 'height 0.8s ease';
+
+  let tb = bars[x].parentNode.parentNode;
+  if (tb.offsetHeight <= parseInt(bars[x].getAttribute('data-height'))) {
+    tb.style.height = bars[x].getAttribute('data-height') + 'px';
+    tb.dataMaxValue = bars[x].getAttribute('data-value');
+  }
+  setTimeout((function(elem) {
+    elem.style.height = elem.getAttribute('data-height') + 'px';
+  })(bars[x]), 5);
+}
+
+let graphs = document.querySelectorAll('table.bar-graph');
+for (let x = 0; x < graphs.length; x++) {
+  let thead = graphs[x].getElementsByTagName('thead');
+  if (!thead.length) {
+    let tbody = graphs[x].getElementsByTagName('tbody')[0];
+
+    // Adjust background lines
+    if (tbody.dataMaxValue) {
+      graphs[x].unitHeight = tbody.offsetHeight / tbody.dataMaxValue;
+    } else graphs[x].unitHeight = tbody.offsetHeight;
+
+    // 5 intervals by default?
+    graphs[x].interval = tbody.offsetHeight / 5;
+
+    graphs[x].interval = Math.max(1, Math.round(graphs[x].interval / graphs[x].unitHeight / 5) * 5 * graphs[x].unitHeight, graphs[x].unitHeight);
+
+
+        thead = document.createElement('thead');
+      let tr = document.createElement('tr');
+          tr.classList.add('d-flex', 'flex-column-reverse', 'justify-content-end');
+        for (let y = 0; y < Math.ceil(tbody.offsetHeight / graphs[x].interval); y++) {
+          let td = document.createElement('td');
+              td.classList.add('d-flex', 'flex-column', 'justify-content-end', 'text-end');
+              td.style.height = graphs[x].interval + 'px';
+              td.style.transform = 'translatey(0.6em)';
+            let small = document.createElement('small');
+                small.appendChild(document.createTextNode(Math.round(y * graphs[x].interval / graphs[x].unitHeight)));
+              td.appendChild(small);
+            tr.appendChild(td);
+        }
+        thead.appendChild(tr);
+      graphs[x].insertBefore(thead, tbody);
+
+        tbody.style.backgroundClip = 'content-box';
+        tbody.style.background = 'repeating-linear-gradient(to top, rgba(0,0,0,0.4) 0px, transparent 1px, transparent ' + graphs[x].interval + 'px)';
+  }
+}
+
+
 /* ***** Page >> Query Log ***************************************** */
 let os_admin_query_log_display = document.querySelector('select[name="os_admin_query_log_display"]');
 if (os_admin_query_log_display) {

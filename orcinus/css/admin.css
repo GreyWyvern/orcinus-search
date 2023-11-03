@@ -53,6 +53,14 @@ input[type="number"] {
   table-layout:fixed;
 }
 
+table.bar-graph tbody tr th time {
+  display:none;
+}
+table.bar-graph tbody tr:nth-of-type(6n+1) th time,
+table.bar-graph tbody tr:last-of-type th time {
+  display:block;
+}
+
 .text-ellipsis {
   text-overflow:ellipsis;
 }

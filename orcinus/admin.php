@@ -104,7 +104,8 @@ if (!in_array($_ODATA['admin_query_log_display'], $_RDATA['admin_query_log_displ
 $_RDATA['admin_pages'] = array(
   'crawler' => 'Crawler',
   'index' => 'Page Index',
-  'search' => 'Search'
+  'search' => 'Search',
+  'stats' => 'Statistics'
 );
 if ($_ODATA['s_limit_query_log'])
   $_RDATA['admin_pages']['queries'] = 'Query Log';
@@ -1259,7 +1260,9 @@ ORCINUS;
           $_RDATA['s_crawldata_info']['MIME-types'][$row['content_mime']] = $row['num'];
         }
       } else $_SESSION['error'][] = 'Could not read charset counts from search database.';
+      break;
 
+    case 'stats':
       // Average hits per hour: First find the oldest `stamp` in the
       // database, then base all averages on the difference between that
       // time and now; also get average number of results
@@ -1293,6 +1296,41 @@ ORCINUS;
           $_RDATA['q_median_results'] = (count($median) & 1) ? $median[$index]['results'] : ($median[$index - 1]['results'] + $median[$index]['results']) / 2;
         }
       } else $_SESSION['error'][] = 'Could not read result counts from query log.';
+
+      $select = $_DDATA['pdo']->query('SELECT INET_NTOA(`ip`) AS `ipaddr` FROM `'.$_DDATA['tbprefix'].'query`;')->fetchAll();
+      $locCount = array();
+      $locData = array('unk' => 'Unknown');
+      foreach ($select as $row) {
+        try {
+          $geo = $_GEOIP2->country($row['ipaddr']);
+          if (!empty($geo->raw['country']['iso_code'])) {
+            if (empty($locCount[$geo->raw['country']['iso_code']])) {
+              $locCount[$geo->raw['country']['iso_code']] = 1;
+            } else $locCount[$geo->raw['country']['iso_code']]++;
+            $locData[$geo->raw['country']['iso_code']] = $geo->raw['country']['names']['en'];
+          } else {
+            if (empty($locCount['unk'])) {
+              $locCount['unk'] = 1;
+            } else $locCount['unk']++;
+          }
+        } catch(Exception $e) {
+          if (empty($locCount['unk'])) {
+            $locCount['unk'] = 1;
+          } else $locCount['unk']++;
+        }
+      }
+      arsort($locCount);
+
+      $select = $_DDATA['pdo']->query('SELECT COUNT(*) as `searches`, DAYNAME(FROM_UNIXTIME(`stamp`)) as `weekday` FROM `'.$_DDATA['tbprefix'].'query` GROUP BY `weekday`;')->fetchAll();
+      $dayWalker = array('Sun' => 0, 'Mon' => 0, 'Tue' => 0, 'Wed' => 0, 'Thu' => 0, 'Fri' => 0, 'Sat' => 0);
+      foreach ($select as $day)
+        $dayWalker[substr($day['weekday'], 0, 3)] = $day['searches'];
+
+      $select = $_DDATA['pdo']->query('SELECT COUNT(*) as `searches`, `stamp` FROM `'.$_DDATA['tbprefix'].'query` GROUP BY HOUR(FROM_UNIXTIME(`stamp`));')->fetchAll();
+      for ($x = 0, $days = array(), $hourWalker = array(); $x < 24; $x++)
+        $hourWalker[str_pad((string)$x, 2, '0', STR_PAD_LEFT).':00'] = 0;
+      foreach ($select as $hour)
+        $hourWalker[date('H:00', $hour['stamp'])] = $hour['searches'];
       break;
 
     case 'queries':
@@ -2115,122 +2153,65 @@ ORCINUS;
               <h2>Search Management</h2>
             </header>
 
-            <div class="col-sm-10 col-md-8 col-lg-5 col-xl-4 col-xxl-3 order-lg-2"><?php
-              if ($_ODATA['s_limit_query_log']) { ?> 
-                <div class="shadow rounded-3 mb-3 overflow-visible">
-                  <h3 class="bg-black rounded-top-3 text-white p-2 mb-0">Search Information</h3>
-                  <div class="p-2 border border-1 border-secondary-subtle rounded-bottom-3">
-                    <ul class="list-group"><?php
-                      if ($_RDATA['s_hits_per_hour']) {
-                        if ($_RDATA['s_hours_since_oldest_hit'] >= 1) { ?> 
-                          <li class="list-group-item">
-                            <label class="d-flex w-100">
-                              <strong class="pe-2">Searches per Hour</strong>
-                              <var class="text-end flex-grow-1 text-nowrap"><?php
-                                echo round($_RDATA['s_hits_per_hour'], 1);
-                              ?></var>
-                            </label>
-                          </li><?php
-                        }
-                        if ($_RDATA['s_hours_since_oldest_hit'] >= 24) { ?> 
-                          <li class="list-group-item">
-                            <label class="d-flex w-100">
-                              <strong class="pe-2">Searches per Day</strong>
-                              <var class="text-end flex-grow-1 text-nowrap"><?php
-                                echo round($_RDATA['s_hits_per_hour'] * 24, 1);
-                              ?></var>
-                            </label>
-                          </li><?php
-                        }
-                        if ($_RDATA['s_hours_since_oldest_hit'] >= 168) { ?> 
-                          <li class="list-group-item">
-                            <label class="d-flex w-100">
-                              <strong class="pe-2">Searches per Week</strong>
-                              <var class="text-end flex-grow-1 text-nowrap"><?php
-                                echo round($_RDATA['s_hits_per_hour'] * 24 * 7, 1);
-                              ?></var>
-                            </label>
-                          </li><?php
-                        } ?> 
-                        <li class="list-group-item">
-                          <label class="d-flex w-100">
-                            <strong class="pe-2">Average Search Results per Query</strong>
-                            <var class="text-end flex-grow-1 text-nowrap"><?php
-                              echo round($_RDATA['q_average_results'], 1);
-                            ?></var>
-                          </label>
-                        </li>
-                        <li class="list-group-item">
-                          <label class="d-flex w-100">
-                            <strong class="pe-2">Median Search Results per Query</strong>
-                            <var class="text-end flex-grow-1 text-nowrap"><?php
-                              echo $_RDATA['q_median_results'];
-                            ?></var>
-                          </label>
-                        </li><?php
-                      } else { ?> 
-                        <li class="list-group-item">
-                          <p class="mb-0">
-                            No searches logged yet. To see search statistics here, start
-                            using your search engine. Tell your friends!
-                          </p>
-                        </li><?php
-                      } ?> 
+            <div class="col-sm-10 col-md-8 col-lg-5 col-xl-4 col-xxl-3 order-lg-2">
+              <div class="shadow rounded-3 mb-3 overflow-visible">
+                <h3 class="bg-black rounded-top-3 text-white p-2 mb-0">Search Data</h3>
+                <div class="p-2 border border-1 border-secondary-subtle rounded-bottom-3">
+                  <ul class="list-group">
+                    <li class="list-group-item">
+                      <label class="d-flex w-100">
+                        <strong class="pe-2">Pages in Database</strong>
+                        <var class="text-end flex-grow-1 text-nowrap"><?php
+                          echo $_RDATA['s_pages_stored'];
+                        ?></var>
+                      </label>
+                    </li><?php
+                    if ($_RDATA['s_pages_stored']) { ?> 
                       <li class="list-group-item">
                         <label class="d-flex w-100">
-                          <strong class="pe-2">Pages in Database</strong>
+                          <strong class="pe-2">Searchable Pages
+                            <img src="img/help.svg" alt="Information" class="align-middle svg-icon mb-1"
+                              data-bs-toggle="tooltip" data-bs-placement="top" title="Searchable pages are the pages in your index that are not Unlisted<?php echo (!$_ODATA['s_show_orphans']) ? ' nor Orphaned' : ''; ?>.">
+                          </strong>
                           <var class="text-end flex-grow-1 text-nowrap"><?php
-                            echo $_RDATA['s_pages_stored'];
+                            echo $_RDATA['s_searchable_pages'];
                           ?></var>
                         </label>
+                      </li>
+                      <li class="list-group-item">
+                        <label class="d-flex w-100">
+                          <strong class="pe-2">MIME-types</strong>
+                          <ol class="list-group list-group-flush flex-grow-1"><?php
+                            foreach ($_RDATA['s_crawldata_info']['MIME-types'] as $mimetype => $value) { ?> 
+                              <li class="list-group-item text-end p-0 border-0">
+                                <strong><?php echo htmlspecialchars($mimetype); ?>:</strong>
+                                <var title="<?php echo $value; ?> pages"><?php
+                                  echo round(($value / $_RDATA['s_crawldata_info']['Rows']) * 100, 1);
+                                ?>%</var>
+                              </li><?php
+                            } ?> 
+                          </ol>
+                        </label>
+                      </li>
+                      <li class="list-group-item">
+                        <label class="d-flex w-100">
+                          <strong class="pe-2">Encodings</strong>
+                          <ol class="list-group list-group-flush flex-grow-1"><?php
+                            foreach ($_RDATA['s_crawldata_info']['Charsets'] as $encoding => $value) { ?> 
+                              <li class="list-group-item text-end p-0 border-0">
+                                <strong><?php echo htmlspecialchars($encoding); ?>:</strong>
+                                <var title="<?php echo $value; ?> pages"><?php
+                                  echo round(($value / $_RDATA['s_crawldata_info']['Rows']) * 100, 1);
+                                ?>%</var>
+                              </li><?php
+                            } ?> 
+                          </ol>
+                        </label>
                       </li><?php
-                      if ($_RDATA['s_pages_stored']) { ?> 
-                        <li class="list-group-item">
-                          <label class="d-flex w-100">
-                            <strong class="pe-2">Searchable Pages
-                              <img src="img/help.svg" alt="Information" class="align-middle svg-icon mb-1"
-                                data-bs-toggle="tooltip" data-bs-placement="top" title="Searchable pages are the pages in your index that are not Unlisted<?php echo (!$_ODATA['s_show_orphans']) ? ' nor Orphaned' : ''; ?>.">
-                            </strong>
-                            <var class="text-end flex-grow-1 text-nowrap"><?php
-                              echo $_RDATA['s_searchable_pages'];
-                            ?></var>
-                          </label>
-                        </li>
-                        <li class="list-group-item">
-                          <label class="d-flex w-100">
-                            <strong class="pe-2">MIME-types</strong>
-                            <ol class="list-group list-group-flush flex-grow-1"><?php
-                              foreach ($_RDATA['s_crawldata_info']['MIME-types'] as $mimetype => $value) { ?> 
-                                <li class="list-group-item text-end p-0 border-0">
-                                  <strong><?php echo htmlspecialchars($mimetype); ?>:</strong>
-                                  <var title="<?php echo $value; ?> pages"><?php
-                                    echo round(($value / $_RDATA['s_crawldata_info']['Rows']) * 100, 1);
-                                  ?>%</var>
-                                </li><?php
-                              } ?> 
-                            </ol>
-                          </label>
-                        </li>
-                        <li class="list-group-item">
-                          <label class="d-flex w-100">
-                            <strong class="pe-2">Encodings</strong>
-                            <ol class="list-group list-group-flush flex-grow-1"><?php
-                              foreach ($_RDATA['s_crawldata_info']['Charsets'] as $encoding => $value) { ?> 
-                                <li class="list-group-item text-end p-0 border-0">
-                                  <strong><?php echo htmlspecialchars($encoding); ?>:</strong>
-                                  <var title="<?php echo $value; ?> pages"><?php
-                                    echo round(($value / $_RDATA['s_crawldata_info']['Rows']) * 100, 1);
-                                  ?>%</var>
-                                </li><?php
-                              } ?> 
-                            </ol>
-                          </label>
-                        </li><?php
-                      } ?> 
-                    </ul>
-                  </div>
-                </div><?php
-              } ?> 
+                    } ?> 
+                  </ul>
+                </div>
+              </div>
 
               <form action="<?php echo $_SERVER['REQUEST_URI']; ?>" method="post"
                 class="shadow rounded-3 mb-3 overflow-visible">
@@ -2632,6 +2613,176 @@ ORCINUS;
                   </div>
                 </fieldset>
               </form>
+            </div>
+          </section><?php
+          break;
+
+
+        /* ************************************************************
+         * Search Statistics *************************************** */
+        case 'stats': ?> 
+          <section class="row justify-content-center">
+            <header class="col-sm-10 col-md-8 col-lg-12 col-xl-10 col-xxl-8 mb-2">
+              <h2>Search Statistics</h2>
+            </header>
+
+            <div class="col-sm-10 col-md-8 col-lg-5 col-xl-4 col-xxl-3"><?php
+              if ($_ODATA['s_limit_query_log']) { ?> 
+                <div class="shadow rounded-3 mb-3 overflow-visible">
+                  <h3 class="bg-black rounded-top-3 text-white p-2 mb-0">General Statistics</h3>
+                  <div class="p-2 border border-1 border-secondary-subtle rounded-bottom-3">
+                    <ul class="list-group"><?php
+                      if ($_RDATA['s_hits_per_hour']) {
+                        if ($_RDATA['s_hours_since_oldest_hit'] >= 1) { ?> 
+                          <li class="list-group-item">
+                            <label class="d-flex w-100">
+                              <strong class="pe-2">Searches per Hour</strong>
+                              <var class="text-end flex-grow-1 text-nowrap"><?php
+                                echo round($_RDATA['s_hits_per_hour'], 1);
+                              ?></var>
+                            </label>
+                          </li><?php
+                        }
+                        if ($_RDATA['s_hours_since_oldest_hit'] >= 24) { ?> 
+                          <li class="list-group-item">
+                            <label class="d-flex w-100">
+                              <strong class="pe-2">Searches per Day</strong>
+                              <var class="text-end flex-grow-1 text-nowrap"><?php
+                                echo round($_RDATA['s_hits_per_hour'] * 24, 1);
+                              ?></var>
+                            </label>
+                          </li><?php
+                        }
+                        if ($_RDATA['s_hours_since_oldest_hit'] >= 168) { ?> 
+                          <li class="list-group-item">
+                            <label class="d-flex w-100">
+                              <strong class="pe-2">Searches per Week</strong>
+                              <var class="text-end flex-grow-1 text-nowrap"><?php
+                                echo round($_RDATA['s_hits_per_hour'] * 24 * 7, 1);
+                              ?></var>
+                            </label>
+                          </li><?php
+                        } ?> 
+                        <li class="list-group-item">
+                          <label class="d-flex w-100">
+                            <strong class="pe-2">Average Search Results per Query</strong>
+                            <var class="text-end flex-grow-1 text-nowrap"><?php
+                              echo round($_RDATA['q_average_results'], 1);
+                            ?></var>
+                          </label>
+                        </li>
+                        <li class="list-group-item">
+                          <label class="d-flex w-100">
+                            <strong class="pe-2">Median Search Results per Query</strong>
+                            <var class="text-end flex-grow-1 text-nowrap"><?php
+                              echo $_RDATA['q_median_results'];
+                            ?></var>
+                          </label>
+                        </li><?php
+                      } else { ?> 
+                        <li class="list-group-item">
+                          <p class="mb-0">
+                            No searches logged yet. To see search statistics here, start
+                            using your search engine. Tell your friends!
+                          </p>
+                        </li><?php
+                      } ?> 
+                    </ul>
+                  </div>
+                </div><?php
+              }
+
+              if ($_GEOIP2) { ?> 
+                <div class="shadow rounded-3 mb-3 overflow-visible">
+                  <h3 class="bg-black rounded-top-3 text-white p-2 mb-0">Query Geolocation</h3>
+                  <div class="p-2 border border-1 border-secondary-subtle rounded-bottom-3">
+                    <ul class="list-group">
+                      <li class="list-group-item">
+                        <table class="table">
+                          <thead>
+                            <tr>
+                              <th scope="col" class="w-75">Location</th>
+                              <th scope="col" colspan="2" class="text-center">Searches</th>
+                            </tr>
+                          </thead>
+                          <tbody><?php
+                            foreach ($locCount as $iso => $searches) { ?> 
+                              <tr>
+                                <th scope="row"><?php
+                                  if (file_exists(__DIR__.'/img/flags/'.strtolower($iso).'.png')) { ?> 
+                                    <img src="img/flags/<?php echo strtolower($iso); ?>.png" alt="<?php echo strtoupper($iso); ?>" title="<?php echo $locData[$iso]; ?>" class="svg-icon-flag"><?php
+                                  } else { ?>
+                                    <img src="img/help.svg" alt="?" title="<?php echo $locData[$iso]; ?>" class="svg-icon"><?php
+                                  } ?> 
+                                  <span class="align-middle"><?php echo $locData[$iso]; ?></span>
+                                </th>
+                                <td class="text-end"><?php echo $searches; ?></td>
+                                <td class="text-center"><small>(<?php echo round($searches / array_sum($locCount) * 100, 1); ?>%)</small></td>
+                              </tr><?php
+                            } ?> 
+                          </tbody>
+                        </table>
+                      </li>
+                    </ul>
+                  </div>
+                </div><?php
+              } ?> 
+            </div>
+
+            <div class="col-sm-10 col-md-8 col-lg-7 col-xl-6 col-xxl-5">
+              <div class="shadow rounded-3 mb-3 overflow-visible">
+                <fieldset>
+                  <legend class="mb-0">
+                    <h3 class="bg-black rounded-top-3 text-white p-2 mb-0">Graphical Statistics</h3>
+                  </legend>
+                  <div class="p-2 border border-1 border-secondary-subtle rounded-bottom-3">
+                    <ul class="list-group mb-2">
+                      <li class="list-group-item">
+                        <h4>All Searches by Day of Week</h4>
+                        <table class="bar-graph d-flex align-items-end position-relative w-100 gap-1 pt-4 mb-5">
+                          <tbody class="flex-fill d-flex gap-3"><?php
+                            foreach ($dayWalker as $day => $value) { ?> 
+                              <tr class="flex-fill d-flex flex-column justify-content-end<?php
+                                if ($day == 'Sun') echo ' ps-2';
+                                if ($day == 'Sat') echo ' pe-2'; ?>">
+                                <th class="position-relative p-0">
+                                  <span class="position-absolute top-0 start-50 translate-middle-x"><?php echo $day; ?></span>
+                                </th>
+                                <td class="order-first position-relative bg-secondary bg-gradient p-0" data-height="<?php
+                                    echo round($value / (max($dayWalker) / 200));
+                                  ?>" data-value="<?php echo $value; ?>" title="<?php echo $day; ?>">
+                                  <small class="position-absolute bottom-100 start-50 translate-middle-x"><?php echo $value; ?></small>
+                                </td>
+                              </tr><?php
+                            } ?> 
+                          </tbody>
+                        </table>
+                      </li>
+                      <li class="list-group-item">
+                        <h4>All Searches by Time of Day</h4>
+                        <table class="bar-graph d-flex align-items-end position-relative w-100 gap-1 pt-4 mb-5">
+                          <tbody class="flex-fill d-flex gap-1"><?php
+                            foreach ($hourWalker as $hour => $value) { ?> 
+                              <tr class="flex-fill d-flex flex-column justify-content-end<?php
+                                if ($hour == '00:00') echo ' ps-2';
+                                if ($hour == '23:00') echo ' pe-2'; ?>">
+                                <th class="position-relative p-0">
+                                  <time class="position-absolute top-0 start-50 translate-middle-x"><?php echo $hour; ?></time>
+                                </th>
+                                <td class="order-first position-relative bg-secondary bg-gradient p-0" data-height="<?php
+                                    echo (max($hourWalker)) ? round($value / (max($hourWalker) / 200)) : 0;
+                                  ?>" data-value="<?php echo $value; ?>" title="<?php echo $hour; ?>">
+                                  <small class="position-absolute bottom-100 start-50 translate-middle-x"><?php echo $value; ?></small>
+                                </td>
+                              </tr><?php
+                            } ?> 
+                          </tbody>
+                        </table>
+                      </li>
+                    </ul>
+                  </div>
+                </fieldset>
+              </div>
             </div>
           </section><?php
           break;

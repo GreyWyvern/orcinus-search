@@ -792,11 +792,10 @@ if ($_RDATA['s_searchable_pages']) {
 
 // If the crawler 'time_start' is more than 'timeout_crawl'
 // seconds ago, the crawler is probably stuck. Unstick it.
-if (OS_getValue('sp_crawling') &&
-    time() - $_ODATA['sp_time_start'] > $_ODATA['sp_timeout_crawl']) {
+if (OS_getValue('sp_crawling') && time() - $_ODATA['sp_time_start'] > $_ODATA['sp_timeout_crawl']) {
   OS_setValue('sp_crawling', 0);
 
-  $reason = 'The crawler halted unexpectedly';
+  $reason = 'Crawl timeout ('.$_ODATA['sp_timeout_crawl'].'s) exceeded';
 
   if (strpos(OS_getValue('sp_log'), "\n") === false && file_exists($_ODATA['sp_log'])) {
     $log = file_get_contents($_ODATA['sp_log']);
@@ -806,7 +805,7 @@ if (OS_getValue('sp_crawling') &&
 
   // Send failure email to the admin(s)
   if ($_MAIL && count($_MAIL->getAllRecipientAddresses()) && $_ODATA['sp_email_failure']) {
-    $_MAIL->Subject = 'Orcinus Site Search Crawler: Crawler halted unexpectedly';
+    $_MAIL->Subject = 'Orcinus Site Search Crawler: Crawl timeout ('.$_ODATA['sp_timeout_crawl'].'s) exceeded';
     $_MAIL->Body = implode("   \r\n", preg_grep('/^[\[\*\w\d]/', explode("\n", $_ODATA['sp_log'])));
     if (!$_MAIL->Send()) OS_setValue('sp_log', $_ODATA['sp_log']."\n".'[ERROR] Could not send notification email');
   }
