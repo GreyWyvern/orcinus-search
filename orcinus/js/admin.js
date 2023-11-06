@@ -359,22 +359,25 @@ for (let x = 0; x < os_index_with_selected.length; x++) {
 
 
 /* ***** Page >> Search Statistics ********************************* */
-let bars = document.querySelectorAll('table.bar-graph td[data-height]');
+let bars = document.querySelectorAll('table.bar-graph td[data-value]');
 for (let x = 0; x < bars.length; x++) {
   bars[x].style.height = '0px';
   bars[x].style.transition = 'height 0.8s ease';
 
-  let tb = bars[x].parentNode.parentNode;
-  if (tb.offsetHeight <= parseInt(bars[x].getAttribute('data-height'))) {
-    tb.style.height = bars[x].getAttribute('data-height') + 'px';
-    tb.dataMaxValue = bars[x].getAttribute('data-value');
-  }
-  setTimeout((function(elem) {
-    elem.style.height = elem.getAttribute('data-height') + 'px';
-  })(bars[x]), 5);
+  bars[x].tbody = bars[x].parentNode.parentNode;
+  if (!bars[x].tbody.dataMaxValue) bars[x].tbody.dataMaxValue = 0;
+  bars[x].tbody.dataMaxValue = Math.max(
+    parseFloat(bars[x].getAttribute('data-value')),
+    bars[x].tbody.dataMaxValue
+  );
+
+  setTimeout((function(elem) { return function() {
+    elem.style.height = (parseFloat(elem.getAttribute('data-value') / elem.tbody.dataMaxValue) * elem.tbody.offsetHeight) + 'px';
+  }})(bars[x]), 5);
 }
 
 let graphs = document.querySelectorAll('table.bar-graph');
+let ticks = [1, 5, 10, 50, 100, 500, 1000, 5000, 10000, 50000, 100000, 500000, 1000000];
 for (let x = 0; x < graphs.length; x++) {
   let thead = graphs[x].getElementsByTagName('thead');
   if (!thead.length) {
@@ -383,13 +386,23 @@ for (let x = 0; x < graphs.length; x++) {
     // Adjust background lines
     if (tbody.dataMaxValue) {
       graphs[x].unitHeight = tbody.offsetHeight / tbody.dataMaxValue;
-    } else graphs[x].unitHeight = tbody.offsetHeight;
 
-    // 5 intervals by default?
-    graphs[x].interval = tbody.offsetHeight / 5;
+      let divisions = 1;
+      do {
+        graphs[x].interval = tbody.dataMaxValue / divisions;
+      } while (
+        graphs[x].interval * graphs[x].unitHeight > 20 &&
+        divisions < tbody.dataMaxValue &&
+        divisions++ < tbody.offsetHeight / 50
+      );
 
-    graphs[x].interval = Math.max(1, Math.round(graphs[x].interval / graphs[x].unitHeight / 5) * 5 * graphs[x].unitHeight, graphs[x].unitHeight);
+      let divVal = Math.floor(Math.log10(tbody.dataMaxValue));
+      graphs[x].interval = Math.max(1, Math.round(graphs[x].interval / ticks[divVal])) * ticks[divVal] * graphs[x].unitHeight;
 
+    } else {
+      graphs[x].unitHeight = tbody.offsetHeight;
+      graphs[x].interval = tbody.offsetHeight;
+    }
 
         thead = document.createElement('thead');
       let tr = document.createElement('tr');
@@ -397,8 +410,7 @@ for (let x = 0; x < graphs.length; x++) {
         for (let y = 0; y < Math.ceil(tbody.offsetHeight / graphs[x].interval); y++) {
           let td = document.createElement('td');
               td.classList.add('d-flex', 'flex-column', 'justify-content-end', 'text-end');
-              td.style.height = graphs[x].interval + 'px';
-              td.style.transform = 'translatey(0.6em)';
+              td.style.height = Math.min(tbody.offsetHeight, graphs[x].interval) + 'px';
             let small = document.createElement('small');
                 small.appendChild(document.createTextNode(Math.round(y * graphs[x].interval / graphs[x].unitHeight)));
               td.appendChild(small);

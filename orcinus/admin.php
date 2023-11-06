@@ -2706,19 +2706,37 @@ ORCINUS;
                             </tr>
                           </thead>
                           <tbody><?php
-                            foreach ($locCount as $iso => $searches) { ?> 
-                              <tr>
-                                <th scope="row"><?php
-                                  if (file_exists(__DIR__.'/img/flags/'.strtolower($iso).'.png')) { ?> 
-                                    <img src="img/flags/<?php echo strtolower($iso); ?>.png" alt="<?php echo strtoupper($iso); ?>" title="<?php echo $locData[$iso]; ?>" class="svg-icon-flag"><?php
-                                  } else { ?>
-                                    <img src="img/help.svg" alt="?" title="<?php echo $locData[$iso]; ?>" class="svg-icon"><?php
-                                  } ?> 
-                                  <span class="align-middle"><?php echo $locData[$iso]; ?></span>
-                                </th>
-                                <td class="text-end"><?php echo $searches; ?></td>
-                                <td class="text-center"><small>(<?php echo round($searches / array_sum($locCount) * 100, 1); ?>%)</small></td>
-                              </tr><?php
+                            $top10 = 0;
+                            foreach ($locCount as $iso => $searches) {
+                              if ($top10++ < 10 || $iso == array_key_last($locCount)) { ?> 
+                                <tr>
+                                  <th scope="row"><?php
+                                    if (file_exists(__DIR__.'/img/flags/'.strtolower($iso).'.png')) { ?> 
+                                      <img src="img/flags/<?php echo strtolower($iso); ?>.png" alt="<?php echo strtoupper($iso); ?>" title="<?php echo $locData[$iso]; ?>" class="svg-icon-flag"><?php
+                                    } else { ?>
+                                      <img src="img/help.svg" alt="?" title="<?php echo $locData[$iso]; ?>" class="svg-icon"><?php
+                                    } ?> 
+                                    <span class="align-middle"><?php echo $locData[$iso]; ?></span>
+                                  </th>
+                                  <td class="text-end"><?php echo $searches; ?></td>
+                                  <td class="text-center"><small>(<?php echo round($searches / array_sum($locCount) * 100, 1); ?>%)</small></td>
+                                </tr><?php
+                              } else {
+                                $cap = false; $hits = 0;
+                                foreach ($locCount as $iso2 => $searches2) {
+                                  if ($iso2 == $iso) $capture = true;
+                                  if ($capture) $hits += $searches2;
+                                } ?> 
+                                <tr>
+                                  <th scope="row">
+                                    <img src="img/help.svg" alt="?" title="Other" class="svg-icon">
+                                    <span class="align-middle">Other</span>
+                                  </th>
+                                  <td class="text-end"><?php echo $hits; ?></td>
+                                  <td class="text-center"><small>(<?php echo round($hits / array_sum($locCount) * 100, 1); ?>%)</small></td>
+                                </tr><?php
+                                break;
+                              }
                             } ?> 
                           </tbody>
                         </table>
@@ -2740,17 +2758,15 @@ ORCINUS;
                       <li class="list-group-item">
                         <h4>All Searches by Day of Week</h4>
                         <table class="bar-graph d-flex align-items-end position-relative w-100 gap-1 pt-4 mb-5">
-                          <tbody class="flex-fill d-flex gap-3"><?php
+                          <tbody class="flex-fill d-flex gap-3" style="height:14em;"><?php
                             foreach ($dayWalker as $day => $value) { ?> 
                               <tr class="flex-fill d-flex flex-column justify-content-end<?php
-                                if ($day == 'Sun') echo ' ps-2';
-                                if ($day == 'Sat') echo ' pe-2'; ?>">
+                                if ($day == array_key_first($dayWalker)) echo ' ps-2';
+                                if ($day == array_key_last($dayWalker)) echo ' pe-2'; ?>">
                                 <th class="position-relative p-0">
                                   <span class="position-absolute top-0 start-50 translate-middle-x"><?php echo $day; ?></span>
                                 </th>
-                                <td class="order-first position-relative bg-secondary bg-gradient p-0" data-height="<?php
-                                    echo round($value / (max($dayWalker) / 200));
-                                  ?>" data-value="<?php echo $value; ?>" title="<?php echo $day; ?>">
+                                <td class="order-first position-relative bg-secondary bg-gradient p-0" data-value="<?php echo $value; ?>" title="<?php echo $day; ?>">
                                   <small class="position-absolute bottom-100 start-50 translate-middle-x"><?php echo $value; ?></small>
                                 </td>
                               </tr><?php
@@ -2761,17 +2777,15 @@ ORCINUS;
                       <li class="list-group-item">
                         <h4>All Searches by Time of Day</h4>
                         <table class="bar-graph d-flex align-items-end position-relative w-100 gap-1 pt-4 mb-5">
-                          <tbody class="flex-fill d-flex gap-1"><?php
+                          <tbody class="flex-fill d-flex gap-1" style="height:14em;"><?php
                             foreach ($hourWalker as $hour => $value) { ?> 
                               <tr class="flex-fill d-flex flex-column justify-content-end<?php
-                                if ($hour == '00:00') echo ' ps-2';
-                                if ($hour == '23:00') echo ' pe-2'; ?>">
+                                if ($hour == array_key_first($hourWalker)) echo ' ps-2';
+                                if ($hour == array_key_last($hourWalker)) echo ' pe-2'; ?>">
                                 <th class="position-relative p-0">
                                   <time class="position-absolute top-0 start-50 translate-middle-x"><?php echo $hour; ?></time>
                                 </th>
-                                <td class="order-first position-relative bg-secondary bg-gradient p-0" data-height="<?php
-                                    echo (max($hourWalker)) ? round($value / (max($hourWalker) / 200)) : 0;
-                                  ?>" data-value="<?php echo $value; ?>" title="<?php echo $hour; ?>">
+                                <td class="order-first position-relative bg-secondary bg-gradient p-0" data-value="<?php echo $value; ?>" title="<?php echo $hour; ?>">
                                   <small class="position-absolute bottom-100 start-50 translate-middle-x"><?php echo $value; ?></small>
                                 </td>
                               </tr><?php
