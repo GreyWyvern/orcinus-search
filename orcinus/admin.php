@@ -2722,7 +2722,7 @@ ORCINUS;
                                   <td class="text-center"><small>(<?php echo round($searches / array_sum($locCount) * 100, 1); ?>%)</small></td>
                                 </tr><?php
                               } else {
-                                $cap = false; $hits = 0;
+                                $capture = false; $hits = 0;
                                 foreach ($locCount as $iso2 => $searches2) {
                                   if ($iso2 == $iso) $capture = true;
                                   if ($capture) $hits += $searches2;
