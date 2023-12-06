@@ -789,6 +789,12 @@ if ($_RDATA['s_searchable_pages']) {
 } // No searchable pages in search database
 
 
+// Output JSON and exit if requested
+if (isset($_REQUEST['json'])) {
+  header('Content-type: application/json; charset='.$_ODATA['s_charset']);
+  die(json_encode($_SDATA['json'], JSON_INVALID_UTF8_IGNORE));
+}
+
 
 // If the crawler 'time_start' is more than 'timeout_crawl'
 // seconds ago, the crawler is probably stuck. Unstick it.
@@ -813,7 +819,8 @@ if (OS_getValue('sp_crawling') && time() - $_ODATA['sp_time_start'] > $_ODATA['s
 
 // ***** Trigger another crawl
 if ($_ODATA['sp_interval'] && !$_ODATA['sp_crawling'] &&
-    time() - $_ODATA['sp_time_end_success'] > $_ODATA['sp_interval'] * 3600) {
+    time() - $_ODATA['sp_time_end_success'] > $_ODATA['sp_interval'] * 3600 &&
+    $_ODATA['sp_time_end'] - $_ODATA['sp_timeout_crawl'] < time()) {
 
   // If we can only trigger the crawl during certain time period
   if ($_ODATA['sp_interval_start'] != $_ODATA['sp_interval_stop']) {
@@ -876,10 +883,5 @@ if ($_ODATA['sp_interval'] && !$_ODATA['sp_crawling'] &&
   }
 }
 
-// Output JSON and exit if requested
-if (isset($_REQUEST['json'])) {
-  header('Content-type: application/json; charset='.$_ODATA['s_charset']);
-  die(json_encode($_SDATA['json'], JSON_INVALID_UTF8_IGNORE));
-
-// Just log this query and do not post results
-} else if (isset($_REQUEST['log'])) die(); ?>
+// If 'log' argument is set, just log this query and do not post results
+if (isset($_REQUEST['log'])) die(); ?>
