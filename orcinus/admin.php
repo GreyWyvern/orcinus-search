@@ -2767,7 +2767,9 @@ ORCINUS;
                                   <span class="position-absolute top-0 start-50 translate-middle-x"><?php echo $day; ?></span>
                                 </th>
                                 <td class="order-first position-relative bg-secondary bg-gradient p-0" data-value="<?php echo $value; ?>" title="<?php echo $day; ?>">
-                                  <small class="position-absolute bottom-100 start-50 translate-middle-x"><?php echo $value; ?></small>
+                                  <small class="position-absolute bottom-100 start-50 translate-middle-x"><?php
+                                    if ($value > 0) echo $value;
+                                  ?></small>
                                 </td>
                               </tr><?php
                             } ?> 
@@ -2786,7 +2788,9 @@ ORCINUS;
                                   <time class="position-absolute top-0 start-50 translate-middle-x"><?php echo $hour; ?></time>
                                 </th>
                                 <td class="order-first position-relative bg-secondary bg-gradient p-0" data-value="<?php echo $value; ?>" title="<?php echo $hour; ?>">
-                                  <small class="position-absolute bottom-100 start-50 translate-middle-x"><?php echo $value; ?></small>
+                                  <small class="position-absolute bottom-100 start-50 translate-middle-x"><?php
+                                    if ($value > 0) echo $value;
+                                  ?></small>
                                 </td>
                               </tr><?php
                             } ?> 
