@@ -53,6 +53,9 @@ input[type="number"] {
   table-layout:fixed;
 }
 
+table.bar-graph thead {
+  transform:translatey(0.6em);
+}
 table.bar-graph tbody tr th time {
   display:none;
 }

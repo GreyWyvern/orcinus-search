@@ -477,7 +477,7 @@ if (!$_SESSION['admin_username']) {
           if (isset($_POST['os_sp_require_url'])) {
             $_POST['os_sp_require_url'] = explode("\n", substr(preg_replace('/\n+/', "\n", str_replace("\r\n", "\n", trim($_POST['os_sp_require_url']))), 0, 4095));
             foreach ($_POST['os_sp_require_url'] as $key => $require) {
-              if ($require[0] == '*') {
+              if (strlen($require) && $require[0] == '*') {
                 $require = substr($require, 1);
                 $test = preg_match('/'.str_replace('/', '\/', $require).'/', 'test');
                 if ($test === false) {
@@ -492,7 +492,7 @@ if (!$_SESSION['admin_username']) {
           if (isset($_POST['os_sp_ignore_url'])) {
             $_POST['os_sp_ignore_url'] = explode("\n", substr(preg_replace('/\n+/', "\n", str_replace("\r\n", "\n", trim($_POST['os_sp_ignore_url']))), 0, 4095));
             foreach ($_POST['os_sp_ignore_url'] as $key => $ignore) {
-              if ($ignore[0] == '*') {
+              if (strlen($ignore) && $ignore[0] == '*') {
                 $ignore = substr($ignore, 1);
                 $test = preg_match('/'.str_replace('/', '\/', $ignore).'/', 'test');
                 if ($test === false) {
@@ -532,7 +532,7 @@ if (!$_SESSION['admin_username']) {
           if (isset($_POST['os_sp_title_strip'])) {
             $_POST['os_sp_title_strip'] = explode("\n", substr(preg_replace('/\n+/', "\n", str_replace("\r\n", "\n", trim($_POST['os_sp_title_strip']))), 0, 4095));
             foreach ($_POST['os_sp_title_strip'] as $key => $title_strip) {
-              if ($title_strip[0] == '*') {
+              if (strlen($title_strip) && $title_strip[0] == '*') {
                 $title_strip = substr($title_strip, 1);
                 $test = preg_match('/'.str_replace('/', '\/', $title_strip).'/', 'test');
                 if ($test === false) {
