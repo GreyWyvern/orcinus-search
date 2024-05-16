@@ -47,12 +47,14 @@ use Smalot\PdfParser\Config;
 class RawDataParser
 {
     /**
-     * @var \Smalot\PdfParser\Config
+     * @var Config
      */
     private $config;
 
     /**
      * Configuration array.
+     *
+     * @var array<string,bool>
      */
     protected $cfg = [
         // if `true` ignore filter decoding errors
@@ -67,7 +69,7 @@ class RawDataParser
     /**
      * @param array $cfg Configuration array, default is []
      */
-    public function __construct($cfg = [], Config $config = null)
+    public function __construct($cfg = [], ?Config $config = null)
     {
         // merge given array with default values
         $this->cfg = array_merge($this->cfg, $cfg);
@@ -125,7 +127,7 @@ class RawDataParser
         // decode the stream
         $remaining_filters = [];
         foreach ($filters as $filter) {
-            if (\in_array($filter, $this->filterHelper->getAvailableFilters())) {
+            if (\in_array($filter, $this->filterHelper->getAvailableFilters(), true)) {
                 try {
                     $stream = $this->filterHelper->decodeFilter($filter, $stream, $this->config->getDecodeMemoryLimit());
                 } catch (\Exception $e) {
@@ -402,14 +404,19 @@ class RawDataParser
                     }
                     $prev_row = $ddata[$k];
                 } // end for each row
-                // complete decoding
+            // complete decoding
             } else {
                 // number of bytes in a row
                 $rowlen = array_sum($wb);
-                // convert the stream into an array of integers
-                $sdata = unpack('C*', $xrefcrs[1][3][0]);
-                // split the rows
-                $ddata = array_chunk($sdata, $rowlen);
+                if (0 < $rowlen) {
+                    // convert the stream into an array of integers
+                    $sdata = unpack('C*', $xrefcrs[1][3][0]);
+                    // split the rows
+                    $ddata = array_chunk($sdata, $rowlen);
+                } else {
+                    // if the row length is zero, $ddata should be an empty array as well
+                    $ddata = [];
+                }
             }
 
             $sdata = [];
@@ -609,7 +616,7 @@ class RawDataParser
      *
      * @return array containing object type, raw value and offset to next object
      */
-    protected function getRawObject(string $pdfData, int $offset = 0, array $headerDic = null): array
+    protected function getRawObject(string $pdfData, int $offset = 0, ?array $headerDic = null): array
     {
         $objtype = ''; // object type to be returned
         $objval = ''; // object value to be returned
@@ -756,7 +763,7 @@ class RawDataParser
                     // start stream object
                     $objtype = 'stream';
                     $offset += 6;
-                    if (1 == preg_match('/^([\r]?[\n])/isU', substr($pdfData, $offset, 4), $matches)) {
+                    if (1 == preg_match('/^( *[\r]?[\n])/isU', substr($pdfData, $offset, 4), $matches)) {
                         $offset += \strlen($matches[0]);
 
                         // we get stream length here to later help preg_match test less data
@@ -857,39 +864,39 @@ class RawDataParser
      */
     protected function getXrefData(string $pdfData, int $offset = 0, array $xref = []): array
     {
-        $startxrefPreg = preg_match(
-            '/[\r\n]startxref[\s]*[\r\n]+([0-9]+)[\s]*[\r\n]+%%EOF/i',
+        // If the $offset is currently pointed at whitespace, bump it
+        // forward until it isn't; affects loosely targetted offsets
+        // for the 'xref' keyword
+        // See: https://github.com/smalot/pdfparser/issues/673
+        $bumpOffset = $offset;
+        while (preg_match('/\s/', substr($pdfData, $bumpOffset, 1))) {
+            ++$bumpOffset;
+        }
+
+        // Find all startxref tables from this $offset forward
+        $startxrefPreg = preg_match_all(
+            '/(?<=[\r\n])startxref[\s]*[\r\n]+([0-9]+)[\s]*[\r\n]+%%EOF/i',
             $pdfData,
-            $matches,
-            \PREG_OFFSET_CAPTURE,
+            $startxrefMatches,
+            \PREG_SET_ORDER,
             $offset
         );
 
-        if (0 == $offset) {
-            // find last startxref
-            $pregResult = preg_match_all(
-                '/[\r\n]startxref[\s]*[\r\n]+([0-9]+)[\s]*[\r\n]+%%EOF/i',
-                $pdfData,
-                $matches,
-                \PREG_SET_ORDER,
-                $offset
-            );
-            if (0 == $pregResult) {
-                throw new \Exception('Unable to find startxref');
-            }
-            $matches = array_pop($matches);
-            $startxref = $matches[1];
-        } elseif (strpos($pdfData, 'xref', $offset) == $offset) {
-            // Already pointing at the xref table
-            $startxref = $offset;
-        } elseif (preg_match('/([0-9]+[\s][0-9]+[\s]obj)/i', $pdfData, $matches, \PREG_OFFSET_CAPTURE, $offset)) {
-            // Cross-Reference Stream object
-            $startxref = $offset;
-        } elseif ($startxrefPreg) {
-            // startxref found
-            $startxref = $matches[1][0];
-        } else {
+        if (0 == $startxrefPreg) {
+            // No startxref tables were found
             throw new \Exception('Unable to find startxref');
+        } elseif (0 == $offset) {
+            // Use the last startxref in the document
+            $startxref = (int) $startxrefMatches[\count($startxrefMatches) - 1][1];
+        } elseif (strpos($pdfData, 'xref', $bumpOffset) == $bumpOffset) {
+            // Already pointing at the xref table
+            $startxref = $bumpOffset;
+        } elseif (preg_match('/([0-9]+[\s][0-9]+[\s]obj)/i', $pdfData, $matches, 0, $bumpOffset)) {
+            // Cross-Reference Stream object
+            $startxref = $bumpOffset;
+        } else {
+            // Use the next startxref from this $offset
+            $startxref = (int) $startxrefMatches[0][1];
         }
 
         if ($startxref > \strlen($pdfData)) {
@@ -901,8 +908,15 @@ class RawDataParser
             // Cross-Reference
             $xref = $this->decodeXref($pdfData, $startxref, $xref);
         } else {
-            // Cross-Reference Stream
-            $xref = $this->decodeXrefStream($pdfData, $startxref, $xref);
+            // Check if the $pdfData might have the wrong line-endings
+            $pdfDataUnix = str_replace("\r\n", "\n", $pdfData);
+            if ($startxref < \strlen($pdfDataUnix) && strpos($pdfDataUnix, 'xref', $startxref) == $startxref) {
+                // Return Unix-line-ending flag
+                $xref = ['Unix' => true];
+            } else {
+                // Cross-Reference Stream
+                $xref = $this->decodeXrefStream($pdfData, $startxref, $xref);
+            }
         }
         if (empty($xref)) {
             throw new \Exception('Unable to find xref');
@@ -936,6 +950,12 @@ class RawDataParser
 
         // get xref and trailer data
         $xref = $this->getXrefData($pdfData);
+
+        // If we found Unix line-endings
+        if (isset($xref['Unix'])) {
+            $pdfData = str_replace("\r\n", "\n", $pdfData);
+            $xref = $this->getXrefData($pdfData);
+        }
 
         // parse all document objects
         $objects = [];

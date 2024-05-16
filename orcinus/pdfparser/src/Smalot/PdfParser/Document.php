@@ -255,7 +255,7 @@ class Document
                             if ('rdf:li' == $val['tag']) {
                                 $metadata[] = $val['value'];
 
-                                // Else assign a value to this property
+                            // Else assign a value to this property
                             } else {
                                 $metadata[$val['tag']] = $val['value'];
                             }
@@ -263,12 +263,20 @@ class Document
                         break;
 
                     case 'close':
-                        // If the value of this property is a single-
-                        // element array where the element is of type
-                        // string, use the value of the first list item
-                        // as the value for this property
-                        if (\is_array($metadata) && isset($metadata[0]) && 1 == \count($metadata) && \is_string($metadata[0])) {
-                            $metadata = $metadata[0];
+                        // If the value of this property is an array
+                        if (\is_array($metadata)) {
+                            // If the value is a single element array
+                            // where the element is of type string, use
+                            // the value of the first list item as the
+                            // value for this property
+                            if (1 == \count($metadata) && isset($metadata[0]) && \is_string($metadata[0])) {
+                                $metadata = $metadata[0];
+                            } elseif (0 == \count($metadata)) {
+                                // if the value is an empty array, set
+                                // the value of this property to the empty
+                                // string
+                                $metadata = '';
+                            }
                         }
 
                         // Move down one level in the stack
@@ -328,12 +336,12 @@ class Document
         return null;
     }
 
-    public function hasObjectsByType(string $type, string $subtype = null): bool
+    public function hasObjectsByType(string $type, ?string $subtype = null): bool
     {
         return 0 < \count($this->getObjectsByType($type, $subtype));
     }
 
-    public function getObjectsByType(string $type, string $subtype = null): array
+    public function getObjectsByType(string $type, ?string $subtype = null): array
     {
         if (!isset($this->dictionary[$type])) {
             return [];
@@ -410,7 +418,7 @@ class Document
         throw new \Exception('Missing catalog.');
     }
 
-    public function getText(int $pageLimit = null): string
+    public function getText(?int $pageLimit = null): string
     {
         $texts = [];
         $pages = $this->getPages();
