@@ -747,16 +747,19 @@ os_crawl_start.addEventListener('click', function(e) {
         } else if (response.status >= 500) {
           clearInterval(os_crawl_interval);
 
-          os_crawl_cancel.reason = 'The crawler unexpectedly halted with HTTP response code ' + response.status + ': ' + response.statusText;
+          if (response.status != 524) {
+            os_crawl_cancel.reason = 'The crawler unexpectedly halted with HTTP response code ' + response.status + ': ' + response.statusText;
 
-          alert(
-           'Error: ' + os_crawl_cancel.reason + "\n" +
-           'The crawl will be cancelled and reset.'
-          );
+            alert(
+             'Error: ' + os_crawl_cancel.reason + "\n" +
+             'The crawl will be cancelled and reset.'
+            );
 
-          console.error('Error: ', error);
-          os_crawl_cancel.force = true;
-          os_crawl_cancel.click();
+            console.error('Error: ', error);
+            os_crawl_cancel.force = true;
+            os_crawl_cancel.click();
+
+          } else alert('Cloudflare has timed out your connection to the crawler. The crawler is still running; refresh the page to see ongoing updates.');
         }
       });
 
