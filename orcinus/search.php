@@ -220,7 +220,7 @@ if ($_RDATA['s_searchable_pages']) {
       // Check if this search is already cached
       $_SDATA['formatted'] = implode(' ', $_SDATA['formatted']);
       $checkCache = $_DDATA['pdo']->prepare(
-        'SELECT `stamp`, INET_NTOA(`ip`) AS `ip`, `cache`
+        'SELECT `stamp`, `ip`, `cache`
            FROM `'.$_DDATA['tbprefix'].'query`
              WHERE `query`=:query AND `cache`<>\'\'
                ORDER BY `stamp` DESC LIMIT 1;'
@@ -616,14 +616,14 @@ if ($_RDATA['s_searchable_pages']) {
             `query`=:query,
             `results`=:results,
             `stamp`=UNIX_TIMESTAMP(),
-            `ip`=INET_ATON(:ipaddr),
+            `ip`=:ip,
             `cache`=:cache
           ;'
         );
         $insertQuery->execute(array(
           'query' => $_SDATA['formatted'],
           'results' => count($_SDATA['results']),
-          'ipaddr' => $_SERVER['REMOTE_ADDR'],
+          'ip' => $_SERVER['REMOTE_ADDR'],
           'cache' => $searchCache
         ));
         if (!$insertQuery->rowCount()) {

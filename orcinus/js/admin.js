@@ -498,7 +498,7 @@ if (queriesModal) {
       hits_unique: values[2].getAttribute('data-value'),
       results: values[3].getAttribute('data-value'),
       stamp: new Date(parseInt(values[4].getAttribute('data-value')) * 1000).toString(),
-      ipaddr: values[5].innerHTML
+      ip: values[5].innerHTML
     };
 
     Object.keys(values).forEach(keys => {

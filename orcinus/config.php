@@ -256,7 +256,7 @@ if (!in_array($_DDATA['tbprefix'].'query', $_DDATA['tables'], true)) {
       `query` TINYTEXT NOT NULL,
       `results` TINYINT UNSIGNED NOT NULL,
       `stamp` INT UNSIGNED NOT NULL,
-      `ip` INT UNSIGNED NOT NULL,
+      `ip` VARCHAR(40) NOT NULL,
       `cache` MEDIUMBLOB NOT NULL
     ) ENGINE = MyISAM,
       CHARACTER SET = utf8mb4,

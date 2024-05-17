@@ -286,7 +286,7 @@ if (!$_SESSION['admin_username']) {
             // Download a csv of the complete query log
             case 'query_log':
               $queryLog = $_DDATA['pdo']->query(
-                'SELECT `query`, `results`, `stamp`, INET_NTOA(`ip`) AS `ipaddr`
+                'SELECT `query`, `results`, `stamp`, `ip`
                    FROM `'.$_DDATA['tbprefix'].'query` ORDER BY `stamp` DESC;'
               );
               $err = $queryLog->errorInfo();
@@ -315,7 +315,7 @@ if (!$_SESSION['admin_username']) {
                     if ($_GEOIP2) {
                       $line['country'] = '';
                       try {
-                        $geo = $_GEOIP2->country($line['ipaddr']);
+                        $geo = $_GEOIP2->country($line['ip']);
                       } catch(Exception $e) { $geo = false; }
                       if (!empty($geo->raw['country']['names']['en']))
                         $line['country'] = $geo->raw['country']['names']['en'];
@@ -1297,12 +1297,12 @@ ORCINUS;
         }
       } else $_SESSION['error'][] = 'Could not read result counts from query log.';
 
-      $select = $_DDATA['pdo']->query('SELECT INET_NTOA(`ip`) AS `ipaddr` FROM `'.$_DDATA['tbprefix'].'query`;')->fetchAll();
+      $select = $_DDATA['pdo']->query('SELECT `ip` FROM `'.$_DDATA['tbprefix'].'query`;')->fetchAll();
       $locCount = array();
       $locData = array('unk' => 'Unknown');
       foreach ($select as $row) {
         try {
-          $geo = $_GEOIP2->country($row['ipaddr']);
+          $geo = $_GEOIP2->country($row['ip']);
           if (!empty($geo->raw['country']['iso_code'])) {
             if (empty($locCount[$geo->raw['country']['iso_code']])) {
               $locCount[$geo->raw['country']['iso_code']] = 1;
@@ -1338,7 +1338,7 @@ ORCINUS;
       $_RDATA['query_log_found_rows'] = false;
 
       $queries = $_DDATA['pdo']->query(
-        'SELECT `t`.`query`, `t`.`results`, INET_NTOA(`t`.`ip`) AS `ipaddr`,
+        'SELECT `t`.`query`, `t`.`results`, `t`.`ip`,
                 REGEXP_REPLACE(`t`.`query`, \'^[[:punct:]]+\', \'\') AS `alpha`,
                 `s`.`hits`, `s`.`ipuni`, `s`.`last_hit`
            FROM `'.$_DDATA['tbprefix'].'query` AS `t`
@@ -2927,11 +2927,11 @@ ORCINUS;
                           </td><?php
                           if ($_GEOIP2) {
                             try {
-                              $query['geo'] = $_GEOIP2->country($query['ipaddr']);
+                              $query['geo'] = $_GEOIP2->country($query['ip']);
                             } catch(Exception $e) { $query['geo'] = false; }
                           } ?> 
-                          <td class="text-end d-none d-md-table-cell" data-value="<?php echo $query['ipaddr']; ?>">
-                            <a href="https://bgp.he.net/ip/<?php echo $query['ipaddr']; ?>" target="_blank"><?php echo $query['ipaddr']; ?></a><?php
+                          <td class="text-end d-none d-md-table-cell" data-value="<?php echo $query['ip']; ?>">
+                            <a href="https://bgp.he.net/ip/<?php echo $query['ip']; ?>" target="_blank"><?php echo $query['ip']; ?></a><?php
                             if (!empty($query['geo']->raw['country']['iso_code'])) {
                               if (file_exists(__DIR__.'/img/flags/'.strtolower($query['geo']->raw['country']['iso_code']).'.png')) {
                                 $flag = 'img/flags/'.strtolower($query['geo']->raw['country']['iso_code']).'.png';
@@ -3004,7 +3004,7 @@ ORCINUS;
                           <li class="list-group-item">
                             <label class="d-flex">
                               <strong class="pe-2">From IP Address</strong>
-                              <var class="flex-grow-1 text-end" id="os_queries_modal_ipaddr"></var>
+                              <var class="flex-grow-1 text-end" id="os_queries_modal_ip"></var>
                             </label>
                           </li>
                         </ul>
