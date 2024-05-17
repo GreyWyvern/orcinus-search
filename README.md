@@ -1,8 +1,8 @@
 # Orcinus Site Search
 
-[Brian Huisman](https://greywyvern.com)
+By [Brian Huisman](https://greywyvern.com)
 
-> ℹ️ **NOTE**: This project is not yet officially released and thus probably contains bugs and other nasties. Please use at your own risk! If you do try it out, I would very much appreciate your feedback and issue reports.
+> ℹ️ **NOTE**: The **Orcinus** project is now in "release candidate" status. Please use it on your websites and send any feedback my way, or submit issue reports here on Github. Thanks so much for your interest!
 
 ![orcinus-banner](https://github.com/GreyWyvern/orcinus-search/assets/137631/d504de08-3029-4e68-acf5-1dd1e5008674)
 
