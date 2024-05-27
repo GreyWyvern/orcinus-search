@@ -2931,7 +2931,8 @@ ORCINUS;
                             } catch(Exception $e) { $query['geo'] = false; }
                           } ?> 
                           <td class="text-end d-none d-md-table-cell" data-value="<?php echo $query['ip']; ?>">
-                            <a href="https://bgp.he.net/ip/<?php echo $query['ip']; ?>" target="_blank"><?php echo $query['ip']; ?></a><?php
+                            <a href="https://bgp.he.net/ip/<?php echo $query['ip']; ?>" target="_blank"><?php
+                              echo preg_replace('/:.+:/', ':&hellip;:', $query['ip']); ?></a><?php
                             if (!empty($query['geo']->raw['country']['iso_code'])) {
                               if (file_exists(__DIR__.'/img/flags/'.strtolower($query['geo']->raw['country']['iso_code']).'.png')) {
                                 $flag = 'img/flags/'.strtolower($query['geo']->raw['country']['iso_code']).'.png';
