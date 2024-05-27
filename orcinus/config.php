@@ -8,8 +8,8 @@ require __DIR__.'/config.ini.php';
 
 
 // Check PHP version compatibility
-if (PHP_VERSION_ID < 80000)
-  throw new Exception('Orcinus Site Search requires PHP version ">= 8.0.x". You are running '.PHP_VERSION.'.');
+if (PHP_VERSION_ID < 80100)
+  throw new Exception('Orcinus Site Search requires PHP version ">= 8.1.x". You are running '.PHP_VERSION.'.');
 
 
 // ***** Connect to the database
