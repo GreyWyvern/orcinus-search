@@ -1297,7 +1297,7 @@ ORCINUS;
         }
       } else $_SESSION['error'][] = 'Could not read result counts from query log.';
 
-      $select = $_DDATA['pdo']->query('SELECT `ip` FROM `'.$_DDATA['tbprefix'].'query`;')->fetchAll();
+      $select = $_DDATA['pdo']->query('SELECT `ip`, COUNT(*) AS `ips` FROM `'.$_DDATA['tbprefix'].'query` GROUP BY `ip`;')->fetchAll();
       $locCount = array();
       $locData = array('unk' => 'Unknown');
       foreach ($select as $row) {
@@ -1305,18 +1305,18 @@ ORCINUS;
           $geo = $_GEOIP2->country($row['ip']);
           if (!empty($geo->raw['country']['iso_code'])) {
             if (empty($locCount[$geo->raw['country']['iso_code']])) {
-              $locCount[$geo->raw['country']['iso_code']] = 1;
-            } else $locCount[$geo->raw['country']['iso_code']]++;
+              $locCount[$geo->raw['country']['iso_code']] = $row['ips'];
+            } else $locCount[$geo->raw['country']['iso_code']] += $row['ips'];
             $locData[$geo->raw['country']['iso_code']] = $geo->raw['country']['names']['en'];
           } else {
             if (empty($locCount['unk'])) {
-              $locCount['unk'] = 1;
-            } else $locCount['unk']++;
+              $locCount['unk'] = $row['ips'];
+            } else $locCount['unk'] += $row['ips'];
           }
         } catch(Exception $e) {
           if (empty($locCount['unk'])) {
-            $locCount['unk'] = 1;
-          } else $locCount['unk']++;
+            $locCount['unk'] = $row['ips'];
+          } else $locCount['unk'] += $row['ips'];
         }
       }
       arsort($locCount);
