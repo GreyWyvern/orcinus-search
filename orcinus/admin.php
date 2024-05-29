@@ -110,6 +110,9 @@ $_RDATA['admin_pages'] = array(
 if ($_ODATA['s_limit_query_log'])
   $_RDATA['admin_pages']['queries'] = 'Query Log';
 
+$_RDATA['page_index_charsets'] = array();
+$_RDATA['page_index_mime_types'] = array();
+
 $_RDATA['index_status_list'] = array(
   '<none>', 'OK', 'Orphan', 'Updated', 'Unlisted'
 );
