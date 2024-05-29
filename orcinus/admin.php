@@ -2857,7 +2857,7 @@ ORCINUS;
                           </label>
                         </td>
                         <th class="fs-5 text-center os_sorting os_desc" scope="col">
-                          <span data-bs-toggle="tooltip" data-bs-placement="top" title="The number of times this query has been searched for with unique users by IP address in (brackets)"
+                          <span data-bs-toggle="tooltip" data-bs-placement="top" title="The number of times this query has been searched for, with unique users by IP address in (brackets)"
                             role="button" id="os_queries_hits">Hits</span>
                           <img src="img/arrow-down.svg" alt="Sort" title="Sort order" class="align-middle svg-icon-sm mb-1">
                         </th>
