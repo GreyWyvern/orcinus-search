@@ -70,26 +70,26 @@ if (class_exists('GeoIp2\Database\Reader')) {
 
 
 // ***** Database derived runtime data
-$tableinfo = $_DDATA['pdo']->query(
-  'SHOW TABLE STATUS LIKE \''.$_DDATA['tbprefix'].'%\';'
+$_RDATA['page_index_total_rows'] = 0;
+$crawldata_rows = $_DDATA['pdo']->query(
+  'SELECT COUNT(*) AS `count` FROM `'.$_DDATA['tbprefix'].'crawldata`;'
 );
-$err = $tableinfo->errorInfo();
+$err = $crawldata_rows->errorInfo();
 if ($err[0] == '00000') {
-  $tableinfo = $tableinfo->fetchAll();
-  foreach ($tableinfo as $table) {
-    switch ($table['Name']) {
-      case $_DDATA['tbprefix'].'config':
-        $_RDATA['s_config_info'] = $table;
-        break; 
-      case $_DDATA['tbprefix'].'crawldata':
-        $_RDATA['s_crawldata_info'] = $table;
-        break; 
-      case $_DDATA['tbprefix'].'query':
-        $_RDATA['s_query_info'] = $table;
+  $crawldata_rows = $crawldata_rows->fetchAll();
+  $_RDATA['page_index_total_rows'] = $crawldata_rows[0]['count'];
+} else if (isset($_SESSION['error']))
+  $_SESSION['error'][] = 'Could not determine page index count';
 
-    }
-  }
-} else $_SESSION['error'][] = 'Could not read search database status.';
+$_RDATA['s_query_log_size'] = $_RDATA['s_cache_size'];
+$querydata_size = $_DDATA['pdo']->query(
+  'SELECT * FROM `'.$_DDATA['tbprefix'].'query`;'
+);
+$err = $querydata_size->errorInfo();
+if ($err[0] == '00000') {
+  $_RDATA['s_query_log_size'] = strlen(serialize($querydata_size->fetchAll()));
+} else if (isset($_SESSION['error']))
+  $_SESSION['error'][] = 'Could not determine query log size';
 
 
 // ***** Other runtime data
@@ -654,7 +654,8 @@ if (!$_SESSION['admin_username']) {
                     }
                   }
 
-                  // Refresh the sp_domains data since we deleted some rows
+                  // Refresh sp_domains and sp_crawldata_size since we
+                  // deleted some rows
                   $domainList = array();
                   $urls = $_DDATA['pdo']->query(
                     'SELECT `url` FROM `'.$_DDATA['tbprefix'].'crawldata`;'
@@ -673,6 +674,14 @@ if (!$_SESSION['admin_username']) {
                     }
                     OS_setValue('sp_domains', $domainList);
                   } else $_SESSION['error'][] = 'Could not read domain count data from search database: '.$err[2];
+
+                  $crawldata_size = $_DDATA['pdo']->query(
+                    'SELECT * FROM `'.$_DDATA['tbprefix'].'crawldata`;'
+                  );
+                  $err = $crawldata_size->errorInfo();
+                  if ($err[0] == '00000') {
+                    OS_setValue('sp_crawldata_size', strlen(serialize($crawldata_size->fetchAll())));
+                  } else $_SESSION['error'][] = 'Could not determine updated crawl table size';
                   break;
 
                 case 'category':
@@ -1157,7 +1166,7 @@ ORCINUS;
       $_RDATA['page_index_rows'] = false;
       $_RDATA['page_index_found_rows'] = false;
 
-      if ($_RDATA['s_crawldata_info']['Rows']) {
+      if ($_RDATA['page_index_total_rows']) {
 
         // ***** Select rows to populate the Page Index table
         $indexRows = $_DDATA['pdo']->prepare(
@@ -1242,7 +1251,7 @@ ORCINUS;
         $charsets = $charsets->fetchAll();
         foreach ($charsets as $row) {
           if (!$row['content_charset']) $row['content_charset'] = '<none>';
-          $_RDATA['s_crawldata_info']['Charsets'][$row['content_charset']] = $row['num'];
+          $_RDATA['page_index_charsets'][$row['content_charset']] = $row['num'];
         }
       } else $_SESSION['error'][] = 'Could not read charset counts from search database.';
 
@@ -1257,7 +1266,7 @@ ORCINUS;
         $mimetypes = $mimetypes->fetchAll();
         foreach ($mimetypes as $row) {
           if (!$row['content_mime']) $row['content_mime'] = '<none>';
-          $_RDATA['s_crawldata_info']['MIME-types'][$row['content_mime']] = $row['num'];
+          $_RDATA['page_index_mime_types'][$row['content_mime']] = $row['num'];
         }
       } else $_SESSION['error'][] = 'Could not read charset counts from search database.';
       break;
@@ -1528,7 +1537,10 @@ ORCINUS;
                       </li>
                       <li class="list-group-item">
                         <label class="d-flex w-100">
-                          <strong class="pe-2">Data Stored</strong>
+                          <strong class="pe-2">Data Stored
+                            <img src="img/help.svg" alt="Information" class="align-middle svg-icon mb-1"
+                              data-bs-toggle="tooltip" data-bs-placement="top" title="The amount of data stored by new or updated pages.">
+                          </strong>
                           <var class="flex-grow-1 text-end" id="os_crawl_data_stored"><?php
                             if (!$_ODATA['sp_crawling']) {
                               if ($_ODATA['sp_data_transferred']) { ?> 
@@ -1919,11 +1931,11 @@ ORCINUS;
             </header>
             <div class="col-6 col-xl-5 col-xxl-4 mb-2 text-end text-nowrap">
               <button type="button" class="btn btn-primary" id="os_page_index_download" title="Download Page Index"<?php
-                if (!$_RDATA['s_crawldata_info']['Rows']) echo ' disabled="disabled"'; ?>>Download</button>
+                if (!$_RDATA['page_index_total_rows']) echo ' disabled="disabled"'; ?>>Download</button>
             </div><?php
 
             // If there are *any* rows in the database
-            if ($_RDATA['s_crawldata_info']['Rows']) {
+            if ($_RDATA['page_index_total_rows']) {
 
               // If we successfully queried the search table for results
               if ($_RDATA['page_index_found_rows'] !== false && is_array($_RDATA['page_index_rows'])) { ?> 
@@ -2182,11 +2194,11 @@ ORCINUS;
                         <label class="d-flex w-100">
                           <strong class="pe-2">MIME-types</strong>
                           <ol class="list-group list-group-flush flex-grow-1"><?php
-                            foreach ($_RDATA['s_crawldata_info']['MIME-types'] as $mimetype => $value) { ?> 
+                            foreach ($_RDATA['page_index_mime_types'] as $mimetype => $value) { ?> 
                               <li class="list-group-item text-end p-0 border-0">
                                 <strong><?php echo htmlspecialchars($mimetype); ?>:</strong>
                                 <var title="<?php echo $value; ?> pages"><?php
-                                  echo round(($value / $_RDATA['s_crawldata_info']['Rows']) * 100, 1);
+                                  echo round(($value / $_RDATA['page_index_total_rows']) * 100, 1);
                                 ?>%</var>
                               </li><?php
                             } ?> 
@@ -2197,11 +2209,11 @@ ORCINUS;
                         <label class="d-flex w-100">
                           <strong class="pe-2">Encodings</strong>
                           <ol class="list-group list-group-flush flex-grow-1"><?php
-                            foreach ($_RDATA['s_crawldata_info']['Charsets'] as $encoding => $value) { ?> 
+                            foreach ($_RDATA['page_index_charsets'] as $encoding => $value) { ?> 
                               <li class="list-group-item text-end p-0 border-0">
                                 <strong><?php echo htmlspecialchars($encoding); ?>:</strong>
                                 <var title="<?php echo $value; ?> pages"><?php
-                                  echo round(($value / $_RDATA['s_crawldata_info']['Rows']) * 100, 1);
+                                  echo round(($value / $_RDATA['page_index_total_rows']) * 100, 1);
                                 ?>%</var>
                               </li><?php
                             } ?> 
@@ -2239,7 +2251,7 @@ ORCINUS;
                         <label class="d-flex w-100">
                           <strong class="pe-2">Current Query Log Size</strong>
                           <var class="text-end flex-grow-1 text-nowrap"><?php
-                            echo OS_readSize($_RDATA['s_query_info']['Data_length'] - $_RDATA['s_cache_size'], true);
+                            echo OS_readSize($_RDATA['s_query_log_size'] - $_RDATA['s_cache_size'], true);
                           ?></var>
                         </label>
                       </li>
@@ -2328,7 +2340,7 @@ ORCINUS;
                         <label class="d-flex w-100">
                           <strong class="pe-2">Search Database Size</strong>
                           <var class="text-end flex-grow-1 text-nowrap"><?php
-                            echo OS_readSize($_RDATA['s_crawldata_info']['Data_length'], true);
+                            echo OS_readSize($_ODATA['sp_crawldata_size'], true);
                           ?></var>
                         </label>
                       </li>
@@ -2374,7 +2386,7 @@ ORCINUS;
                     <div class="text-center">
                       <button type="submit" name="os_submit" value="os_jw_config" class="btn btn-primary">Save Changes</button>
                       <button type="submit" name="os_submit" value="os_jw_write" class="btn btn-primary" title="Download Javascript File"<?php
-                        if (!$_RDATA['s_crawldata_info']['Rows']) {
+                        if (!$_RDATA['page_index_total_rows']) {
                           echo ' disabled="disabled"';
                         } ?>>Download</button>
                     </div>

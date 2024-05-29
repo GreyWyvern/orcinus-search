@@ -93,6 +93,7 @@ if (!in_array($_DDATA['tbprefix'].'config', $_DDATA['tables'], true)) {
       `sp_time_last` SMALLINT UNSIGNED NOT NULL,
       `sp_data_transferred` INT UNSIGNED NOT NULL,
       `sp_data_stored` INT UNSIGNED NOT NULL,
+      `sp_crawldata_size` INT UNSIGNED NOT NULL,
       `sp_pages_stored` SMALLINT UNSIGNED NOT NULL,
       `sp_domains` TEXT NOT NULL,
       `sp_autodelete` BOOLEAN NOT NULL,
@@ -125,7 +126,7 @@ if (!in_array($_DDATA['tbprefix'].'config', $_DDATA['tables'], true)) {
       `jw_hostname` TINYTEXT NOT NULL,
       `jw_compression` TINYINT UNSIGNED NOT NULL,
       PRIMARY KEY (`version`)
-    ) ENGINE = MyISAM,
+    ) ENGINE = InnoDB,
       CHARACTER SET = utf8mb4,
       COLLATE = utf8mb4_unicode_520_ci
     ;'
@@ -178,6 +179,7 @@ if (!count($testConf->fetchAll())) {
       `sp_time_last`=0,
       `sp_data_transferred`=0,
       `sp_data_stored`=0,
+      `sp_crawldata_size`=0,
       `sp_pages_stored`=0,
       `sp_domains`=\'\',
       `sp_autodelete`=0,
@@ -239,7 +241,7 @@ if (!in_array($_DDATA['tbprefix'].'crawldata', $_DDATA['tables'], true)) {
       `last_modified` INT NOT NULL,
       `priority` DECIMAL(2,1) NOT NULL,
       UNIQUE `content_checksum` (`content_checksum`)
-    ) ENGINE = MyISAM,
+    ) ENGINE = InnoDB,
       CHARACTER SET = utf8mb4,
       COLLATE = utf8mb4_unicode_520_ci
     ;'
@@ -258,7 +260,7 @@ if (!in_array($_DDATA['tbprefix'].'query', $_DDATA['tables'], true)) {
       `stamp` INT UNSIGNED NOT NULL,
       `ip` VARCHAR(40) NOT NULL,
       `cache` MEDIUMBLOB NOT NULL
-    ) ENGINE = MyISAM,
+    ) ENGINE = InnoDB,
       CHARACTER SET = utf8mb4,
       COLLATE = utf8mb4_unicode_520_ci
     ;'

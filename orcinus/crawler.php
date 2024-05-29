@@ -315,14 +315,15 @@ function OS_crawlCleanUp() {
     );
     $err = $insert->errorInfo();
     if ($err[0] == '00000') {
-      $tableinfo = $_DDATA['pdo']->query(
-        'SHOW TABLE STATUS LIKE \''.$_DDATA['tbprefix'].'crawldata\';'
+      OS_setValue('sp_data_stored', $_RDATA['sp_data_stored']);
+
+      $crawldata_size = $_DDATA['pdo']->query(
+        'SELECT * FROM `'.$_DDATA['tbprefix'].'crawldata`;'
       );
-      $err = $tableinfo->errorInfo();
+      $err = $crawldata_size->errorInfo();
       if ($err[0] == '00000') {
-        $tableinfo = $tableinfo->fetchAll();
-        OS_setValue('sp_data_stored', $tableinfo[0]['Data_length']);
-      } else OS_crawlLog('Could not read crawl table status', 1);
+        OS_setValue('sp_crawldata_size', strlen(serialize($crawldata_size->fetchAll())));
+      } else OS_crawlLog('Could not determine crawl table size', 1);
 
       // Purge the search result cache
       if ($_ODATA['s_limit_cache']) {
@@ -674,6 +675,7 @@ $_RDATA['sp_robots_header'] = 0;
 $_RDATA['sp_complete'] = false;
 $_RDATA['sp_links'] = array();
 $_RDATA['sp_store'] = array();
+$_RDATA['sp_data_stored'] = 0;
 $_RDATA['sp_domains'] = array();
 $_RDATA['sp_sitemap'] = array();
 $_RDATA['sp_robots'] = array();
@@ -1599,7 +1601,10 @@ while ($_cURL && count($_RDATA['sp_queue'])) {
           OS_crawlLog('Database primary insert error: '.$url, 2);
           $err = $insertTemp->errorInfo();
           if ($err[0] != '00000') OS_crawlLog($err[2], 0);
-        } else $_RDATA['sp_store'][] = $url;
+        } else {
+          $_RDATA['sp_store'][] = $url;
+          $_RDATA['sp_data_stored'] += strlen($insertTemp->queryString);
+        }
 
 
       // ***** URL hasn't been modified since the last successful crawl
