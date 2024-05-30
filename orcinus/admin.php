@@ -59,6 +59,66 @@ function OS_countUp($time, $id = '') {
 }
 
 
+/**
+ * Accept a single query log database row and return a geolocation
+ * array; only 'ip' and 'geo' values from the row are used
+ *
+ * Attempt to check for a cached value before resorting to the
+ * GEOIP2 database
+ *
+ */
+function OS_getGeo($row) {
+  global $_GEOIP2, $_RDATA;
+
+  if ($_GEOIP2) {
+
+    // Check if this query has already been geolocated
+    if (!empty($row['geo']) && isset($_RDATA['geocache'][$row['geo']])) {
+      return array(
+        'iso_code' => $row['geo'],
+        'names' => $_RDATA['geocache'][$row['geo']]['names']
+      );
+
+    // Else check if the IP has already been geolocated
+    } else if (isset($_RDATA['geocache'][$row['ip']])) {
+      return array(
+        'iso_code' => $_RDATA['geocache'][$row['ip']]['geo'],
+        'names' => $_RDATA['geocache'][$row['ip']]['names']
+      );
+
+    // Else fetch a result from the GEOIP2 database
+    } else {
+      try {
+        $geo = $_GEOIP2->country($row['ip']);
+      } catch(Exception $e) { $geo = false; }
+
+      if (!empty($geo->raw['country']['names']['en'])) {
+        $geo = $geo->raw['country'];
+
+        // Cache this result by ISO code
+        $_RDATA['geocache'][$geo['iso_code']] = $geo;
+
+        // If the database row from the query hasn't already
+        // been geolocated, add its ISO code to the geo column
+        // and cache it based on IP
+        if (empty($row['geo'])) {
+          $_RDATA['addGeo']->execute(array(
+            'geo' => $geo['iso_code'],
+            'ip' => $row['ip']
+          ));
+          $_RDATA['geocache'][$row['ip']] = $geo;
+          $_RDATA['geocache'][$row['ip']]['geo'] = $geo['iso_code'];
+        }
+
+        return $geo;
+      } // We did not find a valid geolocation
+    }
+  } // GEOIP2 is not enabled
+
+  return false;
+}
+
+
 // ***** Load Maxmind GeoIP2
 if (!class_exists('GeoIp2\Database\Reader'))
   if (file_exists(__DIR__.'/geoip2/geoip2.phar'))
@@ -67,6 +127,13 @@ if (class_exists('GeoIp2\Database\Reader')) {
   if (file_exists(__DIR__.'/geoip2/GeoLite2-Country.mmdb'))
     $_GEOIP2 = new GeoIp2\Database\Reader(__DIR__.'/geoip2/GeoLite2-Country.mmdb');
 } else $_GEOIP2 = false;
+
+$_RDATA['addGeo'] = $_DDATA['pdo']->prepare(
+  'UPDATE `'.$_DDATA['tbprefix'].'query` SET `geo`=:geo WHERE `ip`=:ip;'
+);
+$_RDATA['geocache'] = array(
+  'unk' => array('names' => array('en' => 'Unknown'))
+);
 
 
 // ***** Database derived runtime data
@@ -289,7 +356,7 @@ if (!$_SESSION['admin_username']) {
             // Download a csv of the complete query log
             case 'query_log':
               $queryLog = $_DDATA['pdo']->query(
-                'SELECT `query`, `results`, `stamp`, `ip`
+                'SELECT `query`, `results`, `stamp`, `ip`, `geo`
                    FROM `'.$_DDATA['tbprefix'].'query` ORDER BY `stamp` DESC;'
               );
               $err = $queryLog->errorInfo();
@@ -309,19 +376,17 @@ if (!$_SESSION['admin_username']) {
                     fwrite($output, "\xEF\xBB\xBF");
 
                   $headings = array('Query', 'Results', 'Time Stamp', 'IP');
-                  if ($_GEOIP2) $headings[] = 'Country';
+                  if ($_GEOIP2) $headings = [...$headings, 'Country Code', 'Country Name'];
                   fputcsv($output, $headings);
 
                   foreach ($queryLog as $line) {
                     $line['stamp'] = date('c', $line['stamp']);
 
-                    if ($_GEOIP2) {
-                      $line['country'] = '';
-                      try {
-                        $geo = $_GEOIP2->country($line['ip']);
-                      } catch(Exception $e) { $geo = false; }
-                      if (!empty($geo->raw['country']['names']['en']))
-                        $line['country'] = $geo->raw['country']['names']['en'];
+                    // If we found a valid geolocation for this query, then
+                    // append the data to this row of the CSV output
+                    if ($geo = OS_getGeo($line)) {
+                      $line['geo'] = $geo['iso_code'];
+                      $line['country'] = $geo['names']['en'];
                     }
 
                     fputcsv($output, $line);
@@ -1309,29 +1374,33 @@ ORCINUS;
         }
       } else $_SESSION['error'][] = 'Could not read result counts from query log.';
 
-      $select = $_DDATA['pdo']->query('SELECT `ip`, COUNT(*) AS `ips` FROM `'.$_DDATA['tbprefix'].'query` GROUP BY `ip`;')->fetchAll();
       $locCount = array();
-      $locData = array('unk' => 'Unknown');
-      foreach ($select as $row) {
-        try {
-          $geo = $_GEOIP2->country($row['ip']);
-          if (!empty($geo->raw['country']['iso_code'])) {
-            if (empty($locCount[$geo->raw['country']['iso_code']])) {
-              $locCount[$geo->raw['country']['iso_code']] = $row['ips'];
-            } else $locCount[$geo->raw['country']['iso_code']] += $row['ips'];
-            $locData[$geo->raw['country']['iso_code']] = $geo->raw['country']['names']['en'];
+      $select = $_DDATA['pdo']->query(
+        'SELECT `ip`, COUNT(*) AS `ips`, `geo`
+          FROM `'.$_DDATA['tbprefix'].'query`
+            GROUP BY `ip`;'
+      );
+      $err = $select->errorInfo();
+      if ($err[0] == '00000') {
+        foreach ($select as $row) {
+
+          // If we found a valid geolocation for this IP, then
+          // add the count to the tally
+          if ($geo = OS_getGeo($row)) {
+            if (empty($locCount[$geo['iso_code']])) {
+              $locCount[$geo['iso_code']] = $row['ips'];
+            } else $locCount[$geo['iso_code']] += $row['ips'];
+
+          // If we didn't find a valid geolocation, add these IPs
+          // to the "Unknown" pile
           } else {
             if (empty($locCount['unk'])) {
               $locCount['unk'] = $row['ips'];
             } else $locCount['unk'] += $row['ips'];
           }
-        } catch(Exception $e) {
-          if (empty($locCount['unk'])) {
-            $locCount['unk'] = $row['ips'];
-          } else $locCount['unk'] += $row['ips'];
         }
+        arsort($locCount);
       }
-      arsort($locCount);
 
       $select = $_DDATA['pdo']->query('SELECT COUNT(*) as `searches`, DAYNAME(FROM_UNIXTIME(`stamp`)) as `weekday` FROM `'.$_DDATA['tbprefix'].'query` GROUP BY `weekday`;')->fetchAll();
       $dayWalker = array('Sun' => 0, 'Mon' => 0, 'Tue' => 0, 'Wed' => 0, 'Thu' => 0, 'Fri' => 0, 'Sat' => 0);
@@ -2727,11 +2796,11 @@ ORCINUS;
                                 <tr>
                                   <th scope="row"><?php
                                     if (file_exists(__DIR__.'/img/flags/'.strtolower($iso).'.png')) { ?> 
-                                      <img src="img/flags/<?php echo strtolower($iso); ?>.png" alt="<?php echo strtoupper($iso); ?>" title="<?php echo $locData[$iso]; ?>" class="svg-icon-flag"><?php
+                                      <img src="img/flags/<?php echo strtolower($iso); ?>.png" alt="<?php echo strtoupper($iso); ?>" title="<?php echo $_RDATA['geocache'][$iso]['names']['en']; ?>" class="svg-icon-flag"><?php
                                     } else { ?>
-                                      <img src="img/help.svg" alt="?" title="<?php echo $locData[$iso]; ?>" class="svg-icon"><?php
+                                      <img src="img/help.svg" alt="?" title="<?php echo $_RDATA['geocache'][$iso]['names']['en']; ?>" class="svg-icon"><?php
                                     } ?> 
-                                    <span class="align-middle"><?php echo $locData[$iso]; ?></span>
+                                    <span class="align-middle"><?php echo $_RDATA['geocache'][$iso]['names']['en']; ?></span>
                                   </th>
                                   <td class="text-end"><?php echo $searches; ?></td>
                                   <td class="text-center"><small>(<?php echo round($searches / array_sum($locCount) * 100, 1); ?>%)</small></td>
@@ -2940,22 +3009,17 @@ ORCINUS;
                               echo '<span class="d-none d-sm-inline">ago</span>';
                             ?></time>
                           </td><?php
-                          if ($_GEOIP2) {
-                            try {
-                              $query['geo'] = $_GEOIP2->country($query['ip']);
-                            } catch(Exception $e) { $query['geo'] = false; }
-                          } ?> 
+                          $geo = OS_getGeo($query); ?> 
                           <td class="text-end d-none d-md-table-cell" data-value="<?php echo $query['ip']; ?>">
                             <a href="https://bgp.he.net/ip/<?php echo $query['ip']; ?>" target="_blank"><?php
                               echo preg_replace('/:.+:/', ':&hellip;:', $query['ip']); ?></a><?php
-                            if (!empty($query['geo']->raw['country']['iso_code'])) {
-                              if (file_exists(__DIR__.'/img/flags/'.strtolower($query['geo']->raw['country']['iso_code']).'.png')) {
-                                $flag = 'img/flags/'.strtolower($query['geo']->raw['country']['iso_code']).'.png';
-                                $title = $query['geo']->raw['country']['names']['en'];
+                            if ($geo) {
+                              $title = $geo['names']['en'];
+                              if (file_exists(__DIR__.'/img/flags/'.strtolower($geo['iso_code']).'.png')) {
+                                $flag = 'img/flags/'.strtolower($geo['iso_code']).'.png';
                                 $classname = 'svg-icon-flag';
                               } else { // Missing flag
                                 $flag = 'img/help.svg';
-                                $title = $query['geo']->raw['country']['names']['en'];
                                 $classname = 'svg-icon';
                               } ?> 
                               <img src="<?php echo $flag; ?>" class="align-middle <?php echo $classname; ?> mb-1"

@@ -259,6 +259,7 @@ if (!in_array($_DDATA['tbprefix'].'query', $_DDATA['tables'], true)) {
       `results` TINYINT UNSIGNED NOT NULL,
       `stamp` INT UNSIGNED NOT NULL,
       `ip` VARCHAR(40) NOT NULL,
+      `geo` VARCHAR(5) NOT NULL,
       `cache` MEDIUMBLOB NOT NULL
     ) ENGINE = InnoDB,
       CHARACTER SET = utf8mb4,
