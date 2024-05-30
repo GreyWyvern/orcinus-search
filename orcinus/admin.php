@@ -3008,12 +3008,11 @@ ORCINUS;
                               echo '<span class="d-none d-sm-inline"> '.(($number == 1) ? $units[1] : $units[2]).'</span> ';
                               echo '<span class="d-none d-sm-inline">ago</span>';
                             ?></time>
-                          </td><?php
-                          $geo = OS_getGeo($query); ?> 
+                          </td>
                           <td class="text-end d-none d-md-table-cell" data-value="<?php echo $query['ip']; ?>">
                             <a href="https://bgp.he.net/ip/<?php echo $query['ip']; ?>" target="_blank"><?php
                               echo preg_replace('/:.+:/', ':&hellip;:', $query['ip']); ?></a><?php
-                            if ($geo) {
+                            if ($geo = OS_getGeo($query)) {
                               $title = $geo['names']['en'];
                               if (file_exists(__DIR__.'/img/flags/'.strtolower($geo['iso_code']).'.png')) {
                                 $flag = 'img/flags/'.strtolower($geo['iso_code']).'.png';
