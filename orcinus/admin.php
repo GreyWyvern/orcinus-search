@@ -70,21 +70,15 @@ function OS_countUp($time, $id = '') {
 function OS_getGeo($row) {
   global $_GEOIP2, $_RDATA;
 
-  if ($_GEOIP2) {
+  if ($_GEOIP2 && !empty($row['ip'])) {
 
     // Check if this query has already been geolocated
     if (!empty($row['geo']) && isset($_RDATA['geocache'][$row['geo']])) {
-      return array(
-        'iso_code' => $row['geo'],
-        'names' => $_RDATA['geocache'][$row['geo']]['names']
-      );
+      return $_RDATA['geocache'][$row['geo']];
 
     // Else check if the IP has already been geolocated
     } else if (isset($_RDATA['geocache'][$row['ip']])) {
-      return array(
-        'iso_code' => $_RDATA['geocache'][$row['ip']]['geo'],
-        'names' => $_RDATA['geocache'][$row['ip']]['names']
-      );
+      return $_RDATA['geocache'][$row['ip']];
 
     // Else fetch a result from the GEOIP2 database
     } else {
@@ -107,7 +101,6 @@ function OS_getGeo($row) {
             'ip' => $row['ip']
           ));
           $_RDATA['geocache'][$row['ip']] = $geo;
-          $_RDATA['geocache'][$row['ip']]['geo'] = $geo['iso_code'];
         }
 
         return $geo;
