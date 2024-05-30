@@ -4,7 +4,7 @@ By [Brian Huisman](https://greywyvern.com)
 
 > ℹ️ **NOTE**: The **Orcinus** project is now in "release candidate" status. Please use it on your websites and send any feedback my way, or submit issue reports here on Github. Thanks so much for your interest!
 
-![orcinus-banner](https://github.com/GreyWyvern/orcinus-search/assets/137631/d504de08-3029-4e68-acf5-1dd1e5008674)
+![banner2](https://github.com/GreyWyvern/orcinus-search/assets/137631/2fffddec-322b-400b-a7aa-eead2611497c)
 
 The **Orcinus Site Search** PHP script is an all-in-one website crawler, indexer and search engine that extracts searchable content via HTTP/HTTPS from plain text, XML, HTML and PDF files at a single, or multiple websites. It replaces 3rd party, remote search solutions such as Google etc. 
 
