@@ -456,6 +456,16 @@ function OS_crawlCleanUp() {
 
 
 
+if ($_RDATA['debug']) {
+  error_reporting(E_ALL);
+  ini_set('display_errors', 'On');
+}
+
+
+// ***** Initialize the cURL connection
+if (!($_cURL = OS_getConnection()))
+  die('cURL functions are not enabled; cannot perform crawl');
+
 
 
 // ***** Accept incoming commands by REQUEST_METHOD
@@ -661,6 +671,9 @@ $_RDATA['sp_log'] = tmpfile();
 OS_setValue('sp_log', stream_get_meta_data($_RDATA['sp_log'])['uri']);
 OS_crawlLog('***** Crawl started: '.date('r').' *****', 1);
 
+if ($_RDATA['debug'])
+  OS_crawlLog('********** CRAWLER IS IN DEBUG MODE **********', 1);
+
 
 // ***** Prepare runtime data
 $_RDATA['sp_starting'] = array_filter(array_map('trim', explode("\n", $_ODATA['sp_starting'])));
@@ -720,49 +733,43 @@ if (!$_MAIL) {
   OS_crawlLog('No admin emails specified; Crawler will not send mail', 1);
 
 
-// ***** Initialize the cURL connection
-$_cURL = OS_getConnection();
-if ($_cURL) {
+// ***** Customize the cURL connection
+if ($_ODATA['sp_cookies'])
+  curl_setopt($_cURL, CURLOPT_COOKIEFILE, '');
+curl_setopt($_cURL, CURLOPT_HEADERFUNCTION, function($_cURL, $line) {
+  global $_RDATA;
 
-  // Customize this cURL connection
-  if ($_ODATA['sp_cookies'])
-    curl_setopt($_cURL, CURLOPT_COOKIEFILE, '');
-  curl_setopt($_cURL, CURLOPT_HEADERFUNCTION, function($_cURL, $line) {
-    global $_RDATA;
+  if (preg_match('/^X-Robots-Tag:\s*(noindex|none)/i', $line))
+    $_RDATA['sp_robots_header'] = 1;
 
-    if (preg_match('/^X-Robots-Tag:\s*(noindex|none)/i', $line))
-      $_RDATA['sp_robots_header'] = 1;
+  if (trim($line) == $_RDATA['x_generated_by'])
+    $_RDATA['sp_self_reference'] = 1;
 
-    if (trim($line) == $_RDATA['x_generated_by'])
-      $_RDATA['sp_self_reference'] = 1;
+  return strlen($line);
+});
+curl_setopt($_cURL, CURLOPT_NOPROGRESS, false);
+curl_setopt($_cURL, CURLOPT_PROGRESSFUNCTION,
+  function($_cURL, $dls, $dl, $uls, $ul) {
+    global $_ODATA, $_RDATA;
 
-    return strlen($line);
-  });
-  curl_setopt($_cURL, CURLOPT_NOPROGRESS, false);
-  curl_setopt($_cURL, CURLOPT_PROGRESSFUNCTION,
-    function($_cURL, $dls, $dl, $uls, $ul) {
-      global $_ODATA, $_RDATA;
+    if ($_RDATA['sp_robots_header']) return 1;
+    if ($_RDATA['sp_self_reference']) return 1;
 
-      if ($_RDATA['sp_robots_header']) return 1;
-      if ($_RDATA['sp_self_reference']) return 1;
-
-      // Prevent comparing this value until a Content-length header has
-      // been received by the cURL connection
-      if ($dls != $_RDATA['sp_prev_dls']) {
-        $_RDATA['sp_prev_dls'] = $dls;
-        if ($dls > $_ODATA['sp_limit_filesize'] * 1024) return 1;
-      }
-      if ($dl > $_ODATA['sp_limit_filesize'] * 1024) return 1;
-
-      $i = curl_getinfo($_cURL);
-      if ($i['redirect_url']) return 1;
-      if ($i['http_code'] && $i['http_code'] >= 400) return 1;
-
-      return $_RDATA['sp_robots_header'];
+    // Prevent comparing this value until a Content-length header has
+    // been received by the cURL connection
+    if ($dls != $_RDATA['sp_prev_dls']) {
+      $_RDATA['sp_prev_dls'] = $dls;
+      if ($dls > $_ODATA['sp_limit_filesize'] * 1024) return 1;
     }
-  );
+    if ($dl > $_ODATA['sp_limit_filesize'] * 1024) return 1;
 
-} else OS_crawlLog('cURL functions are not enabled; cannot perform crawl', 2);
+    $i = curl_getinfo($_cURL);
+    if ($i['redirect_url']) return 1;
+    if ($i['http_code'] && $i['http_code'] >= 400) return 1;
+
+    return $_RDATA['sp_robots_header'];
+  }
+);
 
 
 // ***** Pre-fill queue with starting URL(s) at depth 0, blank referer
@@ -931,7 +938,7 @@ $insertNotModified = $_DDATA['pdo']->prepare(
 
 
 // ***** Begin crawling URLs from the queue
-while ($_cURL && count($_RDATA['sp_queue'])) {
+while (count($_RDATA['sp_queue'])) {
 
   // Check if we have run out of execution time
   if ($_ODATA['sp_time_start'] + $_ODATA['sp_timeout_crawl'] <= time()) {
