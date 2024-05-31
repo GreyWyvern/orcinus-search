@@ -712,18 +712,15 @@ $_RDATA['sp_whitespace'] = array(
 
 
 // ***** Load PDF parser
-if (!class_exists('\Smalot\PdfParser\Parser'))
-  if (file_exists(__DIR__.'/pdfparser/alt_autoload.php-dist'))
-    include __DIR__.'/pdfparser/alt_autoload.php-dist';
+$_PDF = false;
+if (!class_exists('\Smalot\PdfParser\Parser') && file_exists(__DIR__.'/pdfparser/alt_autoload.php-dist'))
+  include __DIR__.'/pdfparser/alt_autoload.php-dist';
 if (class_exists('\Smalot\PdfParser\Parser')) {
   $config = new \Smalot\PdfParser\Config();
   $config->setRetainImageContent(false);
   $config->setDecodeMemoryLimit(16777216);
   $_PDF = new \Smalot\PdfParser\Parser([], $config);
-} else {
-  OS_crawlLog('Could not include \'PDFParser\'; PDFs will not be indexed', 1);
-  $_PDF = false;
-}
+} else OS_crawlLog('Could not include \'PDFParser\'; PDFs will not be indexed', 1);
 
 
 // ***** Check for PHPMailer

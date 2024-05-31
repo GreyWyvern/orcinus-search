@@ -355,9 +355,8 @@ function OS_getConnection() {
 
   // Attempt using libcurlemu as a backup; this may or may not work!
   // https://github.com/m1k3lm/libcurlemu
-  if (!function_exists('curl_init'))
-    if (file_exists(__DIR__.'/libcurlemu/libcurlemu.inc.php'))
-      include_once __DIR__.'/libcurlemu/libcurlemu.inc.php';
+  if (!function_exists('curl_init') && file_exists(__DIR__.'/libcurlemu/libcurlemu.inc.php'))
+    include_once __DIR__.'/libcurlemu/libcurlemu.inc.php';
 
   if (function_exists('curl_init')) {
     $_ = curl_init();
@@ -410,7 +409,8 @@ if (!isset($_SERVER['REQUEST_SCHEME'])) {
 }
 
 // ***** Determine the install domain from run location
-if (!$_ODATA['admin_install_domain']) {
+if (!$_ODATA['admin_install_domain'] ||
+    (preg_match('/\/admin\.php$/', $_SERVER['SCRIPT_NAME']) && !empty($_SERVER['REQUEST_METHOD']))) {
   if ($_SERVER['REQUEST_SCHEME'] && !empty($_SERVER['HTTP_HOST'])) {
     $base = $_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['HTTP_HOST'];
     if (!empty($_SERVER['SCRIPT_URI'])) {
@@ -448,12 +448,11 @@ if (!$_ODATA['admin_from']) {
 
 
 // ***** Load and Initialize PHPMailer
-if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
-  if (file_exists(__DIR__.'/phpmailer/src/PHPMailer.php')) {
-    include __DIR__.'/phpmailer/src/PHPMailer.php';
-    include __DIR__.'/phpmailer/src/Exception.php';
-    include __DIR__.'/phpmailer/src/SMTP.php';
-  }
+$_MAIL = false;
+if (!class_exists('PHPMailer\PHPMailer\PHPMailer') && file_exists(__DIR__.'/phpmailer/src/PHPMailer.php')) {
+  include __DIR__.'/phpmailer/src/PHPMailer.php';
+  include __DIR__.'/phpmailer/src/Exception.php';
+  include __DIR__.'/phpmailer/src/SMTP.php';
 }
 if (class_exists('PHPMailer\PHPMailer\PHPMailer')) {
   $_MAIL = new PHPMailer\PHPMailer\PHPMailer();
@@ -464,7 +463,7 @@ if (class_exists('PHPMailer\PHPMailer\PHPMailer')) {
   $_MAIL->CharSet = $_ODATA['s_charset'];
   if (count($ad = $_MAIL->parseAddresses($_ODATA['admin_email'])))
     foreach ($ad as $a) $_MAIL->AddAddress($a['address'], $a['name']);
-} else $_MAIL = false;
+}
 
 
 // ***** Load the default Search Result Template
