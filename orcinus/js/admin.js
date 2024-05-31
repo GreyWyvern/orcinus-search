@@ -492,6 +492,7 @@ if (queriesModal) {
       parentRow = parentRow.parentNode;
 
     let values = parentRow.querySelectorAll('[data-value]');
+    let ipaddr = values[5].getAttribute('data-value');
     values = {
       query: btn.title,
       hits: values[1].getAttribute('data-value'),
@@ -507,7 +508,7 @@ if (queriesModal) {
     });
 
     let hidden_ip = document.getElementsByName('os_query_log_hidden_ip')[0];
-    hidden_ip.value = document.getElementById('os_queries_modal_ip').innerText.trim();
+    hidden_ip.value = ipaddr;
   }, false);
 }
 
