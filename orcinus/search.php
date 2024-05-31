@@ -617,6 +617,7 @@ if ($_RDATA['s_searchable_pages']) {
             `results`=:results,
             `stamp`=UNIX_TIMESTAMP(),
             `ip`=:ip,
+            `geo`=\'\',
             `cache`=:cache
           ;'
         );
