@@ -70,43 +70,40 @@ function OS_countUp($time, $id = '') {
 function OS_getGeo($row) {
   global $_GEOIP2, $_RDATA;
 
-  if ($_GEOIP2 && !empty($row['ip'])) {
+  if (!$_GEOIP2 || empty($row['ip'])) return false;
 
-    // Check if this query has already been geolocated
-    if (!empty($row['geo']) && isset($_RDATA['geocache'][$row['geo']])) {
-      return $_RDATA['geocache'][$row['geo']];
+  // Check if this query has already been geolocated
+  if (!empty($row['geo']) && isset($_RDATA['geocache'][$row['geo']]))
+    return $_RDATA['geocache'][$row['geo']];
 
-    // Else check if the IP has already been geolocated
-    } else if (isset($_RDATA['geocache'][$row['ip']])) {
-      return $_RDATA['geocache'][$row['ip']];
+  // Check if the IP has already been geolocated
+  if (isset($_RDATA['geocache'][$row['ip']]))
+    return $_RDATA['geocache'][$row['ip']];
 
-    // Else fetch a result from the GEOIP2 database
-    } else {
-      try {
-        $geo = $_GEOIP2->country($row['ip']);
-      } catch(Exception $e) { $geo = false; }
+  // Fetch a result from the GEOIP2 database
+  try {
+    $geo = $_GEOIP2->country($row['ip']);
 
-      if (!empty($geo->raw['country']['names']['en'])) {
-        $geo = $geo->raw['country'];
+    if (!empty($geo->raw['country']['names']['en'])) {
+      $geo = $geo->raw['country'];
 
-        // Cache this result by ISO code
-        $_RDATA['geocache'][$geo['iso_code']] = $geo;
+      // Cache this result by ISO code
+      $_RDATA['geocache'][$geo['iso_code']] = $geo;
 
-        // If the database row from the query hasn't already
-        // been geolocated, add its ISO code to the geo column
-        // and cache it based on IP
-        if (empty($row['geo'])) {
-          $_RDATA['addGeo']->execute(array(
-            'geo' => $geo['iso_code'],
-            'ip' => $row['ip']
-          ));
-          $_RDATA['geocache'][$row['ip']] = $geo;
-        }
+      // If the database row from the query hasn't already
+      // been geolocated, add its ISO code to the geo column
+      // and cache it based on IP
+      if (empty($row['geo'])) {
+        $_RDATA['addGeo']->execute(array(
+          'geo' => $geo['iso_code'],
+          'ip' => $row['ip']
+        ));
+        $_RDATA['geocache'][$row['ip']] = $geo;
+      }
 
-        return $geo;
-      } // We did not find a valid geolocation
+      return $geo;
     }
-  } // GEOIP2 is not enabled
+  } catch(Exception $e) {}
 
   return false;
 }
