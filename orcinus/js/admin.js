@@ -506,7 +506,19 @@ if (queriesModal) {
       dd.innerHTML = values[keys];
     });
 
+    let hidden_ip = document.getElementsByName('os_query_log_hidden_ip')[0];
+    hidden_ip.value = document.getElementById('os_queries_modal_ip').innerText.trim();
+  }, false);
+}
 
+let queriesDeleteIP = document.querySelector('button[value="os_query_log_delete_ip"]');
+if (queriesDeleteIP) {
+  queriesDeleteIP.addEventListener('click', function(e) {
+    if (!confirm('Are you sure you wish to delete all entries for this IP from the Query Log?')) {
+      e.preventDefault();
+      return false;
+    }
+    return true;
   }, false);
 }
 

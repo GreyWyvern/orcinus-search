@@ -1113,6 +1113,23 @@ ORCINUS;
           break;
 
 
+        // ***** Query Log >> Delete IP as Spam
+        case 'os_query_log_delete_ip':
+          if (!empty($_POST['os_query_log_hidden_ip'])) {
+            if (preg_match('/^[\da-f:.]+$/i', $_POST['os_query_log_hidden_ip'])) {
+              $deleteQueryIP = $_DDATA['pdo']->prepare(
+                'DELETE FROM `'.$_DDATA['tbprefix'].'query` WHERE `ip`=:ip;'
+              );
+              $deleteQueryIP->execute(array('ip' => $_POST['os_query_log_hidden_ip']));
+              $err = $deleteQueryIP->errorInfo();
+              if ($err[0] == '00000') {
+                $_SESSION['message'][] = 'All queries from IP address \''.$_POST['os_query_log_hidden_ip'].'\' has been removed from the query log.';
+              } else $_SESSION['error'][] = 'Failed to delete queries from this IP address.';
+            } else $_SESSION['error'][] = 'Not a valid IP address.';
+          } else $_SESSION['error'][] = 'No IP selected to delete.';
+          break;
+
+
         // ***** Unknown 'os_submit' command
         default:
           header('Content-type: text/plain; charset='.strtolower($_ODATA['s_charset']));
@@ -3023,6 +3040,7 @@ ORCINUS;
                 <div class="modal fade" id="queriesModal" tabindex="-1" aria-labelledby="queriesModalLabel" aria-hidden="true">
                   <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
+                      <input type="hidden" name="os_query_log_hidden_ip" value="">
                       <div class="modal-header">
                         <h1 class="modal-title fs-3" id="queriesModalLabel">Search Query Details</h1>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" title="Close"></button>
@@ -3071,8 +3089,12 @@ ORCINUS;
                           </li>
                           <li class="list-group-item">
                             <label class="d-flex">
-                              <strong class="pe-2">From IP Address</strong>
-                              <var class="flex-grow-1 text-end" id="os_queries_modal_ip"></var>
+                              <strong class="pe-2 flex-grow-1">From IP Address</strong>
+                              <button type="submit" name="os_submit" value="os_query_log_delete_ip"
+                                class="border-0 p-0 bg-transparent m-0" title="Delete all queries from this IP as spam.">
+                                <img src="img/warning.svg" alt="Delete" class="align-middle svg-icon mb-1 me-1">
+                              </button>
+                              <var id="os_queries_modal_ip"></var>
                             </label>
                           </li>
                         </ul>
