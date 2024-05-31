@@ -2307,9 +2307,10 @@ ORCINUS;
                           </span>
                         </label>
                         <p id="os_s_limit_query_log_text" class="form-text">
-                          The query log is a rolling log of searches on which the statistics above are
-                          based. Longer query log periods will give more accurate statistics, but also
-                          require more database space. (max: 255 days)
+                          The query log is a rolling log of searches on which the
+                          <a href="?page=stats">search statistics</a> are based. Longer query log
+                          periods will give more accurate statistics, but also require more
+                          database space. (max: 255 days)
                         </p>
                       </li>
                       <li class="list-group-item">
