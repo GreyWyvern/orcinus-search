@@ -456,12 +456,6 @@ function OS_crawlCleanUp() {
 
 
 
-if ($_RDATA['debug']) {
-  error_reporting(E_ALL);
-  ini_set('display_errors', 'On');
-}
-
-
 // ***** Initialize the cURL connection
 if (!($_cURL = OS_getConnection()))
   die('cURL functions are not enabled; cannot perform crawl');
