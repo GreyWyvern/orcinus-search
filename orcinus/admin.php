@@ -1123,7 +1123,7 @@ ORCINUS;
               $deleteQueryIP->execute(array('ip' => $_POST['os_query_log_hidden_ip']));
               $err = $deleteQueryIP->errorInfo();
               if ($err[0] == '00000') {
-                $_SESSION['message'][] = 'All queries from IP address \''.$_POST['os_query_log_hidden_ip'].'\' has been removed from the query log.';
+                $_SESSION['message'][] = 'All queries from IP address \''.$_POST['os_query_log_hidden_ip'].'\' have been removed from the query log.';
               } else $_SESSION['error'][] = 'Failed to delete queries from this IP address.';
             } else $_SESSION['error'][] = 'Not a valid IP address.';
           } else $_SESSION['error'][] = 'No IP selected to delete.';
