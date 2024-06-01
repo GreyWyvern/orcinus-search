@@ -1957,8 +1957,8 @@ ORCINUS;
                         <p id="os_sp_category_text" class="form-text">
                           Usually you'll want all your indexed pages in just one category. In some cases
                           however, you may want to offer users an additional way to restrict results by
-                          putting groups of pages into multiple categories. You can set page categories
-                          from the <em>Page Index</em>.
+                          putting groups of pages into different categories. You can set page categories
+                          from the <a href="?page=index">Page Index</a>.
                         </p>
                         <label class="d-flex lh-lg w-100 mb-2">
                           <strong class="pe-2">Default Category:</strong>
