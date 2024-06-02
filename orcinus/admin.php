@@ -2715,6 +2715,7 @@ ORCINUS;
             <header class="col-sm-10 col-md-8 col-lg-12 col-xl-10 col-xxl-8 mb-2">
               <h2>Search Statistics</h2>
             </header>
+            <div class="w-100"></div>
 
             <div class="col-sm-10 col-md-8 col-lg-5 col-xl-4 col-xxl-3"><?php
               if ($_ODATA['s_limit_query_log']) { ?> 
@@ -2875,10 +2876,12 @@ ORCINUS;
                                 if ($hour == array_key_first($hourWalker)) echo ' ps-2';
                                 if ($hour == array_key_last($hourWalker)) echo ' pe-2'; ?>">
                                 <th class="position-relative p-0">
-                                  <time class="position-absolute top-0 start-50 translate-middle-x"><?php echo $hour; ?></time>
+                                  <time class="position-absolute top-0 start-50 translate-middle-x <?php
+                                    echo (!((int)$hour % 6) || $hour == array_key_last($hourWalker)) ? 'd-block' : 'd-none';
+                                    ?>"><?php echo $hour; ?></time>
                                 </th>
                                 <td class="order-first position-relative bg-secondary bg-gradient p-0" data-value="<?php echo $value; ?>" title="<?php echo $hour; ?>">
-                                  <small class="position-absolute bottom-100 start-50 translate-middle-x"><?php
+                                  <small class="position-absolute bottom-100 start-50 translate-middle-x d-none d-lg-block"><?php
                                     if ($value > 0) echo $value;
                                   ?></small>
                                 </td>
@@ -3092,7 +3095,7 @@ ORCINUS;
                               <strong class="pe-2 flex-grow-1">From IP Address</strong>
                               <button type="submit" name="os_submit" value="os_query_log_delete_ip"
                                 class="border-0 p-0 bg-transparent m-0" title="Delete all queries from this IP as spam.">
-                                <img src="img/warning.svg" alt="Delete" class="align-middle svg-icon mb-1 me-1">
+                                <img src="img/trash.svg" alt="Delete" class="align-middle svg-icon mb-1 me-1">
                               </button>
                               <var id="os_queries_modal_ip"></var>
                             </label>
