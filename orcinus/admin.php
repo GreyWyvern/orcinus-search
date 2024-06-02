@@ -1500,7 +1500,7 @@ ORCINUS;
           <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
-          <ul class="navbar-nav me-auto mb-2 mb-md-0"><?php
+          <ul class="navbar-nav me-auto mt-2 mt-md-0"><?php
             foreach ($_RDATA['admin_pages'] as $page => $name) { ?> 
               <li class="nav-item"><?php
                 if ($page == $_SESSION['admin_page']) { ?> 
