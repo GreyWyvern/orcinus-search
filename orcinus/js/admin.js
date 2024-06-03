@@ -492,7 +492,13 @@ if (queriesModal) {
       parentRow = parentRow.parentNode;
 
     let values = parentRow.querySelectorAll('[data-value]');
-    let ipaddr = values[5].getAttribute('data-value');
+ 
+    let hidden_query = document.getElementsByName('os_query_log_hidden_query')[0];
+    hidden_query.value = btn.title;
+
+    let hidden_ip = document.getElementsByName('os_query_log_hidden_ip')[0];
+    hidden_ip.value = values[5].getAttribute('data-value');
+
     values = {
       query: btn.title,
       hits: values[1].getAttribute('data-value'),
@@ -506,20 +512,25 @@ if (queriesModal) {
       let dd = document.getElementById('os_queries_modal_' + keys);
       dd.innerHTML = values[keys];
     });
-
-    let hidden_ip = document.getElementsByName('os_query_log_hidden_ip')[0];
-    hidden_ip.value = ipaddr;
   }, false);
 }
 
-let queriesDeleteIP = document.querySelector('button[value="os_query_log_delete_ip"]');
-if (queriesDeleteIP) {
-  queriesDeleteIP.addEventListener('click', function(e) {
-    if (!confirm('Are you sure you wish to delete all entries for this IP from the Query Log?')) {
-      e.preventDefault();
-      return false;
+let queriesDelete = document.querySelector('select[name="os_query_log_delete"]');
+let queriesDeleteSubmit = document.querySelector('button[value="os_query_log_delete"]');
+if (queriesDeleteSubmit) {
+  queriesDeleteSubmit.addEventListener('click', function(e) {
+    let ask;
+    switch (queriesDelete.value) {
+      case 'query': ask = 'query'; break;
+      case 'ip': ask = 'IP address'; break;
+      case 'assoc': ask = 'query and queries from all associated IP addresses'; break;
     }
-    return true;
+
+    if (ask && confirm('Are you sure you want to delete this ' + ask + ' from the Query Log?'))
+      return true;
+
+    e.preventDefault();
+    return false;
   }, false);
 }
 

@@ -1113,20 +1113,72 @@ ORCINUS;
           break;
 
 
-        // ***** Query Log >> Delete IP as Spam
-        case 'os_query_log_delete_ip':
-          if (!empty($_POST['os_query_log_hidden_ip'])) {
-            if (preg_match('/^[\da-f:.]+$/i', $_POST['os_query_log_hidden_ip'])) {
-              $deleteQueryIP = $_DDATA['pdo']->prepare(
-                'DELETE FROM `'.$_DDATA['tbprefix'].'query` WHERE `ip`=:ip;'
-              );
-              $deleteQueryIP->execute(array('ip' => $_POST['os_query_log_hidden_ip']));
-              $err = $deleteQueryIP->errorInfo();
-              if ($err[0] == '00000') {
-                $_SESSION['message'][] = 'All queries from IP address \''.$_POST['os_query_log_hidden_ip'].'\' have been removed from the query log.';
-              } else $_SESSION['error'][] = 'Failed to delete queries from this IP address.';
-            } else $_SESSION['error'][] = 'Not a valid IP address.';
-          } else $_SESSION['error'][] = 'No IP selected to delete.';
+        // ***** Query Log >> Delete from Query Log
+        case 'os_query_log_delete':
+          $_POST['os_query_log_delete'] = $_POST['os_query_log_delete'] ?? '';
+          $deleteQueryIP = $_DDATA['pdo']->prepare(
+            'DELETE FROM `'.$_DDATA['tbprefix'].'query` WHERE `ip`=:ip;'
+          );
+          switch ($_POST['os_query_log_delete']) {
+            case 'query':
+              if (!empty($_POST['os_query_log_hidden_query'])) {
+                $deleteQuery = $_DDATA['pdo']->prepare(
+                  'DELETE FROM `'.$_DDATA['tbprefix'].'query` WHERE `query`=:query;'
+                );
+                $deleteQuery->execute(array('query' => $_POST['os_query_log_hidden_query']));
+                $err = $deleteQuery->errorInfo();
+                if ($err[0] == '00000') {
+                  if ($deleteQuery->rowCount()) {
+                    $_SESSION['message'][] = 'Query has been removed from the Query Log.';
+                  } else $_SESSION['error'][] = 'Query to delete not found in Query Log.';
+                } else $_SESSION['error'][] = 'Database error while deleting this query.';
+              } else $_SESSION['error'][] = 'No query selected to delete.';
+              break;
+
+            case 'ip':
+              if (!empty($_POST['os_query_log_hidden_ip'])) {
+                if (preg_match('/^[\da-f:.]+$/i', $_POST['os_query_log_hidden_ip'])) {
+                  $deleteQueryIP->execute(array('ip' => $_POST['os_query_log_hidden_ip']));
+                  $err = $deleteQueryIP->errorInfo();
+                  if ($err[0] == '00000') {
+                    if ($deleteQueryIP->rowCount()) {
+                      $_SESSION['message'][] = 'Queries from IP address \''.$_POST['os_query_log_hidden_ip'].'\' have been removed from the Query Log.';
+                    } else $_SESSION['error'][] = 'IP address to delete not found in Query Log.';
+                  } else $_SESSION['error'][] = 'Database error while deleting queries from this IP address.';
+                } else $_SESSION['error'][] = 'Not a valid IP address.';
+              } else $_SESSION['error'][] = 'No IP address selected to delete.';
+              break;
+
+            case 'assoc':
+              if (!empty($_POST['os_query_log_hidden_query'])) {
+                $select = $_DDATA['pdo']->prepare(
+                  'SELECT DISTINCT `ip` FROM `'.$_DDATA['tbprefix'].'query` WHERE `query`=:query;'
+                );
+                $select->execute(array('query' => $_POST['os_query_log_hidden_query']));
+                $err = $select->errorInfo();
+                if ($err[0] == '00000') {
+                  $select = $select->fetchAll();
+                  if (count($select)) {
+                    $tally = 0;
+                    foreach ($select as $row) {
+                      $deleteQueryIP->execute(array('ip' => $row['ip']));
+                      $err = $deleteQueryIP->errorInfo();
+                      if ($err[0] == '00000')
+                        $tally += $deleteQueryIP->rowCount();
+                    }
+                    if ($tally == 1) {
+                      $_SESSION['message'][] = 'Deleted '.$tally.' query from the Query Log.';
+                    } else if ($tally) {
+                      $_SESSION['message'][] = 'Deleted '.$tally.' queries from the Query Log.';
+                    } else $_SESSION['error'][] = 'Did not delete any queries from the Query Log.';
+                  } else $_SESSION['error'][] = 'Could not find this query in the Query Log.';
+                } else $_SESSION['error'][] = 'Database error while searching the Query Log.';
+              } else $_SESSION['error'][] = 'No query selected to delete.';
+              break;
+
+            default:
+              $_SESSION['error'][] = 'Invalid command.';
+          }
           break;
 
 
@@ -3044,6 +3096,7 @@ ORCINUS;
                   <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
                       <input type="hidden" name="os_query_log_hidden_ip" value="">
+                      <input type="hidden" name="os_query_log_hidden_query" value="">
                       <div class="modal-header">
                         <h1 class="modal-title fs-3" id="queriesModalLabel">Search Query Details</h1>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" title="Close"></button>
@@ -3077,7 +3130,7 @@ ORCINUS;
                           </li>
                         </ul>
                         <h4>Last Request Information</h4>
-                        <ul class="list-group">
+                        <ul class="list-group mb-3">
                           <li class="list-group-item">
                             <label class="d-flex flex-column">
                               <strong class="pe-2">Date / Time Requested</strong>
@@ -3093,14 +3146,21 @@ ORCINUS;
                           <li class="list-group-item">
                             <label class="d-flex">
                               <strong class="pe-2 flex-grow-1">From IP Address</strong>
-                              <button type="submit" name="os_submit" value="os_query_log_delete_ip"
-                                class="border-0 p-0 bg-transparent m-0" title="Delete all queries from this IP as spam.">
-                                <img src="img/trash.svg" alt="Delete" class="align-middle svg-icon mb-1 me-1">
-                              </button>
                               <var id="os_queries_modal_ip"></var>
                             </label>
                           </li>
                         </ul>
+                        <h4>Delete from Query Log</h4>
+                        <fieldset class="text-center mb-2">
+                          <label class="d-inline-block text-nowrap">Delete by:
+                            <select name="os_query_log_delete" class="form-select d-inline-block w-auto align-middle">
+                              <option value="query">Query</option>
+                              <option value="ip">IP address</option>
+                              <option value="assoc">All associated</option>
+                            </select>
+                          </label>
+                          <button type="submit" name="os_submit" value="os_query_log_delete" class="btn btn-primary text-top">Go</button>
+                        </fieldset>
                       </div>
                     </div>
                   </div>
