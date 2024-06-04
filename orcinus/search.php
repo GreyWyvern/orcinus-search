@@ -246,7 +246,7 @@ if ($_RDATA['s_searchable_pages']) {
           // Try to json_decode the cache data
           // If this step fails, assume there is no cache data
           $checkJS = json_decode($_SDATA['cache']['data'], true);
-          $_SDATA['cache']['data'] = (!is_null($checkJS)) ? $checkJS : '';
+          $_SDATA['cache']['data'] = $checkJS ?? '';
         }
 
       // Database error accessing the query log

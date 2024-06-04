@@ -84,18 +84,18 @@ function OS_getGeo($row) {
   try {
     $geo = $_GEOIP2->country($row['ip']);
 
-    if (!empty($geo->raw['country']['names']['en'])) {
-      $geo = $geo->raw['country'];
+    if (!empty($geo->country->names['en'])) {
+      $geo = $geo->country;
 
       // Cache this result by ISO code
-      $_RDATA['geocache'][$geo['iso_code']] = $geo;
+      $_RDATA['geocache'][$geo->isoCode] = $geo;
 
       // If the database row from the query hasn't already
       // been geolocated, add its ISO code to the geo column
       // and cache it based on IP
       if (empty($row['geo'])) {
         $_RDATA['addGeo']->execute(array(
-          'geo' => $geo['iso_code'],
+          'geo' => $geo->isoCode,
           'ip' => $row['ip']
         ));
         $_RDATA['geocache'][$row['ip']] = $geo;
@@ -113,15 +113,20 @@ function OS_getGeo($row) {
 $_GEOIP2 = false;
 if (!class_exists('GeoIp2\Database\Reader') && file_exists(__DIR__.'/geoip2/geoip2.phar'))
   include __DIR__.'/geoip2/geoip2.phar';
-if (class_exists('GeoIp2\Database\Reader') && file_exists(__DIR__.'/geoip2/GeoLite2-Country.mmdb'))
+if (class_exists('GeoIp2\Database\Reader') && file_exists(__DIR__.'/geoip2/GeoLite2-Country.mmdb')) {
   $_GEOIP2 = new GeoIp2\Database\Reader(__DIR__.'/geoip2/GeoLite2-Country.mmdb');
+
+  // Check if the geolocation database is more than a year old
+  $time = filemtime(__DIR__.'/geoip2/GeoLite2-Country.mmdb');
+  if (isset($_SESSION['message']) && (time() - $time) > 31536000)
+    $_SESSION['message'][] = 'Your geolocation database is out of date. You should consider getting the latest GeoLite2-Country.mmdb from Maxmind.com.';
+}
 
 $_RDATA['addGeo'] = $_DDATA['pdo']->prepare(
   'UPDATE `'.$_DDATA['tbprefix'].'query` SET `geo`=:geo WHERE `ip`=:ip;'
 );
-$_RDATA['geocache'] = array(
-  'unk' => array('names' => array('en' => 'Unknown'))
-);
+$_RDATA['geocache'] = array('unk' => new stdClass());
+$_RDATA['geocache']['unk']->names = array('en' => 'Unknown');
 
 
 // ***** Database derived runtime data
@@ -373,8 +378,8 @@ if (!$_SESSION['admin_username']) {
                     // If we found a valid geolocation for this query, then
                     // append the data to this row of the CSV output
                     if ($geo = OS_getGeo($line)) {
-                      $line['geo'] = $geo['iso_code'];
-                      $line['country'] = $geo['names']['en'];
+                      $line['geo'] = $geo->isoCode;
+                      $line['country'] = $geo->names['en'];
                     }
 
                     fputcsv($output, $line);
@@ -1308,7 +1313,7 @@ ORCINUS;
                   LIMIT :offset, :pagination;'
         );
 
-        $text = ($_SESSION['index_filter_text']) ? trim($_SESSION['index_filter_text']) : '';
+        $text = trim($_SESSION['index_filter_text']);
 
         $category = ($_SESSION['index_filter_category'] != '<none>') ? $_SESSION['index_filter_category'] : '';
 
@@ -1444,9 +1449,9 @@ ORCINUS;
           // If we found a valid geolocation for this IP, then
           // add the count to the tally
           if ($geo = OS_getGeo($row)) {
-            if (empty($locCount[$geo['iso_code']])) {
-              $locCount[$geo['iso_code']] = $row['ips'];
-            } else $locCount[$geo['iso_code']] += $row['ips'];
+            if (empty($locCount[$geo->isoCode])) {
+              $locCount[$geo->isoCode] = $row['ips'];
+            } else $locCount[$geo->isoCode] += $row['ips'];
 
           // If we didn't find a valid geolocation, add these IPs
           // to the "Unknown" pile
@@ -2855,11 +2860,11 @@ ORCINUS;
                                 <tr>
                                   <th scope="row"><?php
                                     if (file_exists(__DIR__.'/img/flags/'.strtolower($iso).'.png')) { ?> 
-                                      <img src="img/flags/<?php echo strtolower($iso); ?>.png" alt="<?php echo strtoupper($iso); ?>" title="<?php echo $_RDATA['geocache'][$iso]['names']['en']; ?>" class="svg-icon-flag"><?php
+                                      <img src="img/flags/<?php echo strtolower($iso); ?>.png" alt="<?php echo strtoupper($iso); ?>" title="<?php echo $_RDATA['geocache'][$iso]->names['en']; ?>" class="svg-icon-flag"><?php
                                     } else { ?>
-                                      <img src="img/help.svg" alt="?" title="<?php echo $_RDATA['geocache'][$iso]['names']['en']; ?>" class="svg-icon"><?php
+                                      <img src="img/help.svg" alt="?" title="<?php echo $_RDATA['geocache'][$iso]->names['en']; ?>" class="svg-icon"><?php
                                     } ?> 
-                                    <span class="align-middle"><?php echo $_RDATA['geocache'][$iso]['names']['en']; ?></span>
+                                    <span class="align-middle"><?php echo $_RDATA['geocache'][$iso]->names['en']; ?></span>
                                   </th>
                                   <td class="text-end"><?php echo $searches; ?></td>
                                   <td class="text-center"><small>(<?php echo round($searches / array_sum($locCount) * 100, 1); ?>%)</small></td>
@@ -3074,9 +3079,9 @@ ORCINUS;
                             <a href="https://bgp.he.net/ip/<?php echo $query['ip']; ?>" target="_blank"><?php
                               echo preg_replace('/:.+:/', ':&hellip;:', $query['ip']); ?></a><?php
                             if ($geo = OS_getGeo($query)) {
-                              $title = $geo['names']['en'];
-                              if (file_exists(__DIR__.'/img/flags/'.strtolower($geo['iso_code']).'.png')) {
-                                $flag = 'img/flags/'.strtolower($geo['iso_code']).'.png';
+                              $title = $geo->names['en'];
+                              if (file_exists(__DIR__.'/img/flags/'.strtolower($geo->isoCode).'.png')) {
+                                $flag = 'img/flags/'.strtolower($geo->isoCode).'.png';
                                 $classname = 'svg-icon-flag';
                               } else { // Missing flag
                                 $flag = 'img/help.svg';

@@ -334,7 +334,7 @@ function OS_getValue($columnName) {
       $select = $select->fetchAll();
       if (count($select)) {
         $json = json_decode($select[0][$columnName], true);
-        $_ODATA[$columnName] = (!is_null($json)) ? $json : $select[0][$columnName];
+        $_ODATA[$columnName] = $json ?? $select[0][$columnName];
       }
 
     } else if (isset($_SESSION['error']))
@@ -383,7 +383,7 @@ if ($err[0] == '00000') {
   if (count($odata)) {
     foreach ($odata[0] as $key => $value) {
       $json = json_decode($value, true);
-      $_ODATA[$key] = (!is_null($json)) ? $json : $value;
+      $_ODATA[$key] = $json ?? $value;
     }
   } else throw new Exception('No data in configuration table');
 } else throw new Exception('Could not read from configuration table: '.$err[2]);
