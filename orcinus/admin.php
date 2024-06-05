@@ -1464,16 +1464,18 @@ ORCINUS;
         arsort($locCount);
       }
 
+      $weekCount = min($_ODATA['s_limit_query_log'], ceil($_RDATA['s_hours_since_oldest_hit'] / 168));
+
       $select = $_DDATA['pdo']->query('SELECT COUNT(*) as `searches`, DAYNAME(FROM_UNIXTIME(`stamp`)) as `weekday` FROM `'.$_DDATA['tbprefix'].'query` GROUP BY `weekday`;')->fetchAll();
       $dayWalker = array('Sun' => 0, 'Mon' => 0, 'Tue' => 0, 'Wed' => 0, 'Thu' => 0, 'Fri' => 0, 'Sat' => 0);
       foreach ($select as $day)
-        $dayWalker[substr($day['weekday'], 0, 3)] = round($day['searches'] / $_ODATA['s_limit_query_log'], 1);
+        $dayWalker[substr($day['weekday'], 0, 3)] = round($day['searches'] / $weekCount, 1);
 
       $select = $_DDATA['pdo']->query('SELECT COUNT(*) as `searches`, `stamp` FROM `'.$_DDATA['tbprefix'].'query` GROUP BY HOUR(FROM_UNIXTIME(`stamp`));')->fetchAll();
       for ($x = 0, $days = array(), $hourWalker = array(); $x < 24; $x++)
         $hourWalker[str_pad((string)$x, 2, '0', STR_PAD_LEFT).':00'] = 0;
       foreach ($select as $hour)
-        $hourWalker[date('H:00', $hour['stamp'])] = round($hour['searches'] / ($_ODATA['s_limit_query_log'] * 7), 1);
+        $hourWalker[date('H:00', $hour['stamp'])] = round($hour['searches'] / ($weekCount * 7), 1);
       break;
 
     case 'queries':
