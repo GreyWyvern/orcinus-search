@@ -365,7 +365,7 @@ for (let x = 0; x < bars.length; x++) {
   bars[x].style.transition = 'height 0.8s ease';
 
   bars[x].tbody = bars[x].parentNode.parentNode;
-  if (!bars[x].tbody.dataMaxValue) bars[x].tbody.dataMaxValue = 0;
+  if (!bars[x].tbody.dataMaxValue) bars[x].tbody.dataMaxValue = 2;
   bars[x].tbody.dataMaxValue = Math.max(
     parseFloat(bars[x].getAttribute('data-value')),
     bars[x].tbody.dataMaxValue
