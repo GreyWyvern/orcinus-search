@@ -60,8 +60,8 @@ table.bar-graph tbody tr td small {
   font-size:75%;
 }
 table.bar-graph tbody tr td small.rotate-neg-80 {
-  transform-origin:center;
-  transform:translateX(-60%) translateY(-0.2em) rotate(-80deg);
+  transform-origin:center left;
+  transform:translateX(-10%) translateY(0.4em) rotate(-80deg);
 }
 
 .text-ellipsis {
