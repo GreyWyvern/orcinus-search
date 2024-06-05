@@ -2884,7 +2884,7 @@ ORCINUS;
                   <div class="p-2 border border-1 border-secondary-subtle rounded-bottom-3">
                     <ul class="list-group mb-2">
                       <li class="list-group-item">
-                        <h4>Average Searches by Day of Week</h4>
+                        <h4>Searches by Day of Week</h4>
                         <table class="bar-graph d-flex align-items-end position-relative w-100 gap-1 pt-4 mb-5">
                           <tbody class="flex-fill d-flex gap-3" style="height:14em;"><?php
                             foreach ($dayWalker as $day => $value) { ?> 
@@ -2905,7 +2905,7 @@ ORCINUS;
                         </table>
                       </li>
                       <li class="list-group-item">
-                        <h4>Average Searches by Time of Day</h4>
+                        <h4>Searches by Time of Day</h4>
                         <table class="bar-graph d-flex align-items-end position-relative w-100 gap-1 pt-4 mb-5">
                           <tbody class="flex-fill d-flex gap-1" style="height:14em;"><?php
                             foreach ($hourWalker as $hour => $value) { ?> 
