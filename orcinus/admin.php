@@ -2916,7 +2916,7 @@ ORCINUS;
                                     ?>"><?php echo $hour; ?></time>
                                 </th>
                                 <td class="order-first position-relative bg-secondary bg-gradient p-0" data-value="<?php echo $value; ?>" title="<?php echo $hour; ?>">
-                                  <small class="position-absolute bottom-100 start-50 translate-middle-x d-none d-lg-block"><?php
+                                  <small class="position-absolute bottom-100 start-50 rotate-neg-80"><?php
                                     if ($value > 0) echo $value;
                                   ?></small>
                                 </td>
