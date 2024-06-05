@@ -12,4 +12,7 @@ $_DDATA['tbprefix'] = 'os__';
 $_RDATA['admin_username'] = 'admin';
 $_RDATA['admin_password'] = 'password';
 
+// ***** INI
+// ini_set('memory_limit', '128M');
+
 ?>
