@@ -476,111 +476,115 @@ switch ($_SERVER['REQUEST_METHOD']) {
 
       $response = array();
 
-      if (empty($_POST->action)) $_POST->action = '';
-      switch ($_POST->action) {
-        case 'crawl':
-          if (!empty($_POST->sp_key) && OS_getValue('sp_key') &&
-              $_POST->sp_key == $_ODATA['sp_key']) {
-            if (OS_getValue('sp_crawling')) {
+      if (!empty($_POST->action)) {
+        switch ($_POST->action) {
+          case 'crawl':
+            if (!empty($_POST->sp_key) && OS_getValue('sp_key') &&
+                $_POST->sp_key == $_ODATA['sp_key']) {
+              if (OS_getValue('sp_crawling')) {
+                $response = array(
+                  'status' => 'Error',
+                  'message' => 'Crawler is already running; current progress: '.$_ODATA['sp_progress'][0].'/'.$_ODATA['sp_progress'][1]
+                );
+
+              // Go crawl!
+              } else OS_setValue('sp_crawling', getmypid());
+
+            } else {
               $response = array(
                 'status' => 'Error',
-                'message' => 'Crawler is already running; current progress: '.$_ODATA['sp_progress'][0].'/'.$_ODATA['sp_progress'][1]
+                'message' => 'Incorrect key to initiate crawler'
               );
-
-            // Go crawl!
-            } else OS_setValue('sp_crawling', getmypid());
-
-          } else {
-            $response = array(
-              'status' => 'Error',
-              'message' => 'Incorrect key to initiate crawler'
-            );
-          }
-
-          OS_setValue('sp_key', '');
-          break;
-
-        case 'progress':
-          $lines = array();
-
-          if (!empty($_POST->log)) {
-            if (OS_getValue('sp_crawling')) {
-              if (strpos($_ODATA['sp_log'], "\n") === false && file_exists($_ODATA['sp_log']))
-                $lines = file($_ODATA['sp_log'], FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-            } else $lines = explode("\n", $_ODATA['sp_log']);
-
-            if (empty($_POST->grep)) $_POST->grep = '';
-            switch ($_POST->grep) {
-              case 'all': break;
-              case 'errors': $lines = preg_grep('/^[\[\*]/', $lines); break;
-              default: $lines = preg_grep('/^[\[\*\w\d]/', $lines);
             }
-          }
 
-          // If crawl is in progress, return just the last 15 lines
-          if ($_ODATA['sp_crawling']) $lines = array_slice($lines, -15);
+            OS_setValue('sp_key', '');
+            break;
 
-          $response = array(
-            'status' => ($_ODATA['sp_crawling']) ? 'Crawling' : 'Complete',
-            'progress' => $_ODATA['sp_progress'],
-            'data_transferred' => $_ODATA['sp_data_transferred'],
-            'time_crawl' => time() - $_ODATA['sp_time_start'],
-            'time_start' => $_ODATA['sp_time_start'],
-            'time_end' => $_ODATA['sp_time_end'],
-            'timeout_crawl' => $_ODATA['sp_timeout_crawl'],
-            'tail' => trim(implode("\n", $lines))
-          );
-          break;
+          case 'progress':
+            $lines = array();
 
-        case 'cancel':
-          if (OS_getValue('sp_crawling')) {
+            if (!empty($_POST->log)) {
+              if (OS_getValue('sp_crawling')) {
+                if (strpos($_ODATA['sp_log'], "\n") === false && file_exists($_ODATA['sp_log']))
+                  $lines = file($_ODATA['sp_log'], FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+              } else $lines = explode("\n", $_ODATA['sp_log']);
 
-            // IF the crawler 'time_start' is more than 'timeout_crawl'
-            // seconds ago, or the 'force' token is set, the crawler is
-            // probably stuck. Unstick it.
-            if (empty($_POST->force)) $_POST->force = '';
-            if ($_POST->force || time() - $_ODATA['sp_time_start'] > $_ODATA['sp_timeout_crawl']) {
-              OS_setValue('sp_crawling', 0);
-
-              if (empty($_POST->reason))
-                $_POST->reason = 'The crawler halted unexpectedly';
-
-              if (strpos($_ODATA['sp_log'], "\n") === false && file_exists($_ODATA['sp_log'])) {
-                $log = file_get_contents($_ODATA['sp_log']);
-                OS_setValue('sp_log', $log."\n".'[ERROR] '.$_POST->reason);
-              } else OS_setValue('sp_log', '[ERROR] '.$_POST->reason);
-              OS_setValue('sp_time_last', $_ODATA['sp_time_end'] - $_ODATA['sp_time_start']);
-
-              // Send failure email to the admin(s)
-              if ($_MAIL && count($_MAIL->getAllRecipientAddresses()) && $_ODATA['sp_email_failure']) {
-                $_MAIL->Subject = 'Orcinus Site Search Crawler: Crawler halted unexpectedly';
-                $_MAIL->Body = implode("   \r\n", preg_grep('/^[\[\*\w\d]/', explode("\n", $_ODATA['sp_log'])));
-                if (!$_MAIL->Send()) OS_setValue('sp_log', $_ODATA['sp_log']."\n".'[ERROR] Could not send notification email');
+              if (empty($_POST->grep)) $_POST->grep = '';
+              switch ($_POST->grep) {
+                case 'all': break;
+                case 'errors': $lines = preg_grep('/^[\[\*]/', $lines); break;
+                default: $lines = preg_grep('/^[\[\*\w\d]/', $lines);
               }
             }
 
-            OS_setValue('sp_cancel', 1);
-            $response = array(
-              'status' => 'Success',
-              'message' => 'Cancel flag was set',
-              'crawl_time' => time() - $_ODATA['sp_time_start']
-            );
+            // If crawl is in progress, return just the last 15 lines
+            if ($_ODATA['sp_crawling']) $lines = array_slice($lines, -15);
 
-          } else {
+            $response = array(
+              'status' => ($_ODATA['sp_crawling']) ? 'Crawling' : 'Complete',
+              'progress' => $_ODATA['sp_progress'],
+              'data_transferred' => $_ODATA['sp_data_transferred'],
+              'time_crawl' => time() - $_ODATA['sp_time_start'],
+              'time_start' => $_ODATA['sp_time_start'],
+              'time_end' => $_ODATA['sp_time_end'],
+              'timeout_crawl' => $_ODATA['sp_timeout_crawl'],
+              'tail' => trim(implode("\n", $lines))
+            );
+            break;
+
+          case 'cancel':
+            if (OS_getValue('sp_crawling')) {
+
+              // IF the crawler 'time_start' is more than 'timeout_crawl'
+              // seconds ago, or the 'force' token is set, the crawler is
+              // probably stuck. Unstick it.
+              if (empty($_POST->force)) $_POST->force = '';
+              if ($_POST->force || time() - $_ODATA['sp_time_start'] > $_ODATA['sp_timeout_crawl']) {
+                OS_setValue('sp_crawling', 0);
+
+                if (empty($_POST->reason))
+                  $_POST->reason = 'The crawler halted unexpectedly';
+
+                if (strpos($_ODATA['sp_log'], "\n") === false && file_exists($_ODATA['sp_log'])) {
+                  $log = file_get_contents($_ODATA['sp_log']);
+                  OS_setValue('sp_log', $log."\n".'[ERROR] '.$_POST->reason);
+                } else OS_setValue('sp_log', '[ERROR] '.$_POST->reason);
+                OS_setValue('sp_time_last', $_ODATA['sp_time_end'] - $_ODATA['sp_time_start']);
+
+                // Send failure email to the admin(s)
+                if ($_MAIL && count($_MAIL->getAllRecipientAddresses()) && $_ODATA['sp_email_failure']) {
+                  $_MAIL->Subject = 'Orcinus Site Search Crawler: Crawler halted unexpectedly';
+                  $_MAIL->Body = implode("   \r\n", preg_grep('/^[\[\*\w\d]/', explode("\n", $_ODATA['sp_log'])));
+                  if (!$_MAIL->Send()) OS_setValue('sp_log', $_ODATA['sp_log']."\n".'[ERROR] Could not send notification email');
+                }
+              }
+
+              OS_setValue('sp_cancel', 1);
+              $response = array(
+                'status' => 'Success',
+                'message' => 'Cancel flag was set',
+                'crawl_time' => time() - $_ODATA['sp_time_start']
+              );
+
+            } else {
+              $response = array(
+                'status' => 'Error',
+                'message' => 'Crawler is not currently running'
+              );
+            }
+            break;
+
+          default:
             $response = array(
               'status' => 'Error',
-              'message' => 'Crawler is not currently running'
+              'message' => 'Unrecognized command'
             );
-          }
-          break;
 
-        default:
-          $response = array(
-            'status' => 'Error',
-            'message' => 'Unrecognized command'
-          );
-
-      }
+        }
+      } else $response = array(
+        'status' => 'Error',
+        'message' => 'Invalid JSON received'
+      );
 
       // If we have a response to give, display it and exit
       if ($response) {
