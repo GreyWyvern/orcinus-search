@@ -961,7 +961,7 @@ ORCINUS;
         // ***** Search >> Search Result Cache
         case 'os_s_cache_config':
           if (isset($_POST['os_s_limit_query_log'])) {
-            $_POST['os_s_limit_query_log'] = max(0, min(255, (int)$_POST['os_s_limit_query_log']));
+            $_POST['os_s_limit_query_log'] = max(0, min(52, (int)$_POST['os_s_limit_query_log']));
             OS_setValue('s_limit_query_log', $_POST['os_s_limit_query_log']);
           }
 
@@ -1467,13 +1467,13 @@ ORCINUS;
       $select = $_DDATA['pdo']->query('SELECT COUNT(*) as `searches`, DAYNAME(FROM_UNIXTIME(`stamp`)) as `weekday` FROM `'.$_DDATA['tbprefix'].'query` GROUP BY `weekday`;')->fetchAll();
       $dayWalker = array('Sun' => 0, 'Mon' => 0, 'Tue' => 0, 'Wed' => 0, 'Thu' => 0, 'Fri' => 0, 'Sat' => 0);
       foreach ($select as $day)
-        $dayWalker[substr($day['weekday'], 0, 3)] = $day['searches'];
+        $dayWalker[substr($day['weekday'], 0, 3)] = round($day['searches'] / $_ODATA['s_limit_query_log'], 1);
 
       $select = $_DDATA['pdo']->query('SELECT COUNT(*) as `searches`, `stamp` FROM `'.$_DDATA['tbprefix'].'query` GROUP BY HOUR(FROM_UNIXTIME(`stamp`));')->fetchAll();
       for ($x = 0, $days = array(), $hourWalker = array(); $x < 24; $x++)
         $hourWalker[str_pad((string)$x, 2, '0', STR_PAD_LEFT).':00'] = 0;
       foreach ($select as $hour)
-        $hourWalker[date('H:00', $hour['stamp'])] = $hour['searches'];
+        $hourWalker[date('H:00', $hour['stamp'])] = round($hour['searches'] / ($_ODATA['s_limit_query_log'] * 7), 1);
       break;
 
     case 'queries':
@@ -2368,38 +2368,36 @@ ORCINUS;
                   <div class="p-2 border border-1 border-secondary-subtle rounded-bottom-3">
                     <ul class="list-group mb-2">
                       <li class="list-group-item">
+                        <h4>Query Log</h4>
+                        <label class="d-flex lh-lg w-100">
+                          <strong class="pe-2">Current Query Log Size</strong>
+                          <var class="text-end flex-grow-1 text-nowrap"><?php
+                            echo OS_readSize($_RDATA['s_query_log_size'] - $_RDATA['s_cache_size'], true);
+                          ?></var>
+                        </label>
                         <label class="d-flex lh-lg w-100">
                           <strong class="pe-2">Store Query Log for:</strong>
                           <span class="flex-grow-1 text-end text-nowrap">
-                            <input type="number" name="os_s_limit_query_log" value="<?php echo $_ODATA['s_limit_query_log']; ?>" min="0" max="255" step="1" class="form-control d-inline-block ms-1 me-1" aria-labelledby="os_s_limit_query_log_text"
-                              data-bs-toggle="tooltip" data-bs-placement="bottom" title="To disable the query log, set this value to zero (0). Disabling the query log will also disable search result caching."> days
+                            <input type="number" name="os_s_limit_query_log" value="<?php echo $_ODATA['s_limit_query_log']; ?>" min="0" max="52" step="1" class="form-control d-inline-block ms-1 me-1" aria-labelledby="os_s_limit_query_log_text"
+                              data-bs-toggle="tooltip" data-bs-placement="bottom" title="To disable the query log, set this value to zero (0). Disabling the query log will also disable search result caching."> week(s)
                           </span>
                         </label>
                         <p id="os_s_limit_query_log_text" class="form-text">
                           The query log is a rolling log of searches on which the
                           <a href="?page=stats">search statistics</a> are based. Longer query log
                           periods will give more accurate statistics, but also require more
-                          database space. (max: 255 days)
+                          database space. (max: 52 weeks)
                         </p>
                       </li>
                       <li class="list-group-item">
-                        <label class="d-flex w-100">
-                          <strong class="pe-2">Current Query Log Size</strong>
-                          <var class="text-end flex-grow-1 text-nowrap"><?php
-                            echo OS_readSize($_RDATA['s_query_log_size'] - $_RDATA['s_cache_size'], true);
-                          ?></var>
-                        </label>
-                      </li>
-                      <li class="list-group-item">
-                        <label class="d-flex w-100">
+                        <h4>Search Result Cache</h4>
+                        <label class="d-flex lh-lg w-100">
                           <strong class="pe-2">Currently Cached Searches</strong>
                           <var class="text-end flex-grow-1 text-nowrap"><?php
                             echo $_RDATA['s_cached_searches'];
                           ?></var>
                         </label>
-                      </li>
-                      <li class="list-group-item">
-                        <label class="d-flex w-100">
+                        <label class="d-flex lh-lg w-100">
                           <strong class="pe-2">Current Cache Size
                             <img src="img/help.svg" alt="Information" class="align-middle svg-icon mb-1"
                               data-bs-toggle="tooltip" data-bs-placement="top" title="The Search Result Cache is cleared after each successful crawl, or you can purge the cache manually below.">
@@ -2412,8 +2410,6 @@ ORCINUS;
                             echo OS_readSize($_RDATA['s_cache_size'], true);
                           ?></var>
                         </label>
-                      </li>
-                      <li class="list-group-item">
                         <label class="d-flex lh-lg w-100">
                           <strong class="pe-2">Limit Cache Size:</strong>
                           <span class="flex-grow-1 text-end text-nowrap"><?php
@@ -2444,9 +2440,39 @@ ORCINUS;
                     <h3 class="bg-black rounded-top-3 text-white p-2 mb-0">Offline Search Javascript</h3>
                   </legend>
                   <div class="p-2 border border-1 border-secondary-subtle rounded-bottom-3">
-                    <ul class="list-group mb-2"><?php
-                      if (count($_ODATA['sp_domains']) > 1) { ?> 
-                        <li class="list-group-item">
+                    <ul class="list-group mb-2">
+                      <li class="list-group-item">
+                        <label class="d-flex lh-lg w-100">
+                          <strong class="pe-2">Search Database Size</strong>
+                          <var class="text-end flex-grow-1 text-nowrap"><?php
+                            echo OS_readSize($_ODATA['sp_crawldata_size'], true);
+                          ?></var>
+                        </label>
+                        <label class="d-flex lh-lg w-100">
+                          <strong class="pe-2">PHP <code>memory_limit</code>
+                            <img src="img/help.svg" alt="Information" class="align-middle svg-icon mb-1"
+                              data-bs-toggle="tooltip" data-bs-placement="top" title="If your search database is large, you may need to increase your PHP memory_limit to successfully export an offline Javascript version. See: config.ini.php">
+                          </strong>
+                          <var class="text-end flex-grow-1 text-nowrap"><?php
+                            // Decipher the PHP memory_limit
+                            $memory_limit = ini_get('memory_limit');
+                            if ($memory_limit != -1) {
+                              preg_match('/(\d+)([KMG]?)/i', trim((string)$memory_limit), $match);
+                              if (count($match)) {
+                                switch (strtoupper($match[2])) {
+                                  case 'G': $memory_limit = OS_readSize((int)$match[1] * 1073741824, true); break;
+                                  case 'M': $memory_limit = OS_readSize((int)$match[1] * 1048576, true); break;
+                                  case 'K': $memory_limit = OS_readSize((int)$match[1] * 1024, true); break;
+                                  default: $memory_limit = OS_readSize((int)$match[1], true);
+                                }
+                              } else $memory_limit = 'Unknown';
+                            } else $memory_limit = 'No limit';
+                            echo $memory_limit;
+                          ?></var>
+                        </label>
+                      </li>
+                      <li class="list-group-item"><?php
+                        if (count($_ODATA['sp_domains']) > 1) { ?> 
                           <label class="d-flex lh-lg w-100">
                             <strong class="pe-2">Domain:</strong>
                             <span class="text-end flex-grow-1 text-nowrap">
@@ -2459,62 +2485,14 @@ ORCINUS;
                                 } ?> 
                               </select>
                             </span>
-                          </label>
-                        </li><?php
-                      } ?> 
-                      <li class="list-group-item">
+                          </label><?php
+                        } ?> 
                         <label class="d-flex lh-lg w-100">
                           <strong class="pe-2">Compression Level:</strong>
                           <var class="text-end flex-grow-1 text-nowrap">
                             <input type="number" name="os_jw_compression" value="<?php echo $_ODATA['jw_compression']; ?>" min="0" max="100" step="1" class="form-control d-inline-block"
                               data-bs-toggle="tooltip" data-bs-placement="top" title="Apply text content compression to the output. 100 is no compression, while 0 is maximum compression.">
                           </var>
-                        </label>
-                      </li>
-                      <li class="list-group-item">
-                        <label class="d-flex w-100">
-                          <strong class="pe-2">Search Database Size</strong>
-                          <var class="text-end flex-grow-1 text-nowrap"><?php
-                            echo OS_readSize($_ODATA['sp_crawldata_size'], true);
-                          ?></var>
-                        </label>
-                      </li>
-                      <li class="list-group-item">
-                        <label class="d-flex w-100">
-                          <strong class="pe-2">PHP <code>memory_limit</code></strong>
-                          <var class="text-end flex-grow-1 text-nowrap"><?php
-
-                            // Decipher the PHP memory_limit
-                            $memory_limit = ini_get('memory_limit');
-                            if ($memory_limit != -1) {
-                              preg_match(
-                                '/(\d+)([KMG]?)/i',
-                                trim((string)$memory_limit),
-                                $match
-                              );
-
-                              if (count($match)) {
-                                switch (strtoupper($match[2])) {
-                                  case 'G':
-                                    $memory_limit = OS_readSize((int)$match[1] * 1073741824, true);
-                                    break;
-
-                                  case 'M':
-                                    $memory_limit = OS_readSize((int)$match[1] * 1048576, true);
-                                    break;
-
-                                  case 'K':
-                                    $memory_limit = OS_readSize((int)$match[1] * 1024, true);
-                                    break;
-
-                                  default:
-                                    $memory_limit = OS_readSize((int)$match[1], true);
-
-                                }
-                              } else $memory_limit = 'Unknown';
-                            } else $memory_limit = 'No limit';
-                            echo $memory_limit;
-                          ?></var>
                         </label>
                       </li>
                     </ul>
@@ -2904,7 +2882,7 @@ ORCINUS;
                   <div class="p-2 border border-1 border-secondary-subtle rounded-bottom-3">
                     <ul class="list-group mb-2">
                       <li class="list-group-item">
-                        <h4>All Searches by Day of Week</h4>
+                        <h4>Average Searches by Day of Week</h4>
                         <table class="bar-graph d-flex align-items-end position-relative w-100 gap-1 pt-4 mb-5">
                           <tbody class="flex-fill d-flex gap-3" style="height:14em;"><?php
                             foreach ($dayWalker as $day => $value) { ?> 
@@ -2925,7 +2903,7 @@ ORCINUS;
                         </table>
                       </li>
                       <li class="list-group-item">
-                        <h4>All Searches by Time of Day</h4>
+                        <h4>Average Searches by Time of Day</h4>
                         <table class="bar-graph d-flex align-items-end position-relative w-100 gap-1 pt-4 mb-5">
                           <tbody class="flex-fill d-flex gap-1" style="height:14em;"><?php
                             foreach ($hourWalker as $hour => $value) { ?> 

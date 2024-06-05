@@ -208,7 +208,7 @@ if (!count($testConf->fetchAll())) {
       `s_text_fragments`=0,
       `s_charset`=\'UTF-8\',
       `s_result_template`=\'\',
-      `s_limit_query_log`=14,
+      `s_limit_query_log`=2,
       `jw_hostname`=\'\',
       `jw_compression`=25
     ;'
@@ -626,11 +626,11 @@ if (!$_ODATA['s_result_template']) {
 
 
 // Purge entries from the search query log older than
-// 's_limit_query_log' ago
+// 's_limit_query_log' weeks ago
 $deleteold = $_DDATA['pdo']->prepare(
   'DELETE FROM `'.$_DDATA['tbprefix'].'query` WHERE `stamp`<:cutoff;'
 );
-$deleteold->execute(array('cutoff' => time() - $_ODATA['s_limit_query_log'] * 86400));
+$deleteold->execute(array('cutoff' => time() - $_ODATA['s_limit_query_log'] * 604800));
 $err = $deleteold->errorInfo();
 if ($err[0] != '00000')
   if (isset($_SESSION['error']))
