@@ -407,10 +407,10 @@ for (let x = 0; x < graphs.length; x++) {
         thead = document.createElement('thead');
       let tr = document.createElement('tr');
           tr.classList.add('d-flex', 'flex-column-reverse', 'justify-content-end');
-        for (let y = 0; y < Math.ceil(tbody.offsetHeight / graphs[x].interval); y++) {
+        for (let y = 0, z = Math.ceil(tbody.offsetHeight / graphs[x].interval); y < z; y++) {
           let td = document.createElement('td');
               td.classList.add('d-flex', 'flex-column', 'justify-content-end', 'text-end');
-              td.style.height = Math.min(tbody.offsetHeight, graphs[x].interval) + 'px';
+              td.style.height = (y < z - 1) ? Math.min(tbody.offsetHeight, graphs[x].interval) + 'px' : 'auto';
             let small = document.createElement('small');
                 small.appendChild(document.createTextNode(Math.round(y * graphs[x].interval / graphs[x].unitHeight)));
               td.appendChild(small);
