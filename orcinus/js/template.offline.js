@@ -32,6 +32,7 @@ let os_sdata = {
   terms: [],
   formatted: [],
   results: [],
+  tag: 'mark', // HTML tag to highlight matches
   pages: 1,
   time: (new Date()).getTime()
 };
@@ -448,17 +449,14 @@ if (os_crawldata.length) {
           });
 
           // Don't display filetype of HTML pages
-          if (!{{s_show_filetype_html}})
-            if (result.filetype == 'HTML')
-              result.filetype = '';
+          if (!{{s_show_filetype_html}} && result.filetype == 'HTML')
+            result.filetype = '';
 
           if (result.filetype)
             result.filetype = '[' + result.filetype + ']';
 
           // Don't display category if there's only one
-          if (Object.keys(os_rdata.s_category_list).length > 2) {
-            result.category = resultsPage[x].category;
-          } else resultsPage[x].category = '';
+          result.category = (Object.keys(os_rdata.s_category_list).length > 2) ? resultsPage[x].category : '';
 
           // Format relevance
           result.relevance = Math.round(resultsPage[x].relevance * 100) / 100;
@@ -480,10 +478,22 @@ if (os_crawldata.length) {
 
               case 'phrase':
               case 'term':
-                result.title_highlight = result.title_highlight.replace(os_sdata.terms[z][2], '<strong>$1</strong>');
-                result.url_highlight = result.url_highlight.replace(os_sdata.terms[z][2], '<strong>$1</strong>');
-                result.matchtext_highlight = result.matchtext_highlight.replace(os_sdata.terms[z][2], '<strong>$1</strong>');
-                result.description_highlight = result.description_highlight.replace(os_sdata.terms[z][2], '<strong>$1</strong>');
+                result.title_highlight = result.title_highlight.replace(
+                  os_sdata.terms[z][2],
+                  '<' + os_sdata.tag + '>$1</' + os_sdata.tag + '>'
+                );
+                result.url_highlight = result.url_highlight.replace(
+                  os_sdata.terms[z][2],
+                  '<' + os_sdata.tag + '>$1</' + os_sdata.tag + '>'
+                );
+                result.matchtext_highlight = result.matchtext_highlight.replace(
+                  os_sdata.terms[z][2],
+                  '<' + os_sdata.tag + '>$1</' + os_sdata.tag + '>'
+                );
+                result.description_highlight = result.description_highlight.replace(
+                  os_sdata.terms[z][2],
+                  '<' + os_sdata.tag + '>$1</' + os_sdata.tag + '>'
+                );
 
             }
           }

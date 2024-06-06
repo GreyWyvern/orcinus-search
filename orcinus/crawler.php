@@ -887,16 +887,16 @@ if ($err[0] != '00000') {
 }
 
 // Prepare SQL statements
-$selectData = $_DDATA['pdo']->prepare(
+$_DDATA['select_crawldata'] = $_DDATA['pdo']->prepare(
   'SELECT `url`, `category`, `links`, `content_checksum`, `last_modified`,
           `flag_updated`, `flag_unlisted`, `priority`
   FROM `'.$_DDATA['tbprefix'].'crawldata` WHERE `url`=:url;'
 );
-$updateURL = $_DDATA['pdo']->prepare(
+$_DDATA['update_crawltemp_url'] = $_DDATA['pdo']->prepare(
   'UPDATE `'.$_DDATA['tbprefix'].'crawltemp` SET
     `url`=:url WHERE `content_checksum`=:content_checksum;'
 );
-$insertTemp = $_DDATA['pdo']->prepare(
+$_DDATA['insert_crawltemp'] = $_DDATA['pdo']->prepare(
   'INSERT INTO `'.$_DDATA['tbprefix'].'crawltemp` SET
     `url`=:url,
     `url_sort`=0,
@@ -917,7 +917,7 @@ $insertTemp = $_DDATA['pdo']->prepare(
     `priority`=:priority
   ;'
 );
-$insertNotModified = $_DDATA['pdo']->prepare(
+$_DDATA['replace_crawltemp'] = $_DDATA['pdo']->prepare(
   'REPLACE INTO `'.$_DDATA['tbprefix'].'crawltemp` (
       `url`, `url_sort`, `title`, `description`, `keywords`, `category`,
       `weighted`, `links`, `content`, `content_mime`, `content_charset`,
@@ -1514,7 +1514,7 @@ while (count($_RDATA['sp_queue'])) {
 
       // Update the stored URL to the shortest version
       if (strlen($url) < strlen($_RDATA['sp_sha1'][$data['info']['sha1']])) {
-        $updateURL->execute(array(
+        $_DDATA['update_crawltemp_url']->execute(array(
           'url' => $url,
           'content_checksum' => $data['info']['sha1']
         ));
@@ -1550,14 +1550,14 @@ while (count($_RDATA['sp_queue'])) {
         if (in_array($url, $_RDATA['sp_exist'], true) || $referer == '<orphan>') {
           $_RDATA['sp_status']['Updated']++;
 
-          $selectData->execute(array('url' => $url));
-          $err = $selectData->errorInfo();
+          $_DDATA['select_crawldata']->execute(array('url' => $url));
+          $err = $_DDATA['select_crawldata']->errorInfo();
           if ($err[0] != '00000') {
             OS_crawlLog('Database select error: '.$url, 2);
             OS_crawlLog($err[2], 0);
             break 2;
           }
-          $row = $selectData->fetchAll()[0];
+          $row = $_DDATA['select_crawldata']->fetchAll()[0];
 
         // Else provide default values for a new URL
         } else {
@@ -1581,7 +1581,7 @@ while (count($_RDATA['sp_queue'])) {
         }
 
         $port = (!empty($data['url']['port'])) ? ':'.$data['url']['port'] : '';
-        $insertTemp->execute(array(
+        $_DDATA['insert_crawltemp']->execute(array(
           'url' => $url,
           'title' => trim($data['title']),
           'description' => $data['description'],
@@ -1599,13 +1599,13 @@ while (count($_RDATA['sp_queue'])) {
           'last_modified' => $data['info']['filetime'],
           'priority' => $row['priority']
         ));
-        if (!$insertTemp->rowCount()) {
+        if (!$_DDATA['insert_crawltemp']->rowCount()) {
           OS_crawlLog('Database primary insert error: '.$url, 2);
-          $err = $insertTemp->errorInfo();
+          $err = $_DDATA['insert_crawltemp']->errorInfo();
           if ($err[0] != '00000') OS_crawlLog($err[2], 0);
         } else {
           $_RDATA['sp_store'][] = $url;
-          $_RDATA['sp_data_stored'] += strlen($insertTemp->queryString);
+          $_RDATA['sp_data_stored'] += strlen($_DDATA['insert_crawltemp']->queryString);
         }
 
 
@@ -1619,21 +1619,21 @@ while (count($_RDATA['sp_queue'])) {
         $row = array('priority' => 0.5);
 
         // Get previous entry from existing search database
-        $insertNotModified->execute(array(
+        $_DDATA['replace_crawltemp']->execute(array(
           'url' => $url,
           'status' => $data['info']['status']
         ));
-        if ($insertNotModified->rowCount()) {
+        if ($_DDATA['replace_crawltemp']->rowCount()) {
 
           // Mark as 'stored'
           $_RDATA['sp_store'][] = $url;
 
           // Get 'priority' & 'last_modified' values for the sitemap
           // Load the previously saved link list to add to the queue
-          $selectData->execute(array('url' => $url));
-          $err = $selectData->errorInfo();
+          $_DDATA['select_crawldata']->execute(array('url' => $url));
+          $err = $_DDATA['select_crawldata']->errorInfo();
           if ($err[0] == '00000') {
-            $row = $selectData->fetchAll()[0];
+            $row = $_DDATA['select_crawldata']->fetchAll()[0];
             $data['links'] = json_decode($row['links'], true);
             $data['info']['filetime'] = $row['last_modified'];
 
@@ -1642,7 +1642,7 @@ while (count($_RDATA['sp_queue'])) {
         // Could not insert previously stored row into temp table
         } else {
           OS_crawlLog('Database \'not-modified\' insert error: '.$url, 2);
-          $err = $insertNotModified->errorInfo();
+          $err = $_DDATA['replace_crawltemp']->errorInfo();
           if ($err[0] != '00000') OS_crawlLog($err[2], 0);
         }
       }

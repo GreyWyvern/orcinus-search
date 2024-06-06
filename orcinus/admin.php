@@ -116,17 +116,18 @@ if (!class_exists('GeoIp2\Database\Reader') && file_exists(__DIR__.'/geoip2/geoi
 if (class_exists('GeoIp2\Database\Reader') && file_exists(__DIR__.'/geoip2/GeoLite2-Country.mmdb')) {
   $_GEOIP2 = new GeoIp2\Database\Reader(__DIR__.'/geoip2/GeoLite2-Country.mmdb');
 
+  $_RDATA['geoip2_version'] = GeoIp2\WebService\Client::VERSION;
+  $_RDATA['addGeo'] = $_DDATA['pdo']->prepare(
+    'UPDATE `'.$_DDATA['tbprefix'].'query` SET `geo`=:geo WHERE `ip`=:ip;'
+  );
+  $_RDATA['geocache'] = array('unk' => new stdClass());
+  $_RDATA['geocache']['unk']->names = array('en' => 'Unknown');
+
   // Check if the geolocation database is more than a year old
   $time = filemtime(__DIR__.'/geoip2/GeoLite2-Country.mmdb');
   if (isset($_SESSION['message']) && (time() - $time) > 31536000)
     $_SESSION['message'][] = 'Your geolocation database is out of date. You should consider getting the latest GeoLite2-Country.mmdb from Maxmind.com.';
 }
-
-$_RDATA['addGeo'] = $_DDATA['pdo']->prepare(
-  'UPDATE `'.$_DDATA['tbprefix'].'query` SET `geo`=:geo WHERE `ip`=:ip;'
-);
-$_RDATA['geocache'] = array('unk' => new stdClass());
-$_RDATA['geocache']['unk']->names = array('en' => 'Unknown');
 
 
 // ***** Database derived runtime data
@@ -153,6 +154,9 @@ if ($err[0] == '00000') {
 
 
 // ***** Other runtime data
+if (count($_ODATA['sp_domains']) == 1 && $_ODATA['jw_hostname'] != key($_ODATA['sp_domains']))
+  OS_setValue('jw_hostname', key($_ODATA['sp_domains']));
+
 $_RDATA['admin_pagination_options'] = array(25, 50, 100, 250, 500, 1000);
 if (!in_array($_ODATA['admin_index_pagination'], $_RDATA['admin_pagination_options'], true))
   OS_setValue('admin_index_pagination', 100);
@@ -1625,7 +1629,7 @@ ORCINUS;
                     if ($_ODATA['sp_time_end']) { ?> 
                       <li class="list-group-item">
                         <label class="d-flex lh-lg w-100">
-                          <strong class="pe-2">Most Recent Crawl</strong>
+                          <strong class="pe-2">Most Recent Crawl:</strong>
                           <span class="flex-grow-1 text-end">
                             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#crawlerModal" data-bs-crawl="log">
                               View Log
@@ -1649,7 +1653,7 @@ ORCINUS;
                       </li>
                       <li class="list-group-item">
                         <label class="d-flex w-100">
-                          <strong class="pe-2">Crawl Time</strong>
+                          <strong class="pe-2">Crawl Time:</strong>
                           <var class="flex-grow-1 text-end" id="os_crawl_time_last"><?php
                             if ($_ODATA['sp_crawling']) {
                               OS_countUp($_ODATA['sp_time_start'], 'os_countup_time_crawl');
@@ -1664,16 +1668,14 @@ ORCINUS;
                         </label>
                       </li>
                       <li class="list-group-item">
-                        <label class="d-flex w-100">
-                          <strong class="pe-2">Data Transferred</strong>
+                        <label class="d-flex lh-lg w-100">
+                          <strong class="pe-2">Data Transferred:</strong>
                           <var class="flex-grow-1 text-end" id="os_crawl_data_transferred"><?php
                             echo OS_readSize($_ODATA['sp_data_transferred'], true);
                           ?></var>
                         </label>
-                      </li>
-                      <li class="list-group-item">
-                        <label class="d-flex w-100">
-                          <strong class="pe-2">Data Stored
+                        <label class="d-flex lh-lg w-100">
+                          <strong class="pe-2">Data Stored:
                             <img src="img/help.svg" alt="Information" class="align-middle svg-icon mb-1"
                               data-bs-toggle="tooltip" data-bs-placement="top" title="The amount of data stored by new or updated pages.">
                           </strong>
@@ -1690,18 +1692,16 @@ ORCINUS;
                         </label>
                       </li>
                       <li class="list-group-item">
-                        <label class="d-flex w-100">
-                          <strong class="pe-2">Links Crawled</strong>
+                        <label class="d-flex lh-lg w-100">
+                          <strong class="pe-2">Links Crawled:</strong>
                           <var class="flex-grow-1 text-end" id="os_crawl_links_crawled"><?php
                             if ($_ODATA['sp_crawling']) {
                               echo $_ODATA['sp_progress'][0].' / '.$_ODATA['sp_progress'][1];
                             } else echo $_ODATA['sp_progress'][0];
                           ?></var>
                         </label>
-                      </li>
-                      <li class="list-group-item">
-                        <label class="d-flex w-100">
-                          <strong class="pe-2">Pages Stored</strong>
+                        <label class="d-flex lh-lg w-100">
+                          <strong class="pe-2">Pages Stored:</strong>
                           <var class="flex-grow-1 text-end" id="os_crawl_pages_stored"><?php
                             if (!$_ODATA['sp_crawling']) {
                               if ($_ODATA['sp_progress'][0]) { ?> 
@@ -2095,8 +2095,8 @@ ORCINUS;
                           } ?> 
                           <li class="page-item d-none border border-1" id="os_pagination_jump">
                             <label class="text-nowrap ps-3 pe-3 h-100 d-flex align-items-center">
-                              <span class="pe-1">Jump to page:</span>
-                              <select name="os_index_pagination_page_select" class="form-select form-select-sm d-inline-block w-auto"><?php
+                              <span class="pe-1">Page:</span>
+                              <select name="os_index_pagination_page_select" class="form-select form-select-sm d-inline-block w-auto" title="Jump to page"><?php
                                 for ($x = 1; $x <= $_RDATA['index_pages']; $x++) { ?> 
                                   <option value="<?php echo $x; ?>"<?php 
                                     if ($x == $_SESSION['index_page']) echo ' selected="selected"';
@@ -2307,17 +2307,15 @@ ORCINUS;
                 <div class="p-2 border border-1 border-secondary-subtle rounded-bottom-3">
                   <ul class="list-group">
                     <li class="list-group-item">
-                      <label class="d-flex w-100">
-                        <strong class="pe-2">Pages in Database</strong>
+                      <label class="d-flex lh-lg w-100">
+                        <strong class="pe-2">Pages in Database:</strong>
                         <var class="text-end flex-grow-1 text-nowrap"><?php
                           echo $_RDATA['s_pages_stored'];
                         ?></var>
-                      </label>
-                    </li><?php
-                    if ($_RDATA['s_pages_stored']) { ?> 
-                      <li class="list-group-item">
-                        <label class="d-flex w-100">
-                          <strong class="pe-2">Searchable Pages
+                      </label><?php
+                      if ($_RDATA['s_pages_stored']) { ?> 
+                        <label class="d-flex lh-lg w-100">
+                          <strong class="pe-2">Searchable Pages:
                             <img src="img/help.svg" alt="Information" class="align-middle svg-icon mb-1"
                               data-bs-toggle="tooltip" data-bs-placement="top" title="Searchable pages are the pages in your index that are not Unlisted<?php echo (!$_ODATA['s_show_orphans']) ? ' nor Orphaned' : ''; ?>.">
                           </strong>
@@ -2328,7 +2326,7 @@ ORCINUS;
                       </li>
                       <li class="list-group-item">
                         <label class="d-flex w-100">
-                          <strong class="pe-2">MIME-types</strong>
+                          <strong class="pe-2">MIME-types:</strong>
                           <ol class="list-group list-group-flush flex-grow-1"><?php
                             foreach ($_RDATA['page_index_mime_types'] as $mimetype => $value) { ?> 
                               <li class="list-group-item text-end p-0 border-0">
@@ -2343,7 +2341,7 @@ ORCINUS;
                       </li>
                       <li class="list-group-item">
                         <label class="d-flex w-100">
-                          <strong class="pe-2">Encodings</strong>
+                          <strong class="pe-2">Encodings:</strong>
                           <ol class="list-group list-group-flush flex-grow-1"><?php
                             foreach ($_RDATA['page_index_charsets'] as $encoding => $value) { ?> 
                               <li class="list-group-item text-end p-0 border-0">
@@ -2354,9 +2352,9 @@ ORCINUS;
                               </li><?php
                             } ?> 
                           </ol>
-                        </label>
-                      </li><?php
-                    } ?> 
+                        </label><?php
+                      } ?> 
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -2372,7 +2370,7 @@ ORCINUS;
                       <li class="list-group-item">
                         <h4>Query Log</h4>
                         <label class="d-flex lh-lg w-100">
-                          <strong class="pe-2">Current Query Log Size</strong>
+                          <strong class="pe-2">Current Query Log Size:</strong>
                           <var class="text-end flex-grow-1 text-nowrap"><?php
                             echo OS_readSize($_RDATA['s_query_log_size'] - $_RDATA['s_cache_size'], true);
                           ?></var>
@@ -2394,13 +2392,13 @@ ORCINUS;
                       <li class="list-group-item">
                         <h4>Search Result Cache</h4>
                         <label class="d-flex lh-lg w-100">
-                          <strong class="pe-2">Currently Cached Searches</strong>
+                          <strong class="pe-2">Currently Cached Searches:</strong>
                           <var class="text-end flex-grow-1 text-nowrap"><?php
                             echo $_RDATA['s_cached_searches'];
                           ?></var>
                         </label>
                         <label class="d-flex lh-lg w-100">
-                          <strong class="pe-2">Current Cache Size
+                          <strong class="pe-2">Current Cache Size:
                             <img src="img/help.svg" alt="Information" class="align-middle svg-icon mb-1"
                               data-bs-toggle="tooltip" data-bs-placement="top" title="The Search Result Cache is cleared after each successful crawl, or you can purge the cache manually below.">
                           </strong>
@@ -2445,13 +2443,13 @@ ORCINUS;
                     <ul class="list-group mb-2">
                       <li class="list-group-item">
                         <label class="d-flex lh-lg w-100">
-                          <strong class="pe-2">Search Database Size</strong>
+                          <strong class="pe-2">Search Database Size:</strong>
                           <var class="text-end flex-grow-1 text-nowrap"><?php
                             echo OS_readSize($_ODATA['sp_crawldata_size'], true);
                           ?></var>
                         </label>
                         <label class="d-flex lh-lg w-100">
-                          <strong class="pe-2">PHP <code>memory_limit</code>
+                          <strong class="pe-2">PHP <code>memory_limit</code>:
                             <img src="img/help.svg" alt="Information" class="align-middle svg-icon mb-1"
                               data-bs-toggle="tooltip" data-bs-placement="top" title="If your search database is large, you may need to increase your PHP memory_limit to successfully export an offline Javascript version. See: config.ini.php">
                           </strong>
@@ -2760,48 +2758,42 @@ ORCINUS;
                   <h3 class="bg-black rounded-top-3 text-white p-2 mb-0">General Statistics</h3>
                   <div class="p-2 border border-1 border-secondary-subtle rounded-bottom-3">
                     <ul class="list-group"><?php
-                      if ($_RDATA['s_hits_per_hour']) {
-                        if ($_RDATA['s_hours_since_oldest_hit'] >= 1) { ?> 
-                          <li class="list-group-item">
-                            <label class="d-flex w-100">
-                              <strong class="pe-2">Searches per Hour</strong>
+                      if ($_RDATA['s_hits_per_hour']) { ?> 
+                        <li class="list-group-item"><?php
+                          if ($_RDATA['s_hours_since_oldest_hit'] >= 1) { ?> 
+                            <label class="d-flex lh-lg w-100">
+                              <strong class="pe-2">Searches per Hour:</strong>
                               <var class="text-end flex-grow-1 text-nowrap"><?php
                                 echo round($_RDATA['s_hits_per_hour'], 1);
                               ?></var>
-                            </label>
-                          </li><?php
-                        }
-                        if ($_RDATA['s_hours_since_oldest_hit'] >= 24) { ?> 
-                          <li class="list-group-item">
-                            <label class="d-flex w-100">
-                              <strong class="pe-2">Searches per Day</strong>
+                            </label><?php
+                          }
+                          if ($_RDATA['s_hours_since_oldest_hit'] >= 24) { ?> 
+                            <label class="d-flex lh-lg w-100">
+                              <strong class="pe-2">Searches per Day:</strong>
                               <var class="text-end flex-grow-1 text-nowrap"><?php
                                 echo round($_RDATA['s_hits_per_hour'] * 24, 1);
                               ?></var>
-                            </label>
-                          </li><?php
-                        }
-                        if ($_RDATA['s_hours_since_oldest_hit'] >= 168) { ?> 
-                          <li class="list-group-item">
-                            <label class="d-flex w-100">
-                              <strong class="pe-2">Searches per Week</strong>
+                            </label><?php
+                          }
+                          if ($_RDATA['s_hours_since_oldest_hit'] >= 168) { ?> 
+                            <label class="d-flex lh-lg w-100">
+                              <strong class="pe-2">Searches per Week:</strong>
                               <var class="text-end flex-grow-1 text-nowrap"><?php
                                 echo round($_RDATA['s_hits_per_hour'] * 24 * 7, 1);
                               ?></var>
-                            </label>
-                          </li><?php
-                        } ?> 
+                            </label><?php
+                          } ?> 
+                        </li>
                         <li class="list-group-item">
-                          <label class="d-flex w-100">
-                            <strong class="pe-2">Average Search Results per Query</strong>
+                          <label class="d-flex lh-lg w-100">
+                            <strong class="pe-2">Average Search Results per Query:</strong>
                             <var class="text-end flex-grow-1 text-nowrap"><?php
                               echo round($_RDATA['q_average_results'], 1);
                             ?></var>
                           </label>
-                        </li>
-                        <li class="list-group-item">
-                          <label class="d-flex w-100">
-                            <strong class="pe-2">Median Search Results per Query</strong>
+                          <label class="d-flex lh-lg w-100">
+                            <strong class="pe-2">Median Search Results per Query:</strong>
                             <var class="text-end flex-grow-1 text-nowrap"><?php
                               echo $_RDATA['q_median_results'];
                             ?></var>
@@ -2868,6 +2860,14 @@ ORCINUS;
                             } ?> 
                           </tbody>
                         </table>
+                      </li>
+                      <li class="list-group-item">
+                        <label class="d-flex lh-lg w-100">
+                          <strong class="pe-2">GeoIP2 Version (<a href="https://github.com/maxmind/GeoIP2-php/releases" title="See latest releases">geoip2.phar</a>):</strong>
+                          <var class="text-end flex-grow-1 text-nowrap"><?php
+                            echo $_RDATA['geoip2_version'];
+                          ?></var>
+                        </label>
                       </li>
                     </ul>
                   </div>
@@ -3091,7 +3091,7 @@ ORCINUS;
                         <ul class="list-group mb-3">
                           <li class="list-group-item">
                             <label class="d-flex flex-column">
-                              <strong class="pe-2">Query Text</strong>
+                              <strong class="pe-2">Query Text:</strong>
                               <var class="overflow-auto" id="os_queries_modal_query"></var>
                             </label>
                           </li>
@@ -3100,14 +3100,14 @@ ORCINUS;
                               <div class="col-sm-6">
                                 <label class="d-flex">
                                   <strong class="pe-2" data-bs-toggle="tooltip" data-bs-placement="top"
-                                    title="Total requests for this query">Hit Count</strong>
+                                    title="Total requests for this query">Hit Count:</strong>
                                   <var class="flex-grow-1 text-end" id="os_queries_modal_hits"></var>
                                 </label>
                               </div>
                               <div class="col-sm-6">
                                 <label class="d-flex">
                                   <strong class="pe-2" data-bs-toggle="tooltip" data-bs-placement="top"
-                                    title="Unique requests for this query based on IP address">Unique IPs</strong>
+                                    title="Unique requests for this query based on IP address">Unique IPs:</strong>
                                   <var class="flex-grow-1 text-end" id="os_queries_modal_hits_unique"></var>
                                 </label>
                               </div>
@@ -3118,19 +3118,19 @@ ORCINUS;
                         <ul class="list-group mb-3">
                           <li class="list-group-item">
                             <label class="d-flex flex-column">
-                              <strong class="pe-2">Date / Time Requested</strong>
+                              <strong class="pe-2">Date / Time Requested:</strong>
                               <var id="os_queries_modal_stamp"></var>
                             </label>
                           </li>
                           <li class="list-group-item">
                             <label class="d-flex">
-                              <strong class="pe-2">Results Returned</strong>
+                              <strong class="pe-2">Results Returned:</strong>
                               <var class="flex-grow-1 text-end" id="os_queries_modal_results"></var>
                             </label>
                           </li>
                           <li class="list-group-item">
                             <label class="d-flex">
-                              <strong class="pe-2 flex-grow-1">From IP Address</strong>
+                              <strong class="pe-2 flex-grow-1">From IP Address:</strong>
                               <var id="os_queries_modal_ip"></var>
                             </label>
                           </li>

@@ -9,7 +9,7 @@ require __DIR__.'/config.ini.php';
 
 // Check PHP version compatibility
 if (PHP_VERSION_ID < 80100)
-  throw new Exception('Orcinus Site Search requires PHP version ">= 8.1.x". You are running '.PHP_VERSION.'.');
+  throw new Exception('Orcinus Site Search requires PHP version ">= 8.1". You are running '.PHP_VERSION.'.');
 
 
 // ***** Connect to the database
@@ -38,7 +38,7 @@ if (preg_match('/^(\d+)\.(\d+)\.(\d+)-?(.*)$/', $_DDATA['version'], $ver)) {
   if (strpos($ver[4], 'MariaDB') === 0) {
     if ((int)$ver[1] < 10 || (!(int)$ver[2] && (int)$ver[3] < 5))
       throw new Exception('Orcinus Site Search requires MariaDB version ">= 10.0.5". You are running '.$_DDATA['version'].'.');
-  } else {
+  } else { // MySQL
     if ((int)$ver[1] < 8 || (!(int)$ver[2] && (int)$ver[3] < 17))
       throw new Exception('Orcinus Site Search requires MySQL version ">= 8.0.17". You are running '.$_DDATA['version'].'.');
   }
@@ -181,7 +181,7 @@ if (!count($testConf->fetchAll())) {
       `sp_data_stored`=0,
       `sp_crawldata_size`=0,
       `sp_pages_stored`=0,
-      `sp_domains`=\'\',
+      `sp_domains`=\'{}\',
       `sp_autodelete`=0,
       `sp_ifmodifiedsince`=1,
       `sp_cookies`=1,
@@ -381,10 +381,8 @@ $err = $odata->errorInfo();
 if ($err[0] == '00000') {
   $odata = $odata->fetchAll();
   if (count($odata)) {
-    foreach ($odata[0] as $key => $value) {
-      $json = json_decode($value, true);
-      $_ODATA[$key] = $json ?? $value;
-    }
+    foreach ($odata[0] as $key => $value)
+      $_ODATA[$key] = json_decode($value, true) ?? $value;
   } else throw new Exception('No data in configuration table');
 } else throw new Exception('Could not read from configuration table: '.$err[2]);
 
@@ -397,6 +395,7 @@ ini_set('mbstring.substitute_character', 'none');
 
 // Determine the correct HTTP scheme by which we are accessing the page
 if (!isset($_SERVER['REQUEST_SCHEME'])) {
+  $_SERVER['REQUEST_SCHEME'] = '';
   if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
     $_SERVER['REQUEST_SCHEME'] = $_SERVER['HTTP_X_FORWARDED_PROTO'];
   } else if (!empty($_SERVER['HTTPS'])) {
@@ -404,8 +403,9 @@ if (!isset($_SERVER['REQUEST_SCHEME'])) {
   } else if (!empty($_SERVER['SERVER_PORT'])) {
     if ($_SERVER['SERVER_PORT'] == 443) {
       $_SERVER['REQUEST_SCHEME'] = 'https';
-    } else $_SERVER['REQUEST_SCHEME'] = 'http';
-  } else $_SERVER['REQUEST_SCHEME'] = '';
+    } else if ($_SERVER['SERVER_PORT'] == 80)
+      $_SERVER['REQUEST_SCHEME'] = 'http';
+  }
 }
 
 // ***** Determine the install domain from run location
@@ -418,10 +418,10 @@ if (!$_ODATA['admin_install_domain'] ||
       if ($psuri && !empty($psuri['port']))
         $base .= ':'.$psuri['port'];
     } else if (!empty($_SERVER['SERVER_PORT'])) {
-      if ($_SERVER['SERVER_PORT'] == '80') {
+      if ($_SERVER['SERVER_PORT'] == 80) {
         if ($_SERVER['REQUEST_SCHEME'] != 'http')
           $base .= ':'.$_SERVER['SERVER_PORT'];
-      } else if ($_SERVER['SERVER_PORT'] == '443') {
+      } else if ($_SERVER['SERVER_PORT'] == 443) {
         if ($_SERVER['REQUEST_SCHEME'] != 'https')
           $base .= ':'.$_SERVER['SERVER_PORT'];
       } else $base .= ':'.$_SERVER['SERVER_PORT'];
@@ -458,7 +458,7 @@ if (class_exists('PHPMailer\PHPMailer\PHPMailer')) {
   $_MAIL = new PHPMailer\PHPMailer\PHPMailer();
   if ($_ODATA['admin_from']) {
     $_MAIL->From = $_ODATA['admin_from'];
-    $_MAIL->FromName = "Orcinus Crawler";
+    $_MAIL->FromName = 'Orcinus Crawler';
   }
   $_MAIL->CharSet = $_ODATA['s_charset'];
   if (count($ad = $_MAIL->parseAddresses($_ODATA['admin_email'])))
@@ -632,9 +632,8 @@ $deleteold = $_DDATA['pdo']->prepare(
 );
 $deleteold->execute(array('cutoff' => time() - $_ODATA['s_limit_query_log'] * 604800));
 $err = $deleteold->errorInfo();
-if ($err[0] != '00000')
-  if (isset($_SESSION['error']))
-    $_SESSION['error'][] = 'Database error purging old records from the query log: '.$err[2];
+if ($err[0] != '00000' && isset($_SESSION['error']))
+  $_SESSION['error'][] = 'Database error purging old records from the query log: '.$err[2];
 
 
 // Reduce search result cache size to within limits
@@ -729,11 +728,6 @@ if ($err[0] == '00000') {
   $_SESSION['error'][] = 'Could not read status data from search database: '.$err[2];
 
 
-if (!is_array($_ODATA['sp_domains'])) $_ODATA['sp_domains'] = array();
-if (count($_ODATA['sp_domains']) == 1 && $_ODATA['jw_hostname'] != key($_ODATA['sp_domains']))
-  OS_setValue('jw_hostname', key($_ODATA['sp_domains']));
-
-
 $_RDATA['sp_punct'] = array(
   "\u{00AB}" => '"',  "\u{00AD}" => '-',   "\u{00B4}" => '\'', "\u{00B7}" => '•',
   "\u{00BB}" => '"',  "\u{00F7}" => '/',   "\u{01C0}" => '|',  "\u{01C3}" => '!',
@@ -823,11 +817,11 @@ if (isset($_SERVER['REQUEST_URI']))
   $_SERVER['REQUEST_URI'] = preg_replace('/\?.*$/', '', $_SERVER['REQUEST_URI']);
 
 // Make sure REQUEST_METHOD is set if called via CLI
-if (empty($_SERVER['REQUEST_METHOD'])) $_SERVER['REQUEST_METHOD'] = '';
+$_SERVER['REQUEST_METHOD'] = $_SERVER['REQUEST_METHOD'] ?? '';
 
 // Locate the sitemap file if given
 if (!$_ODATA['sp_sitemap_hostname'] && !empty($_SERVER['HTTP_HOST']))
-    OS_setValue('sp_sitemap_hostname', $_SERVER['HTTP_HOST']);
+  OS_setValue('sp_sitemap_hostname', $_SERVER['HTTP_HOST']);
 
 if ($_ODATA['sp_sitemap_file']) {
   $sitemapPath = ($_ODATA['sp_sitemap_file'][0] == '/') ? $_ODATA['admin_install_root'] : __DIR__.'/';

@@ -14,7 +14,7 @@ $_SDATA = array(
     'raw' => ''
   ),
   'results' => array(),
-  'tag' => 'mark',
+  'tag' => 'mark', // HTML tag to highlight matches
   'json' => array(),
   'pages' => 1,
   'time' => microtime(true)
@@ -115,7 +115,7 @@ if ($_RDATA['s_searchable_pages']) {
     }
   }
   
-  if (empty($_REQUEST['q'])) $_REQUEST['q'] = '';
+  $_REQUEST['q'] = $_REQUEST['q'] ?? '';
 
   $_REQUEST['q'] = preg_replace(array('/\s/', '/ {2,}/'), ' ', trim($_REQUEST['q']));
 
@@ -238,15 +238,12 @@ if ($_RDATA['s_searchable_pages']) {
           $_SDATA['cache']['data'] = $checkCache[0]['cache'];
 
           // Try to gzunzip the cache data
-          if (function_exists('gzuncompress')) {
-            $checkGZ = gzuncompress($_SDATA['cache']['data']);
-            if ($checkGZ) $_SDATA['cache']['data'] = $checkGZ;
-          }
+          if (function_exists('gzuncompress'))
+            $_SDATA['cache']['data'] = gzuncompress($_SDATA['cache']['data']) ?? $_SDATA['cache']['data'];
 
           // Try to json_decode the cache data
           // If this step fails, assume there is no cache data
-          $checkJS = json_decode($_SDATA['cache']['data'], true);
-          $_SDATA['cache']['data'] = $checkJS ?? '';
+          $_SDATA['cache']['data'] = json_decode($_SDATA['cache']['data'], true) ?? '';
         }
 
       // Database error accessing the query log
@@ -669,17 +666,14 @@ if ($_RDATA['s_searchable_pages']) {
                 $_RESULT->filetype = $type;
 
           // Don't display filetype of HTML pages
-          if (!$_ODATA['s_show_filetype_html'])
-            if ($_RESULT->filetype == 'HTML')
-              $_RESULT->filetype = '';
+          if (!$_ODATA['s_show_filetype_html'] && $_RESULT->filetype == 'HTML')
+            $_RESULT->filetype = '';
 
           if ($_RESULT->filetype)
             $_RESULT->filetype = '['.$_RESULT->filetype.']';
 
           // Don't display category if there's only one
-          if (count($_RDATA['s_category_list']) > 2) {
-            $_RESULT->category = $result['category'];
-          } else $_RESULT->category = '';
+          $_RESULT->category = (count($_RDATA['s_category_list']) > 2) ? $result['category'] : '';
 
           // Format relevance
           $_RESULT->relevance = number_format($result['relevance'], 2, '.', '');
@@ -850,8 +844,7 @@ if ($_ODATA['sp_interval'] && !$_ODATA['sp_crawling'] &&
     OS_setValue('sp_key', $md5);
 
     // ***** Initialize the cURL connection
-    $_cURL = OS_getConnection();
-    if ($_cURL) {
+    if ($_cURL = OS_getConnection()) {
 
       // Customize this cURL connection
       curl_setopt($_cURL, CURLOPT_POST, true);
