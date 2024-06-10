@@ -13,6 +13,13 @@ require __DIR__.'/config.php';
 // they want!
 $_RDATA['debug'] = false;
 
+// The timeout value is the maximum time (in seconds) the Admin UI will
+// wait for the crawler to parse a single file before assuming it has
+// halted improperly. On slower servers, or if you are parsing very
+// large PDFs, you may need to increase this value. This value has no
+// effect on automatically triggered crawls.
+$_RDATA['timeout'] = 5;
+
 
 /**
  * Log a notice (0), message (1) or error (2)
@@ -460,6 +467,10 @@ function OS_crawlCleanUp() {
 if (!($_cURL = OS_getConnection()))
   die('cURL functions are not enabled; cannot perform crawl');
 
+// Choose a random integer for this process
+$_RDATA['process_unique_int'] = mt_rand(1, 4294967295);
+$_RDATA['timeout'] = $_RDATA['timeout'] + ($_RDATA['timeout'] * $_ODATA['sp_sleep'] / 1000);
+
 
 
 // ***** Accept incoming commands by REQUEST_METHOD
@@ -487,7 +498,7 @@ switch ($_SERVER['REQUEST_METHOD']) {
               );
 
             // Go crawl!
-            } else OS_setValue('sp_crawling', getmypid());
+            } else OS_setValue('sp_crawling', $_RDATA['process_unique_int']);
 
           } else {
             $response = array(
@@ -516,7 +527,37 @@ switch ($_SERVER['REQUEST_METHOD']) {
           }
 
           // If crawl is in progress, return just the last 15 lines
-          if ($_ODATA['sp_crawling']) $lines = array_slice($lines, -15);
+          if (OS_getValue('sp_crawling')) {
+            // If the cancel flag has been set for 'timeout' seconds,
+            // or the 'sp_progress' timer exceeds 'timeout' seconds,
+            // stop the crawler. The delay gives the crawler a chance
+            // to halt properly on its own, but if it has exited
+            // without shutting down properly, its process will no
+            // longer be active to receive the flag. In that case a
+            // crawler reset is forced here.
+            if ((OS_getValue('sp_cancel') && $_ODATA['sp_cancel'] > $_RDATA['timeout']) ||
+                ($_ODATA['sp_progress'][0] < $_ODATA['sp_progress'][1] && $_ODATA['sp_progress'][3] > $_RDATA['timeout'])) {
+              OS_setValue('sp_crawling', 0);
+
+              $postReason = ($_ODATA['sp_cancel']) ? 'Crawl canceled manually by user' : 'The crawler halted unexpectedly';
+              $lines[] = $postReason;
+
+              if (strpos($_ODATA['sp_log'], "\n") === false && file_exists($_ODATA['sp_log'])) {
+                $log = file_get_contents($_ODATA['sp_log']);
+                OS_setValue('sp_log', $log."\n".'[ERROR] '.$postReason);
+              } else OS_setValue('sp_log', '[ERROR] '.$postReason);
+              OS_setValue('sp_time_last', $_ODATA['sp_time_end'] - $_ODATA['sp_time_start']);
+            }
+
+            // Increment the 'sp_cancel' timeout value
+            if ($_ODATA['sp_cancel']) OS_setValue('sp_cancel', ++$_ODATA['sp_cancel']);
+
+            // Increment the 'sp_progress' timeout value
+            $_ODATA['sp_progress'][3]++;
+            OS_setValue('sp_progress', $_ODATA['sp_progress']);
+
+            $lines = array_slice($lines, -15);
+          }
 
           $response = array(
             'status' => ($_ODATA['sp_crawling']) ? 'Crawling' : 'Complete',
@@ -578,8 +619,10 @@ switch ($_SERVER['REQUEST_METHOD']) {
 
       }
 
-      header('Content-type: application/json; charset='.strtolower($_ODATA['s_charset']));
-      die(json_encode($response, JSON_INVALID_UTF8_IGNORE));
+      if ($response) {
+        header('Content-type: application/json; charset='.strtolower($_ODATA['s_charset']));
+        die(json_encode($response, JSON_INVALID_UTF8_IGNORE));
+      }
 
     // Don't do anything for normal POST request
     // These are usually sent by <form> HTML elements
@@ -601,7 +644,7 @@ switch ($_SERVER['REQUEST_METHOD']) {
         } else $_RDATA['sp_log_clilevel'] = 2;
 
         // Start a crawl
-        OS_setValue('sp_crawling', getmypid());
+        OS_setValue('sp_crawling', $_RDATA['process_unique_int']);
 
       } else die('Crawler is already running; exiting...');
     } else die($_ODATA['sp_useragent']);
@@ -617,7 +660,7 @@ switch ($_SERVER['REQUEST_METHOD']) {
         die('Crawler is already running; exiting...');
 
       // Start a crawl
-      OS_setValue('sp_crawling', getmypid());
+      OS_setValue('sp_crawling', $_RDATA['process_unique_int']);
 
     } else die($_ODATA['sp_useragent']);
     break;
@@ -632,7 +675,7 @@ switch ($_SERVER['REQUEST_METHOD']) {
 
 // One last check for a race condition
 sleep(1);
-if (OS_getValue('sp_crawling') != getmypid())
+if (OS_getValue('sp_crawling') != $_RDATA['process_unique_int'])
   die('Crawler is already running; exiting...');
 
 
