@@ -526,8 +526,9 @@ switch ($_SERVER['REQUEST_METHOD']) {
             }
           }
 
-          // If crawl is in progress, return just the last 15 lines
+          // If the crawl is currently in progress
           if (OS_getValue('sp_crawling')) {
+
             // If the cancel flag has been set for 'timeout' seconds,
             // or the 'sp_progress' timer exceeds 'timeout' seconds,
             // stop the crawler. The delay gives the crawler a chance
@@ -540,23 +541,35 @@ switch ($_SERVER['REQUEST_METHOD']) {
               OS_setValue('sp_crawling', 0);
 
               $postReason = ($_ODATA['sp_cancel']) ? 'Crawl canceled manually by user' : 'The crawler halted unexpectedly';
-              $lines[] = $postReason;
+              $lines[] = '[ERROR] '.$postReason;
 
               if (strpos($_ODATA['sp_log'], "\n") === false && file_exists($_ODATA['sp_log'])) {
                 $log = file_get_contents($_ODATA['sp_log']);
                 OS_setValue('sp_log', $log."\n".'[ERROR] '.$postReason);
               } else OS_setValue('sp_log', '[ERROR] '.$postReason);
               OS_setValue('sp_time_last', $_ODATA['sp_time_end'] - $_ODATA['sp_time_start']);
+
+              // If this wasn't a user initiated cancel, send failure
+              // email to the admin(s)
+              if (!$_ODATA['sp_cancel'] && $_MAIL && count($_MAIL->getAllRecipientAddresses()) && $_ODATA['sp_email_failure']) {
+                $_MAIL->Subject = 'Orcinus Site Search Crawler: '.$postReason;
+                $_MAIL->Body = implode("   \r\n", preg_grep('/^[\[\*\w\d]/', explode("\n", $_ODATA['sp_log'])));
+                if (!$_MAIL->Send()) $lines[] = '[ERROR] Could not send notification email';
+              }
+
+            // No reason to stop the crawl
+            } else {
+
+              // If already > 0, increment the 'sp_cancel' timeout value
+              if ($_ODATA['sp_cancel']) OS_setValue('sp_cancel', ++$_ODATA['sp_cancel']);
+
+              // Increment the 'sp_progress' timeout value
+              $_ODATA['sp_progress'][3]++;
+              OS_setValue('sp_progress', $_ODATA['sp_progress']);
+
+              // Return only the last 15 lines while crawl is in progress
+              $lines = array_slice($lines, -15);
             }
-
-            // Increment the 'sp_cancel' timeout value
-            if ($_ODATA['sp_cancel']) OS_setValue('sp_cancel', ++$_ODATA['sp_cancel']);
-
-            // Increment the 'sp_progress' timeout value
-            $_ODATA['sp_progress'][3]++;
-            OS_setValue('sp_progress', $_ODATA['sp_progress']);
-
-            $lines = array_slice($lines, -15);
           }
 
           $response = array(
@@ -580,7 +593,7 @@ switch ($_SERVER['REQUEST_METHOD']) {
             if (!empty($_POST->force) || time() - $_ODATA['sp_time_start'] > $_ODATA['sp_timeout_crawl']) {
               OS_setValue('sp_crawling', 0);
 
-              $postReason = (!empty($_POST->reason)) ? $_POST->reason : 'The crawler halted unexpectedly';
+              $postReason = $_POST->reason ?? 'The crawler halted unexpectedly';
 
               if (strpos($_ODATA['sp_log'], "\n") === false && file_exists($_ODATA['sp_log'])) {
                 $log = file_get_contents($_ODATA['sp_log']);
@@ -590,7 +603,7 @@ switch ($_SERVER['REQUEST_METHOD']) {
 
               // Send failure email to the admin(s)
               if ($_MAIL && count($_MAIL->getAllRecipientAddresses()) && $_ODATA['sp_email_failure']) {
-                $_MAIL->Subject = 'Orcinus Site Search Crawler: Crawler halted unexpectedly';
+                $_MAIL->Subject = 'Orcinus Site Search Crawler: '.$postReason;
                 $_MAIL->Body = implode("   \r\n", preg_grep('/^[\[\*\w\d]/', explode("\n", $_ODATA['sp_log'])));
                 if (!$_MAIL->Send()) OS_setValue('sp_log', $_ODATA['sp_log']."\n".'[ERROR] Could not send notification email');
               }
