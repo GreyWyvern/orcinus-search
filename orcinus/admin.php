@@ -227,8 +227,7 @@ if (!$_SESSION['admin_username']) {
 
       $response = array();
 
-      if (empty($_POST->action)) $_POST->action = '';
-      switch ($_POST->action) {
+      switch ($_POST->action ?? '') {
 
         // ***** Set the key for initiating the crawler
         case 'setkey':
@@ -253,8 +252,7 @@ if (!$_SESSION['admin_username']) {
 
         // ***** Download a text or csv file
         case 'download':
-          if (empty($_POST->content)) $_POST->content = '';
-          switch ($_POST->content) {
+          switch ($_POST->content ?? '') {
 
             // Download a text file of the latest crawl log
             case 'crawl_log':
@@ -262,18 +260,17 @@ if (!$_SESSION['admin_username']) {
                 if ($_ODATA['sp_time_end']) {
                   $lines = explode("\n", $_ODATA['sp_log']);
 
-                  if (empty($_POST->grep)) $_POST->grep = '';
-                  switch ($_POST->grep) {
+                  switch ($_POST->grep ?? '') {
                     case 'all': break;
                     case 'errors': $lines = preg_grep('/^[\[\*]/', $lines); break;
                     default: $lines = preg_grep('/^[\[\*\w\d]/', $lines);
                   }
 
-                  if ($_POST->grep) $_POST->grep = '-'.$_POST->grep;
+                  $postGrep = ($_POST->grep) ? '-'.$_POST->grep : '';
 
                   header('Content-type: text/plain; charset='.strtolower($_ODATA['s_charset']));
                   header('Content-disposition: attachment; filename="'.
-                    'crawl-log'.$_POST->grep.'_'.date('Y-m-d', $_ODATA['sp_time_end']).'.txt"');
+                    'crawl-log'.$postGrep.'_'.date('Y-m-d', $_ODATA['sp_time_end']).'.txt"');
 
                   // UTF-8 byte order mark
                   if (strtolower($_ODATA['s_charset']) == 'utf-8')
@@ -416,12 +413,11 @@ if (!$_SESSION['admin_username']) {
         // ***** Set an admin UI session variable
         case 'setsession':
           if (!empty($_POST->variable) && isset($_SESSION[$_POST->variable])) {
-            if (empty($_POST->value)) $_POST->value = '';
-            $_SESSION[$_POST->variable] = $_POST->value;
+            $_SESSION[$_POST->variable] = $_POST->value ?? '';
 
             $response = array(
               'status' => 'Success',
-              'message' => $_POST->value
+              'message' => $_SESSION[$_POST->variable]
             );
 
           } else {
@@ -434,8 +430,7 @@ if (!$_SESSION['admin_username']) {
 
         // ***** Not used?
         case 'fetch':
-          if (empty($_POST->value)) $_POST->value = '';
-          if (!empty($_ODATA[$_POST->value])) {
+          if (!empty($_POST->value) && !empty($_ODATA[$_POST->value])) {
             $response = array(
               'status' => 'Success',
               'message' => trim($_ODATA[$_POST->value])
