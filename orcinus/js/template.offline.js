@@ -1,7 +1,6 @@
 /* ********************************************************************
  * Orcinus Site Search {{version}} - Offline Javascript Search File
  *  - Generated {{date}}
- *  - Requires mustache.js
  *
  */
 
@@ -544,7 +543,10 @@ if (os_crawldata.length) {
 
 } // No searchable pages in search database
 
-document.write(mustache.render(
-  {{{s_result_template}}},
-  os_TEMPLATE
-));
+// If the mustache class exists, output the result template
+if (typeof mustache === 'object') {
+  document.write(mustache.render(
+    {{{s_result_template}}},
+    os_TEMPLATE
+  ));
+}

@@ -10,7 +10,7 @@ let pathOffline = scrElem.src.replace(/\/orcinus\/js\/[^\/]+$/, '');
 
 let remoteValue;
 if (typeof os_return_all !== 'function') {
-  function os_return_all() { return []; }
+  var os_return_all = function() { return []; }
   remoteValue = {
     url: pathOnline + '?q=%QUERY&json',
     wildcard: '%QUERY'
