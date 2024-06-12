@@ -544,7 +544,7 @@ if (os_crawldata.length) {
 } // No searchable pages in search database
 
 // If the mustache class exists, output the result template
-if (typeof mustache === 'object') {
+if (mustache === Object(mustache)) {
   document.write(mustache.render(
     {{{s_result_template}}},
     os_TEMPLATE
