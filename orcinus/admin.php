@@ -235,7 +235,7 @@ if (!$_SESSION['admin_username']) {
             $md5 = md5(hrtime(true));
             OS_setValue('sp_key', $md5);
             OS_setValue('sp_log', '');
-            OS_setValue('sp_progress', array(0, 1, false));
+            OS_setValue('sp_progress', array(0, 1, false, 0));
             $response = array(
               'status' => 'Success',
               'message' => 'Key set to initiate crawler',

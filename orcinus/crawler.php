@@ -703,7 +703,7 @@ if (function_exists('apache_setenv'))
 OS_setValue('sp_cancel', 0);
 OS_setValue('sp_time_start', time());
 
-OS_setValue('sp_progress', array(0, 1, false));
+OS_setValue('sp_progress', array(0, 1, false, 0));
 OS_setValue('sp_pages_stored', 0);
 OS_setValue('sp_data_transferred', 0);
 OS_setValue('sp_data_stored', 0);
@@ -1050,7 +1050,8 @@ while (count($_RDATA['sp_queue'])) {
   OS_setValue('sp_progress', array(
     count($_RDATA['sp_links']),
     count($_RDATA['sp_links']) + count($_RDATA['sp_queue']),
-    $_RDATA['sp_resumed']
+    $_RDATA['sp_resumed'],
+    0
   ));
   OS_setValue('sp_time_end', time());
 
