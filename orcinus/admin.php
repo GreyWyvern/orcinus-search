@@ -114,19 +114,14 @@ $_GEOIP2 = false;
 if (!class_exists('GeoIp2\Database\Reader') && file_exists(__DIR__.'/geoip2/geoip2.phar'))
   include __DIR__.'/geoip2/geoip2.phar';
 if (class_exists('GeoIp2\Database\Reader') && file_exists(__DIR__.'/geoip2/GeoLite2-Country.mmdb')) {
-  $_GEOIP2 = new GeoIp2\Database\Reader(__DIR__.'/geoip2/GeoLite2-Country.mmdb');
-
-  $_RDATA['geoip2_version'] = GeoIp2\WebService\Client::VERSION;
-  $_RDATA['addGeo'] = $_DDATA['pdo']->prepare(
-    'UPDATE `'.$_DDATA['tbprefix'].'query` SET `geo`=:geo WHERE `ip`=:ip;'
-  );
-  $_RDATA['geocache'] = array('unk' => new stdClass());
-  $_RDATA['geocache']['unk']->names = array('en' => 'Unknown');
-
-  // Check if the geolocation database is more than a year old
-  $time = filemtime(__DIR__.'/geoip2/GeoLite2-Country.mmdb');
-  if (isset($_SESSION['message']) && (time() - $time) > 31536000)
-    $_SESSION['message'][] = 'Your geolocation database is out of date. You should consider getting the latest GeoLite2-Country.mmdb from Maxmind.com.';
+  if ($_GEOIP2 = new GeoIp2\Database\Reader(__DIR__.'/geoip2/GeoLite2-Country.mmdb')) {
+    $_RDATA['geoip2_version'] = GeoIp2\WebService\Client::VERSION;
+    $_RDATA['addGeo'] = $_DDATA['pdo']->prepare(
+      'UPDATE `'.$_DDATA['tbprefix'].'query` SET `geo`=:geo WHERE `ip`=:ip;'
+    );
+    $_RDATA['geocache'] = array('unk' => new stdClass());
+    $_RDATA['geocache']['unk']->names = array('en' => 'Unknown');
+  }
 }
 
 
@@ -1435,46 +1430,52 @@ ORCINUS;
         }
       } else $_SESSION['error'][] = 'Could not read result counts from query log.';
 
-      $locCount = array();
-      $select = $_DDATA['pdo']->query(
-        'SELECT `ip`, COUNT(*) AS `ips`, `geo`
-          FROM `'.$_DDATA['tbprefix'].'query`
-            GROUP BY `ip`;'
-      );
-      $err = $select->errorInfo();
-      if ($err[0] == '00000') {
-        foreach ($select as $row) {
+      if ($_GEOIP2) {
+        // Check if the geolocation database is more than a year old
+        if ((time() - filemtime(__DIR__.'/geoip2/GeoLite2-Country.mmdb')) > 31536000)
+          $_SESSION['message'][] = 'Your geolocation database is out of date. You should consider getting the latest GeoLite2-Country.mmdb from Maxmind.com.';
 
-          // If we found a valid geolocation for this IP, then
-          // add the count to the tally
-          if ($geo = OS_getGeo($row)) {
-            if (empty($locCount[$geo->isoCode])) {
-              $locCount[$geo->isoCode] = $row['ips'];
-            } else $locCount[$geo->isoCode] += $row['ips'];
+        $_RDATA['geo_loc_count'] = array();
+        $select = $_DDATA['pdo']->query(
+          'SELECT `ip`, COUNT(*) AS `ips`, `geo`
+            FROM `'.$_DDATA['tbprefix'].'query`
+              GROUP BY `ip`;'
+        );
+        $err = $select->errorInfo();
+        if ($err[0] == '00000') {
+          foreach ($select as $row) {
 
-          // If we didn't find a valid geolocation, add these IPs
-          // to the "Unknown" pile
-          } else {
-            if (empty($locCount['unk'])) {
-              $locCount['unk'] = $row['ips'];
-            } else $locCount['unk'] += $row['ips'];
+            // If we found a valid geolocation for this IP, then
+            // add the count to the tally
+            if ($geo = OS_getGeo($row)) {
+              if (empty($_RDATA['geo_loc_count'][$geo->isoCode])) {
+                $_RDATA['geo_loc_count'][$geo->isoCode] = $row['ips'];
+              } else $_RDATA['geo_loc_count'][$geo->isoCode] += $row['ips'];
+
+            // If we didn't find a valid geolocation, add these IPs
+            // to the "Unknown" pile
+            } else {
+              if (empty($_RDATA['geo_loc_count']['unk'])) {
+                $_RDATA['geo_loc_count']['unk'] = $row['ips'];
+              } else $_RDATA['geo_loc_count']['unk'] += $row['ips'];
+            }
           }
+          arsort($_RDATA['geo_loc_count']);
         }
-        arsort($locCount);
       }
 
       $weekCount = min($_ODATA['s_limit_query_log'], ceil($_RDATA['s_hours_since_oldest_hit'] / 168));
 
       $select = $_DDATA['pdo']->query('SELECT COUNT(*) as `searches`, DAYNAME(FROM_UNIXTIME(`stamp`)) as `weekday` FROM `'.$_DDATA['tbprefix'].'query` GROUP BY `weekday`;')->fetchAll();
-      $dayWalker = array('Sun' => 0, 'Mon' => 0, 'Tue' => 0, 'Wed' => 0, 'Thu' => 0, 'Fri' => 0, 'Sat' => 0);
+      $_RDATA['day_walker'] = array('Sun' => 0, 'Mon' => 0, 'Tue' => 0, 'Wed' => 0, 'Thu' => 0, 'Fri' => 0, 'Sat' => 0);
       foreach ($select as $day)
-        $dayWalker[substr($day['weekday'], 0, 3)] = round($day['searches'] / $weekCount, 1);
+        $_RDATA['day_walker'][substr($day['weekday'], 0, 3)] = round($day['searches'] / $weekCount, 1);
 
       $select = $_DDATA['pdo']->query('SELECT COUNT(*) as `searches`, `stamp` FROM `'.$_DDATA['tbprefix'].'query` GROUP BY HOUR(FROM_UNIXTIME(`stamp`));')->fetchAll();
-      for ($x = 0, $days = array(), $hourWalker = array(); $x < 24; $x++)
-        $hourWalker[str_pad((string)$x, 2, '0', STR_PAD_LEFT).':00'] = 0;
+      for ($x = 0, $days = array(), $_RDATA['hour_walker'] = array(); $x < 24; $x++)
+        $_RDATA['hour_walker'][str_pad((string)$x, 2, '0', STR_PAD_LEFT).':00'] = 0;
       foreach ($select as $hour)
-        $hourWalker[date('H:00', $hour['stamp'])] = round($hour['searches'] / ($weekCount * 7), 1);
+        $_RDATA['hour_walker'][date('H:00', $hour['stamp'])] = round($hour['searches'] / ($weekCount * 7), 1);
       break;
 
     case 'queries':
@@ -2822,8 +2823,8 @@ ORCINUS;
                           </thead>
                           <tbody><?php
                             $top10 = 0;
-                            foreach ($locCount as $iso => $searches) {
-                              if ($top10++ < 10 || $iso == array_key_last($locCount)) { ?> 
+                            foreach ($_RDATA['geo_loc_count'] as $iso => $searches) {
+                              if ($top10++ < 10 || $iso == array_key_last($_RDATA['geo_loc_count'])) { ?> 
                                 <tr>
                                   <th scope="row"><?php
                                     if (file_exists(__DIR__.'/img/flags/'.strtolower($iso).'.png')) { ?> 
@@ -2834,11 +2835,11 @@ ORCINUS;
                                     <span class="align-middle"><?php echo $_RDATA['geocache'][$iso]->names['en']; ?></span>
                                   </th>
                                   <td class="text-end"><?php echo $searches; ?></td>
-                                  <td class="text-center"><small>(<?php echo round($searches / array_sum($locCount) * 100, 1); ?>%)</small></td>
+                                  <td class="text-center"><small>(<?php echo round($searches / array_sum($_RDATA['geo_loc_count']) * 100, 1); ?>%)</small></td>
                                 </tr><?php
                               } else {
                                 $capture = false; $hits = 0;
-                                foreach ($locCount as $iso2 => $searches2) {
+                                foreach ($_RDATA['geo_loc_count'] as $iso2 => $searches2) {
                                   if ($iso2 == $iso) $capture = true;
                                   if ($capture) $hits += $searches2;
                                 } ?> 
@@ -2848,7 +2849,7 @@ ORCINUS;
                                     <span class="align-middle">Other</span>
                                   </th>
                                   <td class="text-end"><?php echo $hits; ?></td>
-                                  <td class="text-center"><small>(<?php echo round($hits / array_sum($locCount) * 100, 1); ?>%)</small></td>
+                                  <td class="text-center"><small>(<?php echo round($hits / array_sum($_RDATA['geo_loc_count']) * 100, 1); ?>%)</small></td>
                                 </tr><?php
                                 break;
                               }
@@ -2882,10 +2883,10 @@ ORCINUS;
                         <h4>Searches by Day of Week</h4>
                         <table class="bar-graph d-flex align-items-end position-relative w-100 gap-1 pt-4 mb-5">
                           <tbody class="flex-fill d-flex gap-3" style="height:14em;"><?php
-                            foreach ($dayWalker as $day => $value) { ?> 
+                            foreach ($_RDATA['day_walker'] as $day => $value) { ?> 
                               <tr class="flex-fill d-flex flex-column justify-content-end<?php
-                                if ($day == array_key_first($dayWalker)) echo ' ps-2';
-                                if ($day == array_key_last($dayWalker)) echo ' pe-2'; ?>">
+                                if ($day == array_key_first($_RDATA['day_walker'])) echo ' ps-2';
+                                if ($day == array_key_last($_RDATA['day_walker'])) echo ' pe-2'; ?>">
                                 <th class="position-relative p-0">
                                   <span class="position-absolute top-0 start-50 translate-middle-x"><?php echo $day; ?></span>
                                 </th>
@@ -2903,13 +2904,13 @@ ORCINUS;
                         <h4>Searches by Time of Day</h4>
                         <table class="bar-graph d-flex align-items-end position-relative w-100 gap-1 pt-4 mb-5">
                           <tbody class="flex-fill d-flex gap-1" style="height:14em;"><?php
-                            foreach ($hourWalker as $hour => $value) { ?> 
+                            foreach ($_RDATA['hour_walker'] as $hour => $value) { ?> 
                               <tr class="flex-fill d-flex flex-column justify-content-end<?php
-                                if ($hour == array_key_first($hourWalker)) echo ' ps-2';
-                                if ($hour == array_key_last($hourWalker)) echo ' pe-2'; ?>">
+                                if ($hour == array_key_first($_RDATA['hour_walker'])) echo ' ps-2';
+                                if ($hour == array_key_last($_RDATA['hour_walker'])) echo ' pe-2'; ?>">
                                 <th class="position-relative p-0">
                                   <time class="position-absolute top-0 start-50 translate-middle-x <?php
-                                    echo (!((int)$hour % 6) || $hour == array_key_last($hourWalker)) ? 'd-block' : 'd-none';
+                                    echo (!((int)$hour % 6) || $hour == array_key_last($_RDATA['hour_walker'])) ? 'd-block' : 'd-none';
                                     ?>"><?php echo $hour; ?></time>
                                 </th>
                                 <td class="order-first position-relative bg-secondary bg-gradient p-0" data-value="<?php echo $value; ?>" title="<?php echo $hour; ?>">
