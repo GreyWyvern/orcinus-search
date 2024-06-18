@@ -18,7 +18,7 @@ $_RDATA['debug'] = false;
 // halted improperly. On slower servers, or if you are parsing very
 // large PDFs, you may need to increase this value. This value has no
 // effect on automatically triggered crawls.
-$_RDATA['timeout'] = 5;
+$_RDATA['timeout'] = 10;
 
 
 /**

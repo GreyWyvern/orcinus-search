@@ -256,12 +256,19 @@ if (!$_SESSION['admin_username']) {
                   $lines = explode("\n", $_ODATA['sp_log']);
 
                   switch ($_POST->grep ?? '') {
-                    case 'all': break;
-                    case 'errors': $lines = preg_grep('/^[\[\*]/', $lines); break;
-                    default: $lines = preg_grep('/^[\[\*\w\d]/', $lines);
-                  }
+                    case 'all':
+                      $postGrep = '-all';
+                      break;
 
-                  $postGrep = ($_POST->grep) ? '-'.$_POST->grep : '';
+                    case 'errors':
+                      $lines = preg_grep('/^[\[\*]/', $lines);
+                      $postGrep = '-errors';
+                      break;
+
+                    default:
+                      $lines = preg_grep('/^[\[\*\w\d]/', $lines);
+                      $postGrep = '';
+                  }
 
                   header('Content-type: text/plain; charset='.strtolower($_ODATA['s_charset']));
                   header('Content-disposition: attachment; filename="'.
