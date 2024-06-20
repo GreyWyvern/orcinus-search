@@ -511,6 +511,7 @@ if (queriesModal) {
     Object.keys(values).forEach(keys => {
       let dd = document.getElementById('os_queries_modal_' + keys);
       dd.innerHTML = values[keys];
+      if (keys == 'ip') dd.querySelector('a').firstChild.nodeValue = hidden_ip.value;
     });
   }, false);
 }
