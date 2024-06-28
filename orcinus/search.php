@@ -737,7 +737,7 @@ if ($_RDATA['s_searchable_pages']) {
           // Append text fragment(s) to the URL if applicable
           if ($_ODATA['s_text_fragments'] && count($result['fragment'])) {
             $result['fragment'] = array_map(function($a) {
-              return str_replace(array(',', '-'), array('%2C', '%2D'), urlencode($a));
+              return str_replace('-', '%2D', rawurlencode($a));
             }, array_values(array_unique($result['fragment'])));
             $_RESULT->url .= '#:~:text='.implode('&text=', $result['fragment']);
           }

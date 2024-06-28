@@ -3133,7 +3133,7 @@ ORCINUS;
                           </li>
                           <li class="list-group-item">
                             <label class="d-flex">
-                              <strong class="pe-2 flex-grow-1">From IP Address:</strong>
+                              <strong class="pe-2 flex-grow-1">IP Address:</strong>
                               <var id="os_queries_modal_ip"></var>
                             </label>
                           </li>

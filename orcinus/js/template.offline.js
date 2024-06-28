@@ -503,7 +503,7 @@ if (os_crawldata.length) {
               return a.indexOf(v) === i;
             });
             resultsPage[x].fragment = resultsPage[x].fragment.map(function(x) {
-              return x.replace(',', '%2C').replace('-', '%2D');
+              return encodeURIComponent(x).replace('-', '%2D');
             });
             result.url += '#:~:text=' + resultsPage[x].fragment.join('&text=');
           }
