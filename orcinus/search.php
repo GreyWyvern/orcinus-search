@@ -40,7 +40,7 @@ foreach ($_ODATA['s_weights'] as $key => $weight)
 
 // Prepare regexp translation array for accented / ligature characters
 $_RDATA['s_latin_pcre'] = array();
-$_RDATA['s_latin_pcre_multi'] = array();
+$_RDATA['s_latin_pcre_sql'] = array();
 foreach ($_RDATA['s_latin'] as $char => $latin) {
   if (strlen($char) > 1) {
     $pcre = '('.$char.'|'.implode('|', $latin).')';
@@ -49,11 +49,15 @@ foreach ($_RDATA['s_latin'] as $char => $latin) {
   foreach ($latin as $lchar)
     $_RDATA['s_latin_pcre'][$lchar] = $pcre;
   if (strlen($char) > 1) {
-    $_RDATA['s_latin_pcre_multi'][$char] = $pcre;
+    $_RDATA['s_latin_pcre_sql'][$char] = $pcre;
     foreach ($latin as $lchar)
-      $_RDATA['s_latin_pcre_multi'][$lchar] = $pcre;
+      $_RDATA['s_latin_pcre_sql'][$lchar] = $pcre;
   }
 }
+$_RDATA['s_latin_pcre'] = array_merge(
+  $_RDATA['s_latin_pcre'],
+  $_RDATA['s_latin_pcre_sql']
+);
 
 
 // {{{{{ Initialize the Mustache templating engine
@@ -315,18 +319,29 @@ if ($_RDATA['s_searchable_pages']) {
               break;
 
             case 'term':
+              $pregTerm = addslashes(strtr(
+                preg_quote(strtolower($term)),
+                $_RDATA['s_latin_pcre_sql']
+              ));
+
               $ors[] = 'INSTR(`content`, \''.$slashTerm.'\')';
               $ors[] = '`content` LIKE \'%'.$slashTerm.'%\'';
+              $ors[] = '`content` REGEXP \''.$pregTerm.'\'';
               $ors[] = 'INSTR(`url`, \''.$slashTerm.'\')';
               $ors[] = '`url` LIKE \'%'.$slashTerm.'%\'';
+              $ors[] = '`url` REGEXP \''.$pregTerm.'\'';
               $ors[] = 'INSTR(`title`, \''.$slashTerm.'\')';
               $ors[] = '`title` LIKE \'%'.$slashTerm.'%\'';
+              $ors[] = '`title` REGEXP \''.$pregTerm.'\'';
               $ors[] = 'INSTR(`description`, \''.$slashTerm.'\')';
               $ors[] = '`description` LIKE \'%'.$slashTerm.'%\'';
+              $ors[] = '`description` REGEXP \''.$pregTerm.'\'';
               $ors[] = 'INSTR(`keywords`, \''.$slashTerm.'\')';
               $ors[] = '`keywords` LIKE \'%'.$slashTerm.'%\'';
+              $ors[] = '`keywords` REGEXP \''.$pregTerm.'\'';
               $ors[] = 'INSTR(`weighted`, \''.$slashTerm.'\')';
               $ors[] = '`weighted` LIKE \'%'.$slashTerm.'%\'';
+              $ors[] = '`weighted` REGEXP \''.$pregTerm.'\'';
 
           }
         }
@@ -701,6 +716,11 @@ if ($_RDATA['s_searchable_pages']) {
 
               case 'phrase':
               case 'term':
+                // Adjust regular expression for htmlspecialchars()
+			    $pcre = strtr($pcre, array(
+				  '&' => '&amp;', '\'' => '(&#039;|&apos;)', '"' => '&quot;', '<' => '&lt;', '>' => '&gt;',
+				));
+
                 $_RESULT->title_highlight = preg_replace(
                   $pcre,
                   '<'.$_SDATA['tag'].'>$1</'.$_SDATA['tag'].'>',

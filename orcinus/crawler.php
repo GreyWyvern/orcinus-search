@@ -482,8 +482,7 @@ switch ($_SERVER['REQUEST_METHOD']) {
     // JSON POST request
     // These are usually sent by javascript fetch()
     if (strpos(trim($_SERVER['CONTENT_TYPE']), 'application/json') === 0) {
-      $postBody = file_get_contents('php://input');
-      $_POST = json_decode($postBody, false);
+      $_POST = json_decode(file_get_contents('php://input'), false);
 
       $response = array();
 
@@ -590,7 +589,7 @@ switch ($_SERVER['REQUEST_METHOD']) {
             // IF the crawler 'time_start' is more than 'timeout_crawl'
             // seconds ago, or the 'force' token is set, the crawler is
             // probably stuck. Unstick it.
-            if (!empty($_POST->force) || time() - $_ODATA['sp_time_start'] > $_ODATA['sp_timeout_crawl']) {
+            if (!empty($_POST->force) || $_ODATA['sp_time_start'] + $_ODATA['sp_timeout_crawl'] > time()) {
               OS_setValue('sp_crawling', 0);
 
               $postReason = $_POST->reason ?? 'The crawler halted unexpectedly';
@@ -713,6 +712,8 @@ OS_setValue('sp_time_last', 0);
 $_RDATA['sp_log'] = tmpfile();
 OS_setValue('sp_log', stream_get_meta_data($_RDATA['sp_log'])['uri']);
 OS_crawlLog('***** Crawl started: '.date('r').' *****', 1);
+
+OS_crawlLog('Triggered by: '.$_SERVER['REQUEST_METHOD'], 1);
 
 if ($_RDATA['debug'])
   OS_crawlLog('********** CRAWLER IS IN DEBUG MODE **********', 1);
@@ -920,7 +921,7 @@ if (in_array($_DDATA['tbprefix'].'crawltemp', $_DDATA['tables'], true)) {
 
 // Create a temp MySQL storage table using schema of the existing table
 $create = $_DDATA['pdo']->query(
-  'CREATE TABLE IF NOT EXISTS`'.$_DDATA['tbprefix'].'crawltemp`
+  'CREATE TABLE IF NOT EXISTS `'.$_DDATA['tbprefix'].'crawltemp`
      LIKE `'.$_DDATA['tbprefix'].'crawldata`;'
 );
 $err = $create->errorInfo();
