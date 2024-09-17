@@ -717,9 +717,9 @@ if ($_RDATA['s_searchable_pages']) {
               case 'phrase':
               case 'term':
                 // Adjust regular expression for htmlspecialchars()
-			    $pcre = strtr($pcre, array(
-				  '&' => '&amp;', '\'' => '(&#039;|&apos;)', '"' => '&quot;', '<' => '&lt;', '>' => '&gt;',
-				));
+                $pcre = strtr($pcre, array(
+                  '&' => '&amp;', '\'' => '(&#039;|&apos;)', '"' => '&quot;', '<' => '&lt;', '>' => '&gt;',
+                ));
 
                 $_RESULT->title_highlight = preg_replace(
                   $pcre,
