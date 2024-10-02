@@ -135,6 +135,7 @@ if ($_RDATA['s_searchable_pages']) {
     }
 
     $_ORCINUS->searchable->request_q = $_REQUEST['q'];
+    $_ORCINUS->searchable->request_q_rawurl = rawurlencode($_REQUEST['q']);
 
     // Split request string on quotation marks (")
     $request = explode('"', ' '.$_REQUEST['q'].' ');

@@ -138,6 +138,7 @@ if (os_crawldata.length) {
     }
 
     os_TEMPLATE.searchable.request_q = os_request.q;
+    os_TEMPLATE.searchable.request_q_rawurl = encodeURIComponent(os_request.q);
 
     // Split request string on quotation marks (")
     let request = (' ' + os_request.q + ' ').split('"');

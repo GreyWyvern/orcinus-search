@@ -526,7 +526,7 @@ if (!$_ODATA['s_result_template']) {
             <ul>
               <li>
                 {{#page_gt1}}
-                  <a href="?q={{request_q}}&page={{page_minus1}}">Previous</a>
+                  <a href="?q={{{request_q_rawurl}}}&page={{page_minus1}}">Previous</a>
                 {{/page_gt1}}
                 {{^page_gt1}}
                   <span>Previous</span>
@@ -535,7 +535,7 @@ if (!$_ODATA['s_result_template']) {
               {{#page_list}}
                 <li>
                   {{^current}}
-                    <a href="?q={{request_q}}&page={{index}}">{{index}}</a>
+                    <a href="?q={{{request_q_rawurl}}}&page={{index}}">{{index}}</a>
                   {{/current}}
                   {{#current}}
                     <span><strong>{{index}}</strong></span>
@@ -544,7 +544,7 @@ if (!$_ODATA['s_result_template']) {
               {{/page_list}}
               <li>
                 {{#page_ltpages}}
-                  <a href="?q={{request_q}}&page={{page_plus1}}">Next</a>
+                  <a href="?q={{{request_q_rawurl}}}&page={{page_plus1}}">Next</a>
                 {{/page_ltpages}}
                 {{^page_ltpages}}
                   <span>Next</span>
@@ -560,7 +560,7 @@ if (!$_ODATA['s_result_template']) {
             Sorry, no results were found.
             {{#category}}
               Try this search in
-              <a href="?q={{request_q}}">all categories?</a>
+              <a href="?q={{{request_q_rawurl}}}">all categories?</a>
             {{/category}}
           </p>
         </div>
