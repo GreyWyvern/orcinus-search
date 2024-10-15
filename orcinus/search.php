@@ -202,7 +202,9 @@ if ($_RDATA['s_searchable_pages']) {
             break;
 
           case 'phrase':
-            $_SDATA['formatted'][] = '"'.$term.'"';
+            if (strpos($term, ' ')) {
+              $_SDATA['formatted'][] = '"'.$term.'"';
+            } else $_SDATA['formatted'][] = '+'.$term;
 
           case 'term':
             if ($type == 'term')
