@@ -488,23 +488,23 @@ switch ($_SERVER['REQUEST_METHOD']) {
 
       switch ($_POST->action ?? '') {
         case 'crawl':
-          if (!empty($_POST->sp_key) && OS_getValue('sp_key') &&
-              $_POST->sp_key == $_ODATA['sp_key']) {
-            if (OS_getValue('sp_crawling')) {
-              $response = array(
-                'status' => 'Error',
-                'message' => 'Crawler is already running; current progress: '.$_ODATA['sp_progress'][0].'/'.$_ODATA['sp_progress'][1]
-              );
+          // If the currently crawling flag is set and the crawl
+          // timeout hasn't been exceeded
+          if (OS_getValue('sp_crawling') && $_ODATA['sp_time_start'] + $_ODATA['sp_timeout_crawl'] < time()) {
+            $response = array(
+              'status' => 'Error',
+              'message' => 'Crawler is already running; current progress: '.$_ODATA['sp_progress'][0].'/'.$_ODATA['sp_progress'][1]
+            );
 
-            // Go crawl!
-            } else OS_setValue('sp_crawling', $_RDATA['process_unique_int']);
-
-          } else {
+          // Check the sp_key against the one supplied in the request
+          } else if (empty($_POST->sp_key) || !OS_getValue('sp_key') || $_POST->sp_key != $_ODATA['sp_key']) {
             $response = array(
               'status' => 'Error',
               'message' => 'Incorrect key to initiate crawler'
             );
-          }
+
+          // Start a crawl
+          } else OS_setValue('sp_crawling', 0);
 
           OS_setValue('sp_key', '');
           break;
@@ -648,31 +648,37 @@ switch ($_SERVER['REQUEST_METHOD']) {
   case '':
     if (!empty($_SERVER['argv'][0]) && $_SERVER['argv'][0] == $_SERVER['PHP_SELF']) {
       $_SERVER['REQUEST_METHOD'] = 'CLI';
-      if (!OS_getValue('sp_crawling')) {
 
-        // Set the logging level, if specified
-        if (!empty($_SERVER['argv'][1]) && preg_match('/^-log=([012])$/', $_SERVER['argv'][1], $match)) {
-          $_RDATA['sp_log_clilevel'] = (int)$match[1];
-        } else $_RDATA['sp_log_clilevel'] = 2;
+      // If the currently crawling flag is set and the crawl timeout
+      // hasn't been exceeded
+      if (OS_getValue('sp_crawling') && $_ODATA['sp_time_start'] + $_ODATA['sp_timeout_crawl'] < time())
+        die('Crawler is already running; current progress: '.$_ODATA['sp_progress'][0].'/'.$_ODATA['sp_progress'][1]);
 
-        // Start a crawl
-        OS_setValue('sp_crawling', $_RDATA['process_unique_int']);
+      // Start a crawl
+      OS_setValue('sp_crawling', 0);
 
-      } else die('Crawler is already running; exiting...');
+      // Set the logging level, if specified
+      if (!empty($_SERVER['argv'][1]) && preg_match('/^-log=([012])$/', $_SERVER['argv'][1], $match)) {
+        $_RDATA['sp_log_clilevel'] = (int)$match[1];
+      } else $_RDATA['sp_log_clilevel'] = 2;
+
     } else die($_ODATA['sp_useragent']);
     break;
 
   // Don't do anything for GET requests, unless in debug mode
   case 'GET':
     header('Content-type: text/plain; charset='.strtolower($_ODATA['s_charset']));
+
+    // If we are in debug mode
     if ($_RDATA['debug']) {
 
-      // If we are in debug mode, but the crawler is already running, exit
-      if (OS_getValue('sp_crawling'))
-        die('Crawler is already running; exiting...');
+      // If the currently crawling flag is set and the crawl timeout
+      // hasn't been exceeded
+      if (OS_getValue('sp_crawling') && $_ODATA['sp_time_start'] + $_ODATA['sp_timeout_crawl'] < time())
+        die('Crawler is already running; current progress: '.$_ODATA['sp_progress'][0].'/'.$_ODATA['sp_progress'][1]);
 
       // Start a crawl
-      OS_setValue('sp_crawling', $_RDATA['process_unique_int']);
+      OS_setValue('sp_crawling', 0);
 
     } else die($_ODATA['sp_useragent']);
     break;
@@ -686,12 +692,13 @@ switch ($_SERVER['REQUEST_METHOD']) {
 
 
 // One last check for a race condition
-sleep(1);
-if (OS_getValue('sp_crawling') != $_RDATA['process_unique_int'])
-  die('Crawler is already running; exiting...');
+if (OS_getValue('sp_crawling'))
+  die('A different process initiated a crawl before this one; exiting...');
 
 
 /* ***** Begin Crawl Execution ************************************* */
+OS_setValue('sp_crawling', $_RDATA['process_unique_int']);
+
 register_shutdown_function('OS_crawlCleanUp');
 ignore_user_abort(true);
 @set_time_limit($_ODATA['sp_timeout_crawl'] * 1.1);
@@ -712,8 +719,6 @@ OS_setValue('sp_time_last', 0);
 $_RDATA['sp_log'] = tmpfile();
 OS_setValue('sp_log', stream_get_meta_data($_RDATA['sp_log'])['uri']);
 OS_crawlLog('***** Crawl started: '.date('r').' *****', 1);
-
-OS_crawlLog('Triggered by: '.$_SERVER['REQUEST_METHOD'], 1);
 
 if ($_RDATA['debug'])
   OS_crawlLog('********** CRAWLER IS IN DEBUG MODE **********', 1);
