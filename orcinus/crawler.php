@@ -469,7 +469,7 @@ if (!($_cURL = OS_getConnection()))
 
 // Choose a random integer for this process
 $_RDATA['process_unique_int'] = mt_rand(1, 4294967295);
-$_RDATA['timeout'] = $_RDATA['timeout'] + ($_RDATA['timeout'] * $_ODATA['sp_sleep'] / 1000);
+$_RDATA['timeout'] += $_RDATA['timeout'] * $_ODATA['sp_sleep'] / 1000;
 
 
 
@@ -503,8 +503,7 @@ switch ($_SERVER['REQUEST_METHOD']) {
               'message' => 'Incorrect key to initiate crawler'
             );
 
-          // Start a crawl
-          } else OS_setValue('sp_crawling', 0);
+          } // Start a crawl
 
           OS_setValue('sp_key', '');
           break;
@@ -655,7 +654,6 @@ switch ($_SERVER['REQUEST_METHOD']) {
         die('Crawler is already running; current progress: '.$_ODATA['sp_progress'][0].'/'.$_ODATA['sp_progress'][1]);
 
       // Start a crawl
-      OS_setValue('sp_crawling', 0);
 
       // Set the logging level, if specified
       if (!empty($_SERVER['argv'][1]) && preg_match('/^-log=([012])$/', $_SERVER['argv'][1], $match)) {
@@ -678,7 +676,6 @@ switch ($_SERVER['REQUEST_METHOD']) {
         die('Crawler is already running; current progress: '.$_ODATA['sp_progress'][0].'/'.$_ODATA['sp_progress'][1]);
 
       // Start a crawl
-      OS_setValue('sp_crawling', 0);
 
     } else die($_ODATA['sp_useragent']);
     break;
@@ -691,9 +688,37 @@ switch ($_SERVER['REQUEST_METHOD']) {
 }
 
 
-// One last check for a race condition
-if (OS_getValue('sp_crawling'))
-  die('A different process initiated a crawl before this one; exiting...');
+// Check if the crawltemp table exists
+if (in_array($_DDATA['tbprefix'].'crawltemp', $_DDATA['tables'], true)) {
+  OS_crawlLog('Previous crawl data exists; checking...', 1);
+
+  // Get a count of the rows in crawltemp
+  $select = $_DDATA['pdo']->query(
+    'SELECT COUNT(*) AS `count` FROM `'.$_DDATA['tbprefix'].'crawltemp`;'
+  );
+  $err = $select->errorInfo();
+  if ($err[0] == '00000') {
+    $select = $select->fetchAll();
+    $tempRows = $select[0]['count'];
+    sleep(5);
+
+    // Get a count of the rows in crawltemp after a 5 second wait
+    $select = $_DDATA['pdo']->query(
+      'SELECT COUNT(*) AS `count` FROM `'.$_DDATA['tbprefix'].'crawltemp`;'
+    );
+    $err = $select->errorInfo();
+    if ($err[0] == '00000') {
+      $select = $select->fetchAll();
+
+      // If the number of rows has changed, bail out
+      if ($select[0]['count'] != $tempRows)
+        die('Another crawl is still running and modifying the database; exiting...');
+
+      // Else assume the previous crawl has been interrupted
+
+    } // crawltemp table was deleted?
+  } // crawltemp table was deleted?
+}
 
 
 /* ***** Begin Crawl Execution ************************************* */
@@ -858,8 +883,6 @@ if (in_array($_DDATA['tbprefix'].'crawltemp', $_DDATA['tables'], true)) {
   );
   $err = $select->errorInfo();
   if ($err[0] == '00000') {
-    OS_crawlLog('Previous crawl data exists; using it to resume crawling...', 1);
-
     $select = $select->fetchAll();
 
     OS_crawlLog('Found '.count($select).' previously crawled URLs', 1);
