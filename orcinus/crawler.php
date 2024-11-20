@@ -688,6 +688,14 @@ switch ($_SERVER['REQUEST_METHOD']) {
 }
 
 
+// Start a log file
+$_RDATA['sp_log'] = tmpfile();
+OS_crawlLog('***** Crawl started: '.date('r').' *****', 1);
+
+if ($_RDATA['debug'])
+  OS_crawlLog('********** CRAWLER IS IN DEBUG MODE **********', 1);
+
+
 // Check if the crawltemp table exists
 if (in_array($_DDATA['tbprefix'].'crawltemp', $_DDATA['tables'], true)) {
   OS_crawlLog('Previous crawl data exists; checking...', 1);
@@ -711,8 +719,10 @@ if (in_array($_DDATA['tbprefix'].'crawltemp', $_DDATA['tables'], true)) {
       $select = $select->fetchAll();
 
       // If the number of rows has changed, bail out
-      if ($select[0]['count'] != $tempRows)
-        die('Another crawl is still running and modifying the database; exiting...');
+      if ($select[0]['count'] != $tempRows) {
+        OS_crawlLog('Another crawl is still running and modifying the database; exiting...', 2);
+        die();
+      }
 
       // Else assume the previous crawl has been interrupted
 
@@ -733,20 +743,13 @@ if (function_exists('apache_setenv'))
 
 OS_setValue('sp_cancel', 0);
 OS_setValue('sp_time_start', time());
+OS_setValue('sp_log', stream_get_meta_data($_RDATA['sp_log'])['uri']);
 
 OS_setValue('sp_progress', array(0, 1, false, 0));
 OS_setValue('sp_pages_stored', 0);
 OS_setValue('sp_data_transferred', 0);
 OS_setValue('sp_data_stored', 0);
 OS_setValue('sp_time_last', 0);
-
-
-$_RDATA['sp_log'] = tmpfile();
-OS_setValue('sp_log', stream_get_meta_data($_RDATA['sp_log'])['uri']);
-OS_crawlLog('***** Crawl started: '.date('r').' *****', 1);
-
-if ($_RDATA['debug'])
-  OS_crawlLog('********** CRAWLER IS IN DEBUG MODE **********', 1);
 
 
 // ***** Prepare runtime data
