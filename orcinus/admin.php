@@ -1119,26 +1119,48 @@ ORCINUS;
           break;
 
 
+        // ***** Query Log >> Purge or Nuke multiple from Query Log
+        case 'os_query_log_purge':
+        case 'os_query_log_nuke':
+          $_POST['os_queries_multi'] = $_POST['os_queries_multi'] ?? array();
+          if (!is_array($_POST['os_queries_multi'])) $_POST['os_queries_multi'] = array();
+          $_POST['os_query_log_hidden_query'] = '';
+          $_POST['os_query_log_delete'] = ($_POST['os_submit'] == 'os_query_log_nuke') ? 'assoc' : 'query';
+
+
         // ***** Query Log >> Delete from Query Log
         case 'os_query_log_delete':
           $_POST['os_query_log_delete'] = $_POST['os_query_log_delete'] ?? '';
           $deleteQueryIP = $_DDATA['pdo']->prepare(
             'DELETE FROM `'.$_DDATA['tbprefix'].'query` WHERE `ip`=:ip;'
           );
+
+          $_POST['os_query_log_hidden_query'] = $_POST['os_query_log_hidden_query'] ?? '';
+          if (empty($_POST['os_queries_multi']) && $_POST['os_query_log_hidden_query'])
+            $_POST['os_queries_multi'] = array($_POST['os_query_log_hidden_query']);
+          $_POST['os_queries_multi'] = $_POST['os_queries_multi'] ?? array();
+
           switch ($_POST['os_query_log_delete']) {
             case 'query':
-              if (!empty($_POST['os_query_log_hidden_query'])) {
+              if (!empty($_POST['os_queries_multi'])) {
                 $deleteQuery = $_DDATA['pdo']->prepare(
                   'DELETE FROM `'.$_DDATA['tbprefix'].'query` WHERE `query`=:query;'
                 );
-                $deleteQuery->execute(array('query' => $_POST['os_query_log_hidden_query']));
-                $err = $deleteQuery->errorInfo();
-                if ($err[0] == '00000') {
-                  if ($deleteQuery->rowCount()) {
-                    $_SESSION['message'][] = 'Query has been removed from the Query Log.';
-                  } else $_SESSION['error'][] = 'Query to delete not found in Query Log.';
-                } else $_SESSION['error'][] = 'Database error while deleting this query.';
-              } else $_SESSION['error'][] = 'No query selected to delete.';
+
+                $tally = 0;
+                foreach ($_POST['os_queries_multi'] as $query) {
+                  $deleteQuery->execute(array('query' => $query));
+                  $err = $deleteQuery->errorInfo();
+                  if ($err[0] == '00000') {
+                    $tally += $deleteQuery->rowCount();
+                  } else $_SESSION['error'][] = 'Database error while deleting this query.';
+                }
+                if ($tally == 1) {
+                  $_SESSION['message'][] = 'Deleted '.$tally.' query from the Query Log.';
+                } else if ($tally) {
+                  $_SESSION['message'][] = 'Deleted '.$tally.' queries from the Query Log.';
+                } else $_SESSION['error'][] = 'Did not delete any queries from the Query Log.';
+              } else $_SESSION['error'][] = 'No queries selected to delete.';
               break;
 
             case 'ip':
@@ -1156,30 +1178,33 @@ ORCINUS;
               break;
 
             case 'assoc':
-              if (!empty($_POST['os_query_log_hidden_query'])) {
-                $select = $_DDATA['pdo']->prepare(
+              if (!empty($_POST['os_queries_multi'])) {
+                $selectQuery = $_DDATA['pdo']->prepare(
                   'SELECT DISTINCT `ip` FROM `'.$_DDATA['tbprefix'].'query` WHERE `query`=:query;'
                 );
-                $select->execute(array('query' => $_POST['os_query_log_hidden_query']));
-                $err = $select->errorInfo();
-                if ($err[0] == '00000') {
-                  $select = $select->fetchAll();
-                  if (count($select)) {
-                    $tally = 0;
-                    foreach ($select as $row) {
-                      $deleteQueryIP->execute(array('ip' => $row['ip']));
-                      $err = $deleteQueryIP->errorInfo();
-                      if ($err[0] == '00000')
-                        $tally += $deleteQueryIP->rowCount();
+
+                $tally = 0;
+                foreach ($_POST['os_queries_multi'] as $query) {
+                  $selectQuery->execute(array('query' => $query));
+                  $err = $selectQuery->errorInfo();
+                  if ($err[0] == '00000') {
+                    $select = $selectQuery->fetchAll();
+                    if (count($select)) {
+                      foreach ($select as $row) {
+                        $deleteQueryIP->execute(array('ip' => $row['ip']));
+                        $err = $deleteQueryIP->errorInfo();
+                        if ($err[0] == '00000')
+                          $tally += $deleteQueryIP->rowCount();
+                      }
                     }
-                    if ($tally == 1) {
-                      $_SESSION['message'][] = 'Deleted '.$tally.' query from the Query Log.';
-                    } else if ($tally) {
-                      $_SESSION['message'][] = 'Deleted '.$tally.' queries from the Query Log.';
-                    } else $_SESSION['error'][] = 'Did not delete any queries from the Query Log.';
-                  } else $_SESSION['error'][] = 'Could not find this query in the Query Log.';
-                } else $_SESSION['error'][] = 'Database error while searching the Query Log.';
-              } else $_SESSION['error'][] = 'No query selected to delete.';
+                  } else $_SESSION['error'][] = 'Database error while searching the Query Log.';
+                }
+                if ($tally == 1) {
+                  $_SESSION['message'][] = 'Deleted '.$tally.' query from the Query Log.';
+                } else if ($tally) {
+                  $_SESSION['message'][] = 'Deleted '.$tally.' queries from the Query Log.';
+                } else $_SESSION['error'][] = 'Did not delete any queries from the Query Log.';
+              } else $_SESSION['error'][] = 'No queries selected to delete.';
               break;
 
             default:
@@ -1982,7 +2007,7 @@ ORCINUS;
                               <strong class="pe-2">File Size:</strong>
                               <span class="flex-grow-1 text-end text-nowrap">
                                 <input type="number" name="os_sp_limit_filesize" value="<?php echo $_ODATA['sp_limit_filesize']; ?>" min="0" max="65535" step="1" class="form-control d-inline-block me-1"
-                                  data-bs-toggle="tooltip" data-bs-placement="bottom" title="Files larger than this size will not be downloaded, stored or scanned for links."> <abbr title="kibibytes">kiB</abbr>
+                                  data-bs-toggle="tooltip" data-bs-placement="bottom" title="Files larger than this size will not be downloaded, stored nor scanned for links."> <abbr title="kibibytes">kiB</abbr>
                               </span>
                             </label>
                           </div>
@@ -2992,9 +3017,9 @@ ORCINUS;
                           <img src="img/arrow-down.svg" alt="Sort" title="Sort order" class="align-middle svg-icon-sm mb-1">
                         </th>
                       </tr>
-                    </thead><?php
-                    if ($_RDATA['query_log_found_rows'] > count($_RDATA['query_log_rows'])) { ?> 
-                      <tfoot class="table-group-divider">
+                    </thead>
+                    <tfoot class="table-group-divider"><?php
+                      if ($_RDATA['query_log_found_rows'] > count($_RDATA['query_log_rows'])) { ?> 
                         <tr>
                           <td class="text-center" colspan="6">
                             <em>
@@ -3005,9 +3030,15 @@ ORCINUS;
                               ?> total queries
                             </em>
                           </td>
-                        </tr>
-                      </tfoot><?php
-                    } ?> 
+                        </tr><?php
+                      } ?> 
+                      <tr class="d-none">
+                        <td class="text-center" colspan="6">
+                          <button type="submit" name="os_submit" id="os_queries_purge" value="os_query_log_purge" class="btn btn-primary" title="Delete multiple queries">Delete Selected Queries</button>
+                          <button type="submit" name="os_submit" id="os_queries_nuke" value="os_query_log_nuke" class="btn btn-primary" title="Delete multiple queries AND associated IP addresses">Nuke Selected Queries</button>
+                        </td>
+                      </tr>
+                    </tfoot>
                     <tbody class="table-group-divider" id="os_queries_tbody"><?php
                       foreach ($_RDATA['query_log_rows'] as $query) { ?> 
                         <tr class="text-nowrap">
@@ -3015,6 +3046,7 @@ ORCINUS;
                             <div class="d-inline-block align-middle mw-90">
                               <div class="w-100 d-table table-fixed">
                                 <div class="w-100 d-table-cell overflow-hidden text-ellipsis">
+                                  <input type="checkbox" name="os_queries_multi[]" value="<?php echo htmlspecialchars($query['query']); ?>" class="form-check-input d-none me-1">
                                   <span title="<?php echo htmlspecialchars($query['query']); ?>"
                                     data-bs-toggle="modal" data-bs-target="#queriesModal" role="button"><?php
                                     echo htmlspecialchars($query['query']);

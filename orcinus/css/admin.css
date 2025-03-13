@@ -94,6 +94,15 @@ img.svg-icon-flag {
 #os_queries_thead > tr > th.os_asc > img {
   transform:rotate(180deg);
 }
+#os_queries_tbody.multi-select > tr > th input[type="checkbox"] {
+  display:inline-block !important;
+}
+#os_queries_tbody > tr > * {
+  transition:background-color 0.2s linear;
+}
+#os_queries_tbody > tr.multi-selected > * {
+  background-color:rgba(0, 0, 255, 0.1);
+}
 
 nav.navbar {
   background-image:url(../img/header/001.png);
