@@ -964,6 +964,7 @@ if ($err[0] != '00000') {
 }
 
 // Prepare SQL statements
+$_DDATA['pdo']->query('SET NAMES utf8mb4;');
 $_DDATA['select_crawldata'] = $_DDATA['pdo']->prepare(
   'SELECT `url`, `category`, `links`, `content_checksum`, `last_modified`,
           `flag_updated`, `flag_unlisted`, `priority`
