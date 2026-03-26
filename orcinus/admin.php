@@ -892,6 +892,16 @@ if (!$_SESSION['admin_username']) {
             OS_setValue('s_weight_css', substr($_POST['os_s_weight_css'], 0, 4095));
           }
 
+          if (isset($_POST['os_s_banned_terms'])) {
+            $_POST['os_s_banned_terms'] = preg_replace('/ {2,}/', ' ', trim($_POST['os_s_banned_terms']));
+            OS_setValue('s_banned_terms', substr($_POST['os_s_banned_terms'], 0, 4095));
+          }
+
+          if (isset($_POST['os_s_banned_redirect'])) {
+            $_POST['os_s_banned_redirect'] = trim($_POST['os_s_banned_redirect']);
+            OS_setValue('s_banned_redirect', substr($_POST['os_s_banned_redirect'], 0, 63));
+          }
+
           if (isset($_POST['os_s_charset'])) {
             $_POST['os_s_charset'] = preg_replace('/[^\w\d\.:_-]/', '', substr($_POST['os_s_charset'], 0, 63));
             OS_setValue('s_charset', $_POST['os_s_charset']);
@@ -2661,6 +2671,22 @@ ORCINUS;
                             </p>
                           </div>
                         </div>
+                      </li>
+                      <li class="list-group-item">
+                        <h4>Banned Terms</h4>
+                        <label class="lh-lg w-100 mb-2">
+                          <strong>Banned Term List:</strong>
+                          <textarea rows="2" cols="60" name="os_s_banned_terms" class="form-control"
+                            data-bs-toggle="tooltip" data-bs-placement="top" title="If any term in an incoming query matches any of the terms listed in the text field below (case insensitive; separated by spaces), then do not log the query, and redirect the request."><?php
+                            echo htmlspecialchars($_ODATA['s_banned_terms']);
+                          ?></textarea>
+                        </label>
+                        <label class="d-flex lh-lg w-100 mb-2">
+                          <strong class="pe-2">Redirect To:</strong>
+                          <span class="flex-grow-1 text-end">
+                            <input type="url" name="os_s_banned_redirect" value="<?php echo $_ODATA['s_banned_redirect']; ?>" pattern="^https:\/\/.*$" class="form-control d-inline-block">
+                          </span>
+                        </label>
                       </li>
                       <li class="list-group-item w-100">
                         <h4>Result Output</h4>

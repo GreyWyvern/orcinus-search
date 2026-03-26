@@ -37,6 +37,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 foreach ($_ODATA['s_weights'] as $key => $weight)
   $_ODATA['s_weights'][$key] = (float)$weight;
 
+$_ODATA['s_banned_terms'] = explode(' ', preg_quote($_ODATA['s_banned_terms'], '/'));
+
 
 // Prepare regexp translation array for accented / ligature characters
 $_RDATA['s_latin_pcre'] = array();
@@ -589,14 +591,24 @@ if ($_RDATA['s_searchable_pages']) {
       $_SDATA['pages'] = max(1, ceil(count($_SDATA['results']) / $_ODATA['s_results_pagination']));
       $_REQUEST['page'] = min($_SDATA['pages'], $_REQUEST['page']);
 
+      // Check for banned terms matches
+      $banned = false;
+      foreach ($_ODATA['s_banned_terms'] as $bannedTerm) {
+        if (preg_match('/\b'.$bannedTerm.'\b/', $_SDATA['formatted'])) {
+          $banned = true;
+          break;
+        }
+      }
+
       // Database log (and potentially cache) this page only if:
       // - This is not a JSON output request
       // - The user is visiting page 1 of results
+      // - There are no banned terms matches
       // - Their IP does not match the IP of the previous request for
       //   this same query
       // - ... but if their IP *does* match, check that their last
       //   request for this same query was more than ten seconds ago
-      if (!isset($_REQUEST['json']) && $_REQUEST['page'] == 1 &&
+      if (!isset($_REQUEST['json']) && $_REQUEST['page'] == 1 && !$banned &&
            ($_SDATA['cache']['ip'] != $_SERVER['REMOTE_ADDR'] ||
             $_SDATA['cache']['stamp'] + 10 < time())) {
 
