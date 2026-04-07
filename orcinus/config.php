@@ -240,7 +240,8 @@ if (!in_array($_DDATA['tbprefix'].'crawldata', $_DDATA['tables'], true)) {
       `flag_updated` BOOLEAN NOT NULL,
       `last_modified` INT NOT NULL,
       `priority` DECIMAL(2,1) NOT NULL,
-      UNIQUE `content_checksum` (`content_checksum`)
+      UNIQUE `content_checksum` (`content_checksum`),
+      UNIQUE `url` (`url`)
     ) ENGINE = InnoDB,
       CHARACTER SET = utf8mb4,
       COLLATE = utf8mb4_unicode_520_ci
@@ -260,7 +261,8 @@ if (!in_array($_DDATA['tbprefix'].'query', $_DDATA['tables'], true)) {
       `stamp` INT UNSIGNED NOT NULL,
       `ip` VARCHAR(40) NOT NULL,
       `geo` VARCHAR(5) NOT NULL,
-      `cache` MEDIUMBLOB NOT NULL
+      `cache` MEDIUMBLOB NOT NULL,
+      KEY `query` (`query`)
     ) ENGINE = InnoDB,
       CHARACTER SET = utf8mb4,
       COLLATE = utf8mb4_unicode_520_ci

@@ -269,7 +269,6 @@ function OS_crawlCleanUp() {
   // Save or display cookies?
   $cookies = curl_getinfo($_cURL, CURLINFO_COOKIELIST);
   // var_dump($cookies);
-  curl_close($_cURL);
 
   // If crawl completed successfully
   if ($_RDATA['sp_complete']) {

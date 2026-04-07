@@ -86,10 +86,15 @@ class OS_Mustache {
   function render() {
     global $_ODATA;
 
-    require_once __DIR__.'/mustache/src/Mustache/Autoloader.php';
-    Mustache_Autoloader::register();
+    $mustacheSrc = __DIR__.'/mustache/src';
+    spl_autoload_register(function ($class) use ($mustacheSrc) {
+      $prefix = 'Mustache\\';
+      if (strncmp($class, $prefix, strlen($prefix)) !== 0) return;
+      $file = $mustacheSrc.'/'.str_replace('\\', '/', substr($class, strlen($prefix))).'.php';
+      if (file_exists($file)) require $file;
+    });
 
-    $output = new Mustache_Engine(array('entity_flags' => ENT_QUOTES));
+    $output = new \Mustache\Engine(array('entity_flags' => ENT_QUOTES));
     echo $output->render($_ODATA['s_result_template'], $this);
   }
 }
@@ -893,8 +898,6 @@ if ($_ODATA['sp_interval'] && !$_ODATA['sp_crawling'] &&
         $error = curl_error($_cURL);
         if ($error) $_ORCINUS->addError($error); // Hide this?
       }
-
-      curl_close($_cURL);
 
     } // Could not create a connection, but don't let the user know
   }
