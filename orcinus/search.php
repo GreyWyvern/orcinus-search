@@ -130,6 +130,8 @@ if ($_RDATA['s_searchable_pages']) {
 
   // If there is a text request
   if ($_REQUEST['q']) {
+    // Do not allow indexing of search results
+    header('X-Robots-Tag: noindex');
 
     // Convert to UTF-8 from specified encoding
     $_REQUEST['q'] = mb_convert_encoding($_REQUEST['q'], 'UTF-8', $_ODATA['s_charset']);
