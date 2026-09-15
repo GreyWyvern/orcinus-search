@@ -1858,6 +1858,13 @@ while (count($_RDATA['sp_queue'])) {
         } else $_RDATA['sp_queue'][] = array($link, 0, '<orphan>');
       }
 
+      // If we added nothing to the queue, that means no orphans passed
+      // the filters
+      if (!count($_RDATA['sp_queue'])) {
+        // So if we stored some pages, we're done
+        if (count($_RDATA['sp_store'])) $_RDATA['sp_complete'] = true;
+      }
+
     // Else if we stored some pages, we're done
     } else if (count($_RDATA['sp_store'])) {
       $_RDATA['sp_complete'] = true;
