@@ -1857,20 +1857,18 @@ while (count($_RDATA['sp_queue'])) {
         // If so, then add the orphan to the queue
         } else $_RDATA['sp_queue'][] = array($link, 0, '<orphan>');
       }
+    }
 
-      // If we added nothing to the queue, that means no orphans passed
-      // the filters
-      if (!count($_RDATA['sp_queue'])) {
-        // So if we stored some pages, we're done
-        if (count($_RDATA['sp_store'])) $_RDATA['sp_complete'] = true;
-      }
+    // If there is still nothing in the queue
+    if (!count($_RDATA['sp_queue'])) {
 
-    // Else if we stored some pages, we're done
-    } else if (count($_RDATA['sp_store'])) {
-      $_RDATA['sp_complete'] = true;
+      // If we stored some pages, we're done
+      if (count($_RDATA['sp_store'])) {
+        $_RDATA['sp_complete'] = true;
 
-    // No pages were stored
-    } else OS_crawlLog('No pages could be indexed; check your starting URL(s)', 2);
+      // No pages were stored
+      } else OS_crawlLog('No pages could be indexed; check your starting URL(s)', 2);
+    }
   }
 
   gc_collect_cycles();
