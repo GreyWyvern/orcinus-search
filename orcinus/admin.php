@@ -320,7 +320,7 @@ if (!$_SESSION['admin_username']) {
                     'URL', 'Category', 'MIME Type', 'Character Encoding',
                     'Status', 'Last Modified', 'Priority'
                   );
-                  fputcsv($output, $headings);
+                  fputcsv($output, $headings, ',', '"', '\\');
 
                   foreach ($pageIndex as $line) {
                     if ($line['flag_unlisted'])
@@ -329,7 +329,7 @@ if (!$_SESSION['admin_username']) {
 
                     $line['last_modified'] = date('c', $line['last_modified']);
 
-                    fputcsv($output, $line);
+                    fputcsv($output, $line, ',', '"', '\\');
                   }
 
                   fclose($output);
@@ -373,7 +373,7 @@ if (!$_SESSION['admin_username']) {
 
                   $headings = array('Query', 'Results', 'Time Stamp', 'IP');
                   if ($_GEOIP2) $headings = [...$headings, 'Country Code', 'Country Name'];
-                  fputcsv($output, $headings);
+                  fputcsv($output, $headings, ',', '"', '\\');
 
                   foreach ($queryLog as $line) {
                     $line['stamp'] = date('c', $line['stamp']);
@@ -385,7 +385,7 @@ if (!$_SESSION['admin_username']) {
                       $line['country'] = $geo->names['en'];
                     }
 
-                    fputcsv($output, $line);
+                    fputcsv($output, $line, ',', '"', '\\');
                   }
                   fclose($output);
                   die();
