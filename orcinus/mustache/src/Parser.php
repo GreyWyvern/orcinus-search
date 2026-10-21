@@ -3,7 +3,7 @@
 /*
  * This file is part of Mustache.php.
  *
- * (c) 2010-2025 Justin Hileman
+ * (c) 2010-2026 Justin Hileman
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -175,7 +175,7 @@ class Parser
                 case Tokenizer::T_PARTIAL:
                     $this->checkIfTokenIsAllowedInParent($parent, $token);
                     //store the whitespace prefix for laters!
-                    if ($indent = $this->clearStandaloneLines($nodes, $tokens)) {
+                    if (($indent = $this->clearStandaloneLines($nodes, $tokens)) !== null) {
                         $token[Tokenizer::INDENT] = $indent[Tokenizer::VALUE];
                     }
                     $nodes[] = $token;
@@ -183,7 +183,21 @@ class Parser
 
                 case Tokenizer::T_PARENT:
                     $this->checkIfTokenIsAllowedInParent($parent, $token);
-                    $nodes[] = $this->buildTree($tokens, $token);
+                    $standaloneCandidate = false;
+                    if (($indent = $this->clearStandaloneEmptySectionLines($nodes, $tokens, $token)) === null) {
+                        $indent = $this->clearStandaloneLines($nodes, $tokens);
+                    }
+                    if ($indent !== null) {
+                        $token[Tokenizer::INDENT] = $indent[Tokenizer::VALUE];
+                        $token[Tokenizer::STANDALONE] = true;
+                    } elseif ($this->sectionStartsLine($nodes)) {
+                        $standaloneCandidate = true;
+                    }
+                    $node = $this->buildTree($tokens, $token);
+                    if (isset($node[Tokenizer::STANDALONE]) || ($standaloneCandidate && $this->parentHasStandaloneBody($node))) {
+                        $this->clearStandaloneSectionClose($tokens, $node);
+                    }
+                    $nodes[] = $node;
                     break;
 
                 case Tokenizer::T_BLOCK_VAR:
@@ -191,7 +205,13 @@ class Parser
                         if (isset($parent) && $parent[Tokenizer::TYPE] === Tokenizer::T_PARENT) {
                             $token[Tokenizer::TYPE] = Tokenizer::T_BLOCK_ARG;
                         }
-                        $this->clearStandaloneLines($nodes, $tokens);
+                        if (($indent = $this->clearStandaloneEmptySectionLines($nodes, $tokens, $token)) === null) {
+                            $indent = $this->clearStandaloneLines($nodes, $tokens);
+                        }
+                        if ($indent !== null) {
+                            $token[Tokenizer::INDENT] = $indent[Tokenizer::VALUE];
+                            $token[Tokenizer::STANDALONE] = true;
+                        }
                         $nodes[] = $this->buildTree($tokens, $token);
                     } else {
                         // pretend this was just a normal "escaped" token...
@@ -284,6 +304,175 @@ class Parser
             // Return the whitespace prefix, if any
             return array_pop($nodes);
         }
+
+        return $this->emptyIndentToken();
+    }
+
+    /**
+     * Clear standalone wrapper lines when an empty section closes on the same line.
+     *
+     * This handles tags like `{{<parent}}{{/parent}}` and `{{$block}}{{/block}}`,
+     * which are standalone as a pair even though the opening tag is not followed
+     * immediately by whitespace.
+     *
+     * @param array $nodes  Parsed nodes
+     * @param array $tokens Tokens to be parsed
+     * @param array $token  Opening token
+     *
+     * @return array|null Resulting indent token, if any
+     */
+    private function clearStandaloneEmptySectionLines(array &$nodes, array &$tokens, array $token)
+    {
+        if ($this->lineTokens > 1 || !$this->sectionStartsLine($nodes)) {
+            return;
+        }
+
+        if (count($tokens) < 2) {
+            return;
+        }
+
+        $end = $tokens[0];
+        $next = $tokens[1];
+
+        if (!$this->tokenClosesSection($token, $end) || $next[Tokenizer::LINE] !== $this->lineNum || !$this->tokenIsWhitespace($next)) {
+            return;
+        }
+
+        if (count($tokens) !== 2 && substr($next[Tokenizer::VALUE], -1) !== "\n") {
+            return;
+        }
+
+        if ($token[Tokenizer::TYPE] === Tokenizer::T_PARENT) {
+            array_splice($tokens, 1, 1);
+        }
+
+        return $this->clearStandalonePrefix($nodes);
+    }
+
+    /**
+     * Clear a standalone section's closing line suffix.
+     *
+     * @param array $tokens Tokens to be parsed
+     * @param array $token  Section token
+     */
+    private function clearStandaloneSectionClose(array &$tokens, array $token)
+    {
+        if (empty($tokens) || !isset($token[Tokenizer::END])) {
+            return;
+        }
+
+        $next = $tokens[0];
+        if ($next[Tokenizer::LINE] !== $this->lineNum || !$this->tokenIsWhitespace($next)) {
+            return;
+        }
+
+        if (count($tokens) !== 1 && substr($next[Tokenizer::VALUE], -1) !== "\n") {
+            return;
+        }
+
+        array_shift($tokens);
+    }
+
+    /**
+     * Check whether the current section begins a standalone line.
+     *
+     * @param array $nodes Parsed nodes
+     *
+     * @return bool True if the current section starts a standalone line
+     */
+    private function sectionStartsLine(array $nodes)
+    {
+        if ($this->lineTokens === 0) {
+            return true;
+        }
+
+        if ($this->lineTokens !== 1) {
+            return false;
+        }
+
+        $prev = end($nodes);
+
+        return $prev && $this->tokenIsWhitespace($prev);
+    }
+
+    /**
+     * Clear a standalone section's leading whitespace.
+     *
+     * @param array $nodes Parsed nodes
+     *
+     * @return array Resulting indent token
+     */
+    private function clearStandalonePrefix(array &$nodes)
+    {
+        if ($this->lineTokens === 1) {
+            return array_pop($nodes);
+        }
+
+        return $this->emptyIndentToken();
+    }
+
+    /**
+     * Check whether a parent tag body can be treated as standalone.
+     *
+     * Parent bodies may contain ignored text, but ignored inline content should
+     * not make the parent consume the line after its closing tag.
+     *
+     * @param array $node Parent node
+     *
+     * @return bool True if the parent body only contains standalone block args
+     */
+    private function parentHasStandaloneBody(array $node)
+    {
+        foreach ($node[Tokenizer::NODES] as $child) {
+            if ($child[Tokenizer::TYPE] === Tokenizer::T_TEXT) {
+                if (!$this->tokenIsWhitespace($child)) {
+                    return false;
+                }
+
+                continue;
+            }
+
+            if ($child[Tokenizer::TYPE] !== Tokenizer::T_BLOCK_ARG || !isset($child[Tokenizer::STANDALONE])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Build an empty indent token for the current line.
+     *
+     * @return array Empty whitespace token
+     */
+    private function emptyIndentToken()
+    {
+        return [
+            Tokenizer::TYPE  => Tokenizer::T_TEXT,
+            Tokenizer::LINE  => $this->lineNum,
+            Tokenizer::VALUE => '',
+        ];
+    }
+
+    /**
+     * Check whether a token closes the given section token.
+     *
+     * @param array $open Opening token
+     * @param array $end  Potential closing token
+     *
+     * @return bool True if $end closes $open
+     */
+    private function tokenClosesSection(array $open, array $end)
+    {
+        if ($end[Tokenizer::TYPE] !== Tokenizer::T_END_SECTION || $end[Tokenizer::LINE] !== $this->lineNum) {
+            return false;
+        }
+
+        $sameName = $end[Tokenizer::NAME] === $open[Tokenizer::NAME];
+        $endDynamic = isset($end[Tokenizer::DYNAMIC]) && $end[Tokenizer::DYNAMIC];
+        $openDynamic = isset($open[Tokenizer::DYNAMIC]) && $open[Tokenizer::DYNAMIC];
+
+        return $sameName && $endDynamic === $openDynamic;
     }
 
     /**

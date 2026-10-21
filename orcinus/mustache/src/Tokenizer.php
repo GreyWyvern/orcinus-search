@@ -3,7 +3,7 @@
 /*
  * This file is part of Mustache.php.
  *
- * (c) 2010-2025 Justin Hileman
+ * (c) 2010-2026 Justin Hileman
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -75,18 +75,19 @@ class Tokenizer
     ];
 
     // Token properties
-    const TYPE    = 'type';
-    const NAME    = 'name';
-    const DYNAMIC = 'dynamic';
-    const OTAG    = 'otag';
-    const CTAG    = 'ctag';
-    const LINE    = 'line';
-    const INDEX   = 'index';
-    const END     = 'end';
-    const INDENT  = 'indent';
-    const NODES   = 'nodes';
-    const VALUE   = 'value';
-    const FILTERS = 'filters';
+    const TYPE       = 'type';
+    const NAME       = 'name';
+    const DYNAMIC    = 'dynamic';
+    const OTAG       = 'otag';
+    const CTAG       = 'ctag';
+    const LINE       = 'line';
+    const INDEX      = 'index';
+    const END        = 'end';
+    const INDENT     = 'indent';
+    const NODES      = 'nodes';
+    const VALUE      = 'value';
+    const FILTERS    = 'filters';
+    const STANDALONE = 'standalone';
 
     private $state;
     private $tagType;
