@@ -14,7 +14,7 @@ if (PHP_VERSION_ID < 80235)
 
 // ***** Connect to the database
 $_DDATA['pdo'] = new PDO(
-  'mysql:host='.$_DDATA['hostname'].';dbname='.$_DDATA['database'].';charset=UTF8',
+  'mysql:host='.$_DDATA['hostname'].';dbname='.$_DDATA['database'].';charset=utf8mb4',
   $_DDATA['username'],
   $_DDATA['password']
 );
@@ -22,6 +22,7 @@ $err = $_DDATA['pdo']->errorInfo();
 if ($err[0])
   throw new Exception('Database connection error: '.$err[2]);
 
+$_DDATA['pdo']->query('SET NAMES utf8mb4 COLLATE utf8mb4_unicode_520_ci;');
 $_DDATA['pdo']->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
 $_DDATA['pdo']->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
