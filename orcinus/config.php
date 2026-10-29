@@ -773,7 +773,7 @@ $_RDATA['s_latin'] = array(
 
  'ffi' => array('ﬃ'),
  'ffl' => array('ﬄ'),
-  'aa' => array('å', 'Å'),
+  'aa' => array('a', 'å', 'Å'),
   'ae' => array('æ', 'Æ', 'ä', 'Ä'),
   'ff' => array('ﬀ'),
   'fi' => array('ﬁ'),
