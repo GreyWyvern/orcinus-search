@@ -14,7 +14,7 @@ Optionally, **Orcinus** can generate a [sitemap .xml or .xml.gz](https://www.sit
 
 ### Requirements:
 - PHP >= 8.2.35
-- MySQL >= 8.0.17 / MariaDB >= 10.0.5
+- MySQL >= 8.0.17 / MariaDB >= 10.11.7
 
 ### 3rd Party Libraries:
 Included:

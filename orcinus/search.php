@@ -329,7 +329,7 @@ if ($_RDATA['s_searchable_pages']) {
               break;
 
             case 'term':
-              $pregTerm = '(?:)'.addslashes(strtr(
+              $pregTerm = addslashes(strtr(
                 preg_quote(strtolower($term)),
                 $_RDATA['s_latin_pcre_sql']
               ));

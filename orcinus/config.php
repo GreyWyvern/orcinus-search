@@ -37,8 +37,8 @@ $_DDATA['version'] = $version[0]['sql_version'];
 // Check Database version compatibility
 if (preg_match('/^(\d+)\.(\d+)\.(\d+)-?(.*)$/', $_DDATA['version'], $ver)) {
   if (strpos($ver[4], 'MariaDB') === 0) {
-    if ((int)$ver[1] < 10 || (!(int)$ver[2] && (int)$ver[3] < 5))
-      throw new Exception('Orcinus Site Search requires MariaDB version ">= 10.0.5". You are running '.$_DDATA['version'].'.');
+    if ((int)$ver[1] < 10 || (int)$ver[2] < 11 || (int)$ver[3] < 7)
+      throw new Exception('Orcinus Site Search requires MariaDB version ">= 10.11.7". You are running '.$_DDATA['version'].'.');
   } else { // MySQL
     if ((int)$ver[1] < 8 || (!(int)$ver[2] && (int)$ver[3] < 17))
       throw new Exception('Orcinus Site Search requires MySQL version ">= 8.0.17". You are running '.$_DDATA['version'].'.');
