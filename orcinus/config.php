@@ -767,6 +767,7 @@ $_RDATA['sp_punct'] = array(
 );
 
 $_RDATA['s_latin'] = array(
+  'license' => array('licence'),
   'center' => array('centre'),
   'color' => array('colour'),
   'fiber' => array('fibre'),
