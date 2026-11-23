@@ -198,6 +198,7 @@ if (!$_SESSION['admin_username']) {
 
       if ($_POST['os_admin_username'] === $_RDATA['admin_username'] &&
           $_POST['os_admin_password'] === $_RDATA['admin_password']) {
+        session_regenerate_id(true);
         $_SESSION['admin_username'] = $_RDATA['admin_username'];
         $_SESSION['admin_page'] = 'crawler';
 
@@ -1324,6 +1325,7 @@ ORCINUS;
   // User has requested to log out
   } else if (isset($_GET['logout'])) {
     $_SESSION = array();
+    session_regenerate_id(true);
     $_SESSION['message'][] = 'You have been logged out.';
 
     header('Location: '.$_SERVER['REQUEST_URI']);

@@ -809,7 +809,7 @@ if ($_ODATA['sp_sitemap_file']) {
   } while ($sitemapPath != $collapsePath);
 
   // If we did not try going beyond the document_root
-  if (strpos($sitemapPath, $_ODATA['admin_install_root'].'/') === 0) {
+  if (strpos($sitemapPath, rtrim($_ODATA['admin_install_root'], '/').'/') === 0) {
     if (file_exists($sitemapPath)) {
       $sitemapNewFile = str_replace($_ODATA['admin_install_root'], '', $sitemapPath);
       if ($sitemapNewFile != $_ODATA['sp_sitemap_file'])
