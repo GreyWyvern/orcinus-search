@@ -196,8 +196,8 @@ if (!$_SESSION['admin_username']) {
       if (empty($_POST['os_admin_username'])) $_POST['os_admin_username'] = '';
       if (empty($_POST['os_admin_password'])) $_POST['os_admin_password'] = '';
 
-      if ($_POST['os_admin_username'] == $_RDATA['admin_username'] &&
-          $_POST['os_admin_password'] == $_RDATA['admin_password']) {
+      if ($_POST['os_admin_username'] === $_RDATA['admin_username'] &&
+          $_POST['os_admin_password'] === $_RDATA['admin_password']) {
         $_SESSION['admin_username'] = $_RDATA['admin_username'];
         $_SESSION['admin_page'] = 'crawler';
 
@@ -210,6 +210,32 @@ if (!$_SESSION['admin_username']) {
 
 // We are logged in with a valid admin username
 } else {
+
+  // ***** Determine the install domain from run location
+  if (!$_ODATA['admin_install_domain']) {
+    if ($_SERVER['REQUEST_SCHEME'] && !empty($_SERVER['HTTP_HOST'])) {
+      $base = $_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['HTTP_HOST'];
+      if (!empty($_SERVER['SCRIPT_URI'])) {
+        $psuri = parse_url($_SERVER['SCRIPT_URI']);
+        if ($psuri && !empty($psuri['port']))
+          $base .= ':'.$psuri['port'];
+      } else if (!empty($_SERVER['SERVER_PORT'])) {
+        if ($_SERVER['SERVER_PORT'] == 80) {
+          if ($_SERVER['REQUEST_SCHEME'] != 'http')
+            $base .= ':'.$_SERVER['SERVER_PORT'];
+        } else if ($_SERVER['SERVER_PORT'] == 443) {
+          if ($_SERVER['REQUEST_SCHEME'] != 'https')
+            $base .= ':'.$_SERVER['SERVER_PORT'];
+        } else $base .= ':'.$_SERVER['SERVER_PORT'];
+      }
+      OS_setValue('admin_install_domain', $base);
+    }
+  }
+  if (!$_ODATA['sp_starting']) {
+    if (!$_ODATA['admin_install_domain']) {
+      throw new Exception('Could not determine install domain. Please run this script from a web browser.');
+    } else OS_setValue('sp_starting', $_ODATA['admin_install_domain'].'/');
+  }
 
   /* ***** Handle POST Requests ************************************** */
   if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -1083,10 +1109,15 @@ ORCINUS;
             header('Content-disposition: attachment; filename="offline-search.js"');
 
             // Populate the offline javascript Mustache template
-            require_once __DIR__.'/mustache/src/Mustache/Autoloader.php';
-            Mustache_Autoloader::register();
+            $mustacheSrc = __DIR__.'/mustache/src';
+            spl_autoload_register(function ($class) use ($mustacheSrc) {
+              $prefix = 'Mustache\\';
+              if (strncmp($class, $prefix, strlen($prefix)) !== 0) return;
+              $file = $mustacheSrc.'/'.str_replace('\\', '/', substr($class, strlen($prefix))).'.php';
+              if (file_exists($file)) require $file;
+            });
 
-            $output = new Mustache_Engine(array('entity_flags' => ENT_QUOTES));
+            $output = new \Mustache\Engine(array('entity_flags' => ENT_QUOTES));
             die(mb_convert_encoding(
               $output->render(
                 file_get_contents(__DIR__.'/js/template.offline.js'),

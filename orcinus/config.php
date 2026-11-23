@@ -36,11 +36,12 @@ $_DDATA['version'] = $version[0]['sql_version'];
 
 // Check Database version compatibility
 if (preg_match('/^(\d+)\.(\d+)\.(\d+)-?(.*)$/', $_DDATA['version'], $ver)) {
+  $verStr = $ver[1].sprintf('%03d%03d', $ver[2], $ver[3]);
   if (strpos($ver[4], 'MariaDB') === 0) {
-    if ((int)$ver[1] < 10 || (int)$ver[2] < 11 || (int)$ver[3] < 7)
+    if ((int)$verStr < 10011007)
       throw new Exception('Orcinus Site Search requires MariaDB version ">= 10.11.7". You are running '.$_DDATA['version'].'.');
   } else { // MySQL
-    if ((int)$ver[1] < 8 || (!(int)$ver[2] && (int)$ver[3] < 17))
+    if ((int)$verStr < 8000017)
       throw new Exception('Orcinus Site Search requires MySQL version ">= 8.0.17". You are running '.$_DDATA['version'].'.');
   }
 }
@@ -390,8 +391,6 @@ if ($err[0] == '00000') {
 } else throw new Exception('Could not read from configuration table: '.$err[2]);
 
 
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
 date_default_timezone_set($_ODATA['sp_timezone']);
 ini_set('mbstring.substitute_character', 'none');
 
@@ -409,33 +408,6 @@ if (!isset($_SERVER['REQUEST_SCHEME'])) {
     } else if ($_SERVER['SERVER_PORT'] == 80)
       $_SERVER['REQUEST_SCHEME'] = 'http';
   }
-}
-
-// ***** Determine the install domain from run location
-if (!$_ODATA['admin_install_domain'] ||
-    (preg_match('/\/admin\.php$/', $_SERVER['SCRIPT_NAME']) && !empty($_SERVER['REQUEST_METHOD']))) {
-  if ($_SERVER['REQUEST_SCHEME'] && !empty($_SERVER['HTTP_HOST'])) {
-    $base = $_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['HTTP_HOST'];
-    if (!empty($_SERVER['SCRIPT_URI'])) {
-      $psuri = parse_url($_SERVER['SCRIPT_URI']);
-      if ($psuri && !empty($psuri['port']))
-        $base .= ':'.$psuri['port'];
-    } else if (!empty($_SERVER['SERVER_PORT'])) {
-      if ($_SERVER['SERVER_PORT'] == 80) {
-        if ($_SERVER['REQUEST_SCHEME'] != 'http')
-          $base .= ':'.$_SERVER['SERVER_PORT'];
-      } else if ($_SERVER['SERVER_PORT'] == 443) {
-        if ($_SERVER['REQUEST_SCHEME'] != 'https')
-          $base .= ':'.$_SERVER['SERVER_PORT'];
-      } else $base .= ':'.$_SERVER['SERVER_PORT'];
-    }
-    OS_setValue('admin_install_domain', $base);
-  }
-}
-if (!$_ODATA['sp_starting']) {
-  if (!$_ODATA['admin_install_domain']) {
-    throw new Exception('Could not determine install domain. Please run this script from a web browser.');
-  } else OS_setValue('sp_starting', $_ODATA['admin_install_domain'].'/');
 }
 
 
@@ -831,10 +803,13 @@ if (!$_ODATA['sp_sitemap_hostname'] && !empty($_SERVER['HTTP_HOST']))
 if ($_ODATA['sp_sitemap_file']) {
   $sitemapPath = ($_ODATA['sp_sitemap_file'][0] == '/') ? $_ODATA['admin_install_root'] : __DIR__.'/';
   $sitemapPath .= $_ODATA['sp_sitemap_file'];
-  $sitemapPath = preg_replace(array('/\/[^\/]+\/\.\.\//', '/\/\.\//'), '/', $sitemapPath);
+  do {
+    $collapsePath = $sitemapPath;
+    $sitemapPath = preg_replace(array('/\/[^\/]+\/\.\.\//', '/\/\.\//'), '/', $sitemapPath);
+  } while ($sitemapPath != $collapsePath);
 
   // If we did not try going beyond the document_root
-  if (strpos($sitemapPath, $_ODATA['admin_install_root']) === 0) {
+  if (strpos($sitemapPath, $_ODATA['admin_install_root'].'/') === 0) {
     if (file_exists($sitemapPath)) {
       $sitemapNewFile = str_replace($_ODATA['admin_install_root'], '', $sitemapPath);
       if ($sitemapNewFile != $_ODATA['sp_sitemap_file'])

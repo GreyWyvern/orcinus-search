@@ -109,7 +109,7 @@ if ($_RDATA['s_searchable_pages']) {
   $_ORCINUS->searchable->limit_query = $_ODATA['s_limit_query'];
   $_ORCINUS->searchable->limit_term_length = $_ODATA['s_limit_term_length'];
 
-  if (empty($_REQUEST['c']) || empty($_RDATA['s_category_list'][$_REQUEST['c']]))
+  if (empty($_REQUEST['c']) || empty($_RDATA['s_category_list'][(string)$_REQUEST['c']]))
     $_REQUEST['c'] = '<none>';
 
   if (count($_RDATA['s_category_list']) > 2) {
@@ -117,14 +117,14 @@ if ($_RDATA['s_searchable_pages']) {
     $_ORCINUS->searchable->categories->category_list = array();
     foreach ($_RDATA['s_category_list'] as $category => $count) {
       $cat = new stdClass();
-      $cat->name = ($category = '<none>') ? 'All Categories' : $category;
+      $cat->name = ($category == '<none>') ? 'All Categories' : $category;
       $cat->value = $category;
       $cat->selected = ($_REQUEST['c'] == $category);
       $_ORCINUS->searchable->categories->category_list[] = $cat;
     }
   }
   
-  $_REQUEST['q'] = $_REQUEST['q'] ?? '';
+  $_REQUEST['q'] = (string)($_REQUEST['q'] ?? '');
 
   $_REQUEST['q'] = preg_replace(array('/\s/', '/ {2,}/'), ' ', trim($_REQUEST['q']));
 
@@ -253,7 +253,7 @@ if ($_RDATA['s_searchable_pages']) {
 
           // Try to gzunzip the cache data
           if (function_exists('gzuncompress'))
-            $_SDATA['cache']['data'] = gzuncompress($_SDATA['cache']['data']) ?? $_SDATA['cache']['data'];
+            $_SDATA['cache']['data'] = @gzuncompress($_SDATA['cache']['data']) ?: $_SDATA['cache']['data'];
 
           // Try to json_decode the cache data
           // If this step fails, assume there is no cache data
@@ -276,7 +276,7 @@ if ($_RDATA['s_searchable_pages']) {
 
         // Restrict by category
         if ($_REQUEST['c'] != '<none>')
-          $searchSQL .= ' AND `category`=\''.addslashes($_REQUEST['c']).'\'';
+          $searchSQL .= ' AND `category`=\''.addslashes((string)$_REQUEST['c']).'\'';
 
         // Show or do not show Orphans
         $searchSQL .= $_RDATA['s_show_orphans'];

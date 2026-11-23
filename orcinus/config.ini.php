@@ -15,5 +15,7 @@ $_RDATA['admin_password'] = 'password';
 
 // ***** INI
 // ini_set('memory_limit', '128M');
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 
 ?>
